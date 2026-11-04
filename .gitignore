@@ -1,0 +1,55 @@
+# ========================================================
+# Galaxy S8 Native Linux & Docker Project .gitignore
+# ========================================================
+
+# Large firmware images, partition dumps, and Odin archives
+*.tar
+*.tar.md5
+*.tar.gz
+*.tar.xz
+*.tar.bz2
+*.img
+*.img.lz4
+*.lz4
+*.cpio
+*.bin
+*.iso
+*.zip
+*.pdf
+
+# Firmware directories
+device_firmware/
+galaxy-s8-stock-firmwire/
+AP_G950NKSU5DVG2_*/
+meta-data/
+
+# Kernel source tree (independent git repository)
+galaxy-s8-kvm-kernel/
+
+# Compiled chroot test binaries & shared libraries
+*.so
+*.so.*
+/echo
+/echo_arm64
+/strace
+
+# Scratch binary artifacts, workdirs, and large logs
+scratch/*.img
+scratch/*.tar
+scratch/*.cpio
+scratch/*.lz4
+scratch/*.gz
+scratch/*.log
+scratch/*.txt
+scratch/ramdisk_work/
+scratch/ramdisk_root/
+scratch/magisk_boot/
+last_kmsg_switchroot_test.log
+
+# OS & Editor transients
+.DS_Store
+Thumbs.db
+*.swp
+*~
+__pycache__/
+*.py[cod]
