@@ -53,15 +53,18 @@ This document tracks known traps, debugging revelations, and solutions for the S
      ```
   2. Pre-inject your PC's `adbkey.pub` into `/data/misc/adb/adb_keys` to bypass the authorization popup.
 
-### Trap 6: Blind Odin Download Mode Misses
-* **Symptom:** Phone vibrates or boot loops instead of entering Download Mode.
-* **Cause:** Missing the exact button timing without visual screen confirmation.
-* **Lesson/Rule:**
-  1. Ensure complete power-off (hold Power + Vol Down 12 seconds with USB unplugged).
-  2. Hold **Volume Down + Bixby**.
-  3. While holding, plug in the USB cable connected to PC.
-  4. Wait 2 seconds, release buttons, and press **Volume Up** once.
-  5. Check Windows Device Manager / Odin log for `Added! [COMx]`.
+### Trap 6: Blind Odin Download Mode Entry (Verified 11-Second Plugged-In Combo)
+* **Symptom:** Unplugging the USB cable or trying to time the `Volume Up` warning prompt blindly fails when the phone is stuck in an unresponsive loop.
+* **Verified Hardware Solution:**
+  1. Keep the USB-C cable **plugged into the PC**.
+  2. Press and hold **Volume Down + Bixby + Power** all together continuously for **11 seconds**.
+  3. On `SM-G950N` (Bootloader Rev 5), holding all three buttons through the PMIC reset (~7s) for a full **11 seconds** while plugged into USB transitions the bootloader **directly into active Odin Download Mode (`PID_685D` on `COM17`)** with **NO need to unplug the cable and NO need to press `Volume Up`**.
+
+### Trap 10: Standalone BusyBox `/init` Kills USB Gadget Handshake & The 46 MB `recovery.img` Padding Myth
+* **Symptom:** Replacing Android/TWRP's `/init` binary with a custom BusyBox `/init` script leaves USB completely dead (`adb` and `PID_6860` never enumerate), while flashing `recovery.img` (46.0 MB) directly to `BOOT` (`sda7`, 40.0 MB limit) fails in Odin.
+* **Root Causes:**
+  1. TWRP's `adbd` requires Android's native `/init` property service (`/dev/socket/property_service`) and `ueventd`. `adbd` sets `sys.usb.ffs.ready=1` after opening `/dev/usb-ffs/adb/ep0`, which triggers `init.recovery.usb.rc` to bind `10c00000.dwc3` to `UDC` and enable `/sys/class/android_usb/android0/enable`. Without Android `/init` as PID 1, USB never turns on.
+  2. `recovery.img` inside `recovery_restore.tar` is `48,234,496` bytes (`46.0 MB`) ONLY because it was a raw `dd` dump of the 46 MB `sda8` partition containing **`7,714,816` bytes (`7.36 MB`) of trailing `0x00` zeroes**. The actual Android Boot Image (Header + Kernel + LZMA Ramdisk + DTB) is only **`40,519,680` bytes (`38.64 MB`)**, which fits inside `BOOT` (`sda7`, `41,943,040` bytes) with `1.36 MB` to spare without modifying a single byte of TWRP!
 
 ---
 

@@ -70,14 +70,13 @@ make -j$(nproc)
 ## 3. Headless Blind Flashing (Odin Download Mode)
 
 Because the phone has no screen:
-1. Ensure the phone is completely off (hold **Power + Volume Down** for 12 seconds with USB cable disconnected).
-2. Press and hold **Volume Down + Bixby**.
-3. Plug in the USB-C cable connected to the host PC.
-4. Release buttons, then press **Volume Up** once to confirm entry into Download Mode.
-5. In Odin on PC:
-   - Verify `ID:COM` turns blue/green with status `Added!`.
-   - Place the `.tar` image into the **AP** slot.
-   - Click **Start**. The phone will flash and reboot automatically.
+1. Keep the USB-C cable **plugged into the host PC**.
+2. Press and hold **Volume Down + Bixby + Power** all together continuously for **11 seconds**.
+   - On `SM-G950N` (Rev 5), holding all three buttons through the PMIC reset (~7s) for a full 11 seconds while plugged in transitions the phone **directly into Odin Download Mode (`PID_685D` on `COM17`)** without needing to unplug the cable or press `Volume Up`.
+3. In Odin on PC:
+   - Verify `ID:COM` turns blue (`0:[COM17]`).
+   - Place the POSIX USTAR `.tar` image (e.g., `boot_twrp_exact.tar`) into the **AP** slot.
+   - Click **Start**. The phone will flash and reboot automatically into headless root ADB (`ce10171ab3e9620804`).
 
 ---
 

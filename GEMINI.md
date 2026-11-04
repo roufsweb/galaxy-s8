@@ -34,6 +34,7 @@ These rules apply to all tasks and agent interactions in this workspace (`e:\rou
 ## 4. Headless & Screenless Operating Principles
 * **Never assume physical touch or display interaction:** Internal display does not exist. Never refer to on-screen visuals. Bypass Google/Samsung setup wizards in Android, disable screen locks, and enable persistent ADB by default (`persist.sys.usb.config=mtp,adb`).
 * **Hardware Button Timing:** Because there is no screen, button press combinations must be described with exact time durations in seconds and vibration motor sensations.
+  - **Verified Download Mode Entry (`COM17` / `PID_685D`):** While the USB-C cable is **plugged in**, hold **Volume Down + Bixby + Power** all together for **11 seconds**. This puts the phone directly into Odin Download Mode (`COM17`) without needing to unplug the cable or press `Volume Up`.
 * **Video Output:** The device supports native DisplayPort 1.2 Alternate Mode over USB Type-C. Guide the user to use a powered USB-C hub with HDMI out and keyboard/mouse.
 * **Emergency Shell:** TWRP must always have insecure `adbd` active on boot as a rescue environment.
 

@@ -270,6 +270,26 @@
   - Zero trial killswitches (clean PMIC charging verified at 530 mA, 3.90 V).
   Extract the kernel and DTB from `recovery.img` and package with the switchroot ramdisk into `boot.img` for `/dev/block/sda7`.
 
+---
+
+## 17. Finding: Why Standalone BusyBox `/init` Kills USB & The 46.0 MB `recovery.img` Padding Discovery
+* **Severity:** Critical (Prevents USB enumeration on custom ramdisks; explains Task 11 Odin size rejection)
+* **Discovery Date:** 2026-11-04
+* **Root Cause Analysis:**
+  1. **Android Property Service Handshake for `adbd`:** TWRP's `sbin/adbd` cannot bring up the Exynos DWC3 USB gadget inside a standalone BusyBox `/init` script. In TWRP (`init.recovery.usb.rc`), `adbd` opens `/dev/usb-ffs/adb/ep0` and sets `sys.usb.ffs.ready=1` via Android's `/dev/socket/property_service` (hosted by Android's `/init` daemon). Only when Android `/init` receives `sys.usb.ffs.ready=1` does it write `"10c00000.dwc3"` to `/sys/kernel/config/usb_gadget/g1/UDC` and `1` to `/sys/class/android_usb/android0/enable`. Without Android `/init` and `ueventd` running as PID 1, USB remains unpowered.
+  2. **The 46.0 MB `recovery.img` Zero-Padding Myth:** In `recovery_restore.tar`, `recovery.img` is `48,234,496` bytes (`46.0 MB`) ONLY because it was a raw `dd` dump of the entire 46 MB `/dev/block/sda8` (`RECOVERY`) partition. Inspecting the Android Boot Image header (`kernel_size=29,382,520`, `ramdisk_size=10,902,908`, `dt_size=231,424`, `page_size=2048`) proved that the actual image ends at byte **`40,519,680` (`38.64 MB`)**, and the trailing **`7,714,816` bytes (`7.36 MB`) are 100% `0x00` zeroes**.
+* **Permanent Fix & Solution (`boot_twrp_exact.tar`):**
+  Truncate `recovery.img` to its exact `40,519,680`-byte (`38.64 MB`) page boundary (`boot_twrp_exact.tar`). This fits cleanly inside `BOOT` (`sda7`, `41,943,040` bytes = `40.00 MB`) with `1.36 MB` to spare while keeping 100% of TWRP's header, kernel, LZMA ramdisk, Android `/init`, `ueventd`, and `adbd` byte-for-byte intact. Both `BOOT` (`sda7`) and `RECOVERY` (`sda8`) now boot into automatic root ADB (`ce10171ab3e9620804`) without requiring any hardware button combinations.
+
+---
+
+## 18. Finding: Verified 11-Second Plugged-In Download Mode Combo (`SM-G950N` Rev 5)
+* **Severity:** High (Operational Reliability on Screenless Device)
+* **Discovery Date:** 2026-11-04
+* **Root Cause Analysis & Solution:**
+  While the USB-C cable is **plugged into the PC**, holding **Volume Down + Bixby + Power** all together continuously for **11 seconds** forces the PMIC reset (~7s) and transitions S-Boot (`G950NKSU5DVG2`) **directly into active Odin Download Mode (`PID_685D` on `COM17`)** without needing to unplug the USB cable or press `Volume Up`.
+
+
 
 
 

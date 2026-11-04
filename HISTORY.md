@@ -192,14 +192,26 @@
 
 ---
 
+### Task 20: Breakthrough `boot_twrp_exact.tar` (`38.64 MB`) & Automatic Boot into Ubuntu 20.04.5 LTS ARM64
+* **Date:** 2026-11-04
+* **Discovery:**
+  - Standalone BusyBox `/init` ramdisks on `sda7` failed to enumerate USB because TWRP's `adbd` requires Android's `/init` property service (`sys.usb.ffs.ready=1`) and `ueventd` (`init.recovery.usb.rc`) to bind `10c00000.dwc3` to `UDC` and enable `/sys/class/android_usb/android0/enable`.
+  - Inspecting `recovery.img` (`48,234,496` bytes = `46.0 MB`) inside `recovery_restore.tar` revealed that the actual Android Boot Image (Header + Kernel + LZMA Ramdisk + DTB) ends at byte **`40,519,680` (`38.64 MB`)**, and the trailing `7,714,816` bytes (`7.36 MB`) are 100% `0x00` zeroes from a raw `dd` dump of `sda8`.
+* **Execution & Verification:**
+  - User entered Download Mode (`COM17`, `PID_685D`) using the verified 11-second plugged-in combo (**Volume Down + Bixby + Power** held together for 11 seconds while plugged into USB—no unplugging and no `Volume Up` required).
+  - Built and flashed `boot_twrp_exact.tar` (`40,529,920` bytes) containing the exact `40,519,680`-byte unmodified TWRP image as `boot.img` to `BOOT` (`sda7`, `40.0 MB` limit).
+  - Phone booted automatically from `BOOT` (`sda7`) on normal startup without any button presses, enumerated as `Galaxy S8` (`ce10171ab3e9620804`), and launched live **Ubuntu 20.04.5 LTS ARM64** (`Linux 4.4.111 aarch64`, 8 cores, 3.48 GB RAM, 9.6 GB free on `/dev/block/loop0`) via `ubuntu_shell.bat`.
+
+---
+
 ## 3. What Worked (Verified Best Practices)
 
-1. **Hardware Rescue Handshake:**
-   * Unplug cable $\rightarrow$ Hold **Volume Down + Bixby** $\rightarrow$ Plug cable to PC $\rightarrow$ Tap **Volume Up** once $\rightarrow$ Enters Download Mode reliably on `PID_685D`.
-2. **Safe Charging State:**
-   * Holding device in Download Mode guarantees continuous charging without brownouts or kernel crash loops.
-3. **Recovery Rescue Console:**
-   * TWRP 3.7.0 (`recovery_restore.tar`) provides guaranteed root ADB access and stable battery charging without depending on Android framework state.
+1. **Verified 11-Second Plugged-In Download Mode Entry (`COM17` / `PID_685D`):**
+   * Keep USB-C cable **plugged into PC** $\rightarrow$ Hold **Volume Down + Bixby + Power** all together continuously for **11 seconds** $\rightarrow$ Transitions directly into Odin Download Mode (`COM17`) without unplugging or pressing `Volume Up`.
+2. **Automatic Headless Boot on `BOOT` (`sda7`) via `boot_twrp_exact.tar` (`38.64 MB`):**
+   * Trimming the `7.36 MB` of trailing `0x00` `dd` padding from `recovery.img` produces a `38.64 MB` image that flashes cleanly to `BOOT` (`sda7`) and boots into automatic root ADB (`ce10171ab3e9620804`) on every power-on with zero button combinations.
+3. **Ubuntu 20.04.5 LTS ARM64 (`glibc 2.31`) via `ubuntu_shell.bat`:**
+   * Mounting `/dev/block/sda24` (`/data`) and `/data/linux/rootfs.img` (`/mnt/ubuntu`) with `env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` provides a rock-solid, zero-segfault Ubuntu 20.04 ARM64 environment on all 8 Exynos 8895 cores.
 4. **Tar Packaging:**
    * Always package Odin tars using `format=tarfile.USTAR_FORMAT`.
 5. **Virtualization Rules:**
@@ -209,23 +221,19 @@
 
 ## 4. What Failed & Must Never Be Repeated
 
-1. **Never run unlicensed A2N kernel:** It actively cuts PMIC battery charging after 3 minutes.
-2. **Never enable `CONFIG_KVM=y`:** S-Boot reserves EL2 in TrustZone; `hvc` instructions trigger instantaneous `sec_debug` hardware panic.
-3. **Never flash pure stock `boot.img` on modified `/data`:** dm-verity and Knox DEFEX will panic on boot.
-4. **Never boot the OS with battery below 3.5V:** Always trickle-charge in Download Mode first to prevent brownout bootloops.
+1. **Never replace Android `/init` with a standalone BusyBox `/init` script on `sda7`:** Without Android `/init` property service (`sys.usb.ffs.ready=1`) and `ueventd`, the Exynos DWC3 USB gadget never enables.
+2. **Never run unlicensed A2N kernel:** It actively cuts PMIC battery charging after 3 minutes.
+3. **Never enable `CONFIG_KVM=y`:** S-Boot reserves EL2 in TrustZone; `hvc` instructions trigger instantaneous `sec_debug` hardware panic.
+4. **Never flash pure stock `boot.img` with custom ramdisks:** Stock kernel has `CONFIG_SECURITY_DEFEX=y` (SafePlace), which blocks `/bin/busybox` and panics PID 1.
 5. **Never rely on PAX tar archives with Odin:** Odin strictly requires POSIX USTAR format.
 
 ---
 
 ## 5. Asset & Partition Inventory
 
-* `boot_and_recovery_headless.tar` (84.9 MB): Combined unified Odin archive in POSIX USTAR format containing headless auto-ADB `boot.img` (35.01 MB) and TWRP 3.7.0 `recovery.img` (46.00 MB).
-* `twrp_as_boot.tar` (48.2 MB): TWRP 3.7.0 packaged as `boot.img` in USTAR format for automatic headless root ADB on power-on.
-* `boot_stock_magisk.tar` (36.7 MB): Hybrid stock kernel + Magisk ramdisk in USTAR format.
+* `boot_twrp_exact.tar` (40.5 MB): **Active Verified Primary `BOOT` (`sda7`) Image** — Exact unmodified TWRP 3.7.0 (`40,519,680` bytes = `38.64 MB`, trailing `dd` zeroes trimmed) in USTAR format for automatic headless root ADB on every power-on.
+* `ubuntu_shell.bat`: One-click Windows launcher that mounts `/dev/block/sda24` (`/data`) and `/data/linux/rootfs.img` (`/mnt/ubuntu`) and enters the interactive Ubuntu 20.04.5 LTS ARM64 root shell.
+* `recovery_restore.tar` (48.2 MB): Official TWRP 3.7.0 recovery on `RECOVERY` (`sda8`) in USTAR format.
 * `boot_stock.tar` (37.3 MB): Clean official Samsung stock kernel (Rev 5) in USTAR format.
-* `recovery_restore.tar` (48.2 MB): Official TWRP 3.7.0 recovery in USTAR format.
-* `boot_backup_live.img` (41.9 MB): Original live working A2N boot image dumped from device.
-* `recovery_backup_live.img` (48.2 MB): Original TWRP recovery dump from device.
-* `boot_linux_switchroot.img` (41.9 MB): Repacked switch-root boot image targeting `/data/linux/rootfs.img`.
-* `/data/linux/rootfs.img` (10 GB sparse): Deployed Alpine Linux 3.20 rootfs with native Docker engine.
+* `/data/linux/rootfs.img` (10 GB sparse on `sda24`): Deployed **Ubuntu 20.04.5 LTS ARM64** (`glibc 2.31`) rootfs.
 
