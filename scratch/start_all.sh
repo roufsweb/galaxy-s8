@@ -1,109 +1,129 @@
 #!/sbin/sh
-# Master Startup Script for Native Ubuntu 24.04.5 LTS (Noble Numbat) + macOS Sonoma GUI on Samsung Galaxy S8 (SM-G950N)
-export PATH=/sbin:/system/bin:/system/xbin:/usr/bin:/bin
-export TMPDIR=/tmp
-mkdir -p /tmp /mnt/ubuntu
+# ==============================================================================
+# Galaxy S8 (SM-G950N) Native Ubuntu 24.04.5 LTS Master Service Supervisor
+# ==============================================================================
+export PATH=/sbin:/system/bin:/system/xbin:/vendor/bin
 
-echo "=== [1/5] Configuring MAX77865 PMIC Charger & Battery Management ==="
-if [ -e /sys/class/power_supply/max77865-charger/data ]; then
-    echo "0xBD 0x6C" > /sys/class/power_supply/max77865-charger/data 2>/dev/null
-    echo "0xC3 0x61" > /sys/class/power_supply/max77865-charger/data 2>/dev/null
-    echo "0xB7 0x05" > /sys/class/power_supply/max77865-charger/data 2>/dev/null
-    echo 1500 > /sys/class/power_supply/battery/batt_tune_input_charge_current 2>/dev/null
-    echo 2000 > /sys/class/power_supply/battery/batt_tune_fast_charge_current 2>/dev/null
-    echo 0 > /sys/class/power_supply/battery/batt_slate_mode 2>/dev/null
-fi
-echo "Battery: $(cat /sys/class/power_supply/battery/capacity 2>/dev/null)% ($(cat /sys/class/power_supply/battery/status 2>/dev/null), Health: $(cat /sys/class/power_supply/battery/health 2>/dev/null))"
+echo "=== [1/6] Unlocking MAX77865 PMIC Charger (1500mA Input/Fast Charge) & V4L2 Panic Guard ==="
+# CRITICAL EXYNOS 8895 KERNEL PANIC GUARD:
+# Samsung's fimc_is_ixs_video_querycap() dereferences NULL in kernel mode if GStreamer
+# (gst-plugin-scanner / pipewire / nautilus / webkit) calls VIDIOC_QUERYCAP on /dev/video100+.
+# Remove the uninitialized fimc_is /dev/video100+ nodes while keeping MFC hardware codecs (/dev/video6..9).
+rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev* 2>/dev/null || true
 
-echo "=== [2/5] Initializing Broadcom BCM4361 Wi-Fi (wlan0 -> <WIFI_SSID>) ==="
-/sbin/sh /data/linux/connect_wifi.sh
+echo "0xBD 0x6C" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
+echo "0xC3 0x61" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
+echo "0xC0 0x3C" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
+echo "0xB9 0x9E" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
+echo "0xB7 0x05" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
+echo 1500 > /sys/class/power_supply/battery/batt_tune_input_charge_current 2>/dev/null || true
+echo 1500 > /sys/class/power_supply/battery/batt_tune_fast_charge_current 2>/dev/null || true
+echo 0 > /sys/class/power_supply/battery/batt_slate_mode 2>/dev/null || true
 
-echo "=== [3/5] Mounting Ubuntu 24.04.5 LTS ARM64 & System Directories ==="
-if ! grep -q "/mnt/ubuntu " /proc/mounts; then
-    for i in 0 1 2 3 4 5 6 7; do
-        [ -b /dev/block/loop$i ] || mknod /dev/block/loop$i b 7 $i 2>/dev/null
-        [ -b /dev/loop$i ] || ln -sf /dev/block/loop$i /dev/loop$i 2>/dev/null
+BATT_CAP=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 50)
+if [ "$BATT_CAP" -lt 20 ]; then
+    echo "Battery at ${BATT_CAP}% — parking big cluster CPU5..7 and capping CPU4 to 741 MHz for fast charging..."
+    echo 741000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 2>/dev/null || true
+    for c in 5 6 7; do
+        echo 0 > /sys/devices/system/cpu/cpu${c}/online 2>/dev/null || true
     done
-    losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null
-    mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu 2>/dev/null || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
 fi
 
-mkdir -p /mnt/ubuntu/proc /mnt/ubuntu/sys /mnt/ubuntu/dev /mnt/ubuntu/dev/pts /mnt/ubuntu/dev/shm /mnt/ubuntu/run /mnt/ubuntu/run/sshd /mnt/ubuntu/tmp /mnt/ubuntu/data/local/tmp /mnt/ubuntu/vendor /mnt/ubuntu/system
-grep -q "/mnt/ubuntu/proc " /proc/mounts || mount -t proc proc /mnt/ubuntu/proc
-grep -q "/mnt/ubuntu/sys " /proc/mounts || mount -o bind /sys /mnt/ubuntu/sys
-grep -q "/mnt/ubuntu/dev " /proc/mounts || mount -o bind /dev /mnt/ubuntu/dev
-grep -q "/mnt/ubuntu/dev/pts " /proc/mounts || mount -t devpts devpts /mnt/ubuntu/dev/pts
-grep -q "/mnt/ubuntu/dev/shm " /proc/mounts || mount -t tmpfs -o size=512M tmpfs /mnt/ubuntu/dev/shm
-grep -q "/mnt/ubuntu/run " /proc/mounts || mount -t tmpfs -o size=128M,mode=755 tmpfs /mnt/ubuntu/run
-grep -q "/mnt/ubuntu/vendor " /proc/mounts || mount -o bind /system_root/vendor /mnt/ubuntu/vendor 2>/dev/null
+echo "=== [2/6] Connecting Broadcom BCM4361 Wi-Fi (<WIFI_SSID>) in Background ==="
+if [ -f /data/linux/connect_wifi.sh ]; then
+    /sbin/sh /data/linux/connect_wifi.sh </dev/null >/data/linux/wifi.log 2>&1 &
+fi
 
-mkdir -p /mnt/ubuntu/run/sshd /mnt/ubuntu/run/dbus /mnt/ubuntu/tmp /mnt/ubuntu/data/local/tmp /mnt/ubuntu/usr/local/src /mnt/ubuntu/usr/local/bin
-chmod 755 /mnt/ubuntu/run /mnt/ubuntu/run/sshd
-chown 0:0 /mnt/ubuntu/run /mnt/ubuntu/run/sshd
-chmod 1777 /mnt/ubuntu/tmp /mnt/ubuntu/data/local/tmp
+echo "=== [3/6] Mounting Ubuntu 24.04.5 LTS Rootfs (/data/linux/rootfs.img) ==="
+mkdir -p /mnt/ubuntu
+if ! mountpoint -q /mnt/ubuntu; then
+    losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null || true
+    mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
+fi
 
-# Copy latest hardware tools into Ubuntu 24.04 rootfs if present in /data/linux
-[ -f /data/linux/exynos_dp_bridge.c ] && cp -f /data/linux/exynos_dp_bridge.c /mnt/ubuntu/usr/local/src/exynos_dp_bridge.c
-[ -f /data/linux/s8ctl.py ] && cp -f /data/linux/s8ctl.py /mnt/ubuntu/usr/local/bin/s8ctl && chmod 755 /mnt/ubuntu/usr/local/bin/s8ctl
+mkdir -p /mnt/ubuntu/proc /mnt/ubuntu/sys /mnt/ubuntu/dev /mnt/ubuntu/dev/pts /mnt/ubuntu/dev/shm /mnt/ubuntu/run /mnt/ubuntu/run/dbus /mnt/ubuntu/run/user/0 /mnt/ubuntu/tmp/.X11-unix
+chmod 700 /mnt/ubuntu/run/user/0
+chmod 1777 /mnt/ubuntu/tmp /mnt/ubuntu/tmp/.X11-unix /mnt/ubuntu/dev/shm
 
-echo "=== [4/5] Starting OpenSSH, macOS Sonoma Desktop, TigerVNC (:5901), noVNC (:6080), USB-C DP Bridge & Docker ==="
-chroot /mnt/ubuntu /bin/bash -c '
+mountpoint -q /mnt/ubuntu/proc || mount -t proc proc /mnt/ubuntu/proc
+mountpoint -q /mnt/ubuntu/sys || mount -t sysfs sysfs /mnt/ubuntu/sys
+mountpoint -q /mnt/ubuntu/dev || mount -o bind /dev /mnt/ubuntu/dev
+mountpoint -q /mnt/ubuntu/dev/pts || mount -t devpts devpts /mnt/ubuntu/dev/pts
+mountpoint -q /mnt/ubuntu/dev/shm || mount -t tmpfs -o size=512M tmpfs /mnt/ubuntu/dev/shm
+
+echo "=== [4/6] Installing Hardware Tools (s8ctl + exynos_dp_bridge) ==="
+mkdir -p /mnt/ubuntu/usr/local/bin /mnt/ubuntu/usr/local/src /mnt/ubuntu/var/log/gnome_apps
+if [ -f /data/linux/s8ctl.py ]; then
+    cp /data/linux/s8ctl.py /mnt/ubuntu/usr/local/bin/s8ctl
+    chmod +x /mnt/ubuntu/usr/local/bin/s8ctl
+fi
+if [ -f /data/linux/exynos_dp_bridge.c ]; then
+    cp /data/linux/exynos_dp_bridge.c /mnt/ubuntu/usr/local/src/exynos_dp_bridge.c
+fi
+
+echo "=== [5/6] Starting Ubuntu 24.04.5 LTS Services & GNOME 46 macOS Sonoma Desktop ==="
+chroot /mnt/ubuntu /bin/bash -c "
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export HOME=/root
 export USER=root
-export TMPDIR=/tmp
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export DISPLAY=:1
 
-# Ensure DNS
-rm -f /etc/resolv.conf
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
-echo "nameserver 1.1.1.1" >> /etc/resolv.conf
-
-# Start OpenSSH
-mkdir -p /run/sshd
-chmod 755 /run /run/sshd
-/usr/sbin/sshd </dev/null >/dev/null 2>&1
-
-# Start D-Bus
-mkdir -p /run/dbus
+# 1. Start D-Bus system daemon
 rm -f /run/dbus/pid
-dbus-daemon --system --fork </dev/null >/dev/null 2>&1
+dbus-daemon --system --fork </dev/null >/dev/null 2>&1 || true
 
-# Configure VNC password (ubuntu) & start macOS Sonoma XFCE4 + Plank + TigerVNC + noVNC
+# 2. Start OpenSSH Server (:22)
+mkdir -p /run/sshd
+/usr/sbin/sshd </dev/null >/dev/null 2>&1 || true
+
+# 3. Compile Exynos 8895 USB-C DisplayPort / HDMI Bridge if gcc is installed
+if [ -f /usr/local/src/exynos_dp_bridge.c ] && command -v gcc >/dev/null 2>&1; then
+    gcc -O3 /usr/local/src/exynos_dp_bridge.c -o /usr/local/bin/exynos_dp_bridge -lX11 -lXext 2>/dev/null || true
+    chmod +x /usr/local/bin/exynos_dp_bridge 2>/dev/null || true
+fi
+
+# 4. Start TigerVNC X11 Server (:1 -> port 5901, 1920x1080 24-bit)
 mkdir -p /root/.vnc
-echo ubuntu | vncpasswd -f > /root/.vnc/passwd
-chmod 600 /root/.vnc/passwd
-if ! ps w | grep -v grep | grep -q "Xtigervnc :1"; then
+if [ ! -f /root/.vnc/passwd ]; then
+    echo ubuntu | vncpasswd -f > /root/.vnc/passwd
+    chmod 600 /root/.vnc/passwd
+fi
+
+if ! pgrep -x Xtigervnc >/dev/null 2>&1; then
     rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
-    Xtigervnc :1 -desktop "Galaxy S8 macOS Sonoma (Ubuntu 24.04 LTS)" -geometry 1920x1080 -depth 24 -rfbauth /root/.vnc/passwd -rfbport 5901 -localhost no -SecurityTypes VncAuth,TLSVnc </dev/null >/var/log/xtigervnc.log 2>&1 &
+    Xtigervnc :1 -geometry 1920x1080 -depth 24 -rfbport 5901 -PasswordFile /root/.vnc/passwd -AlwaysShared -AcceptKeyEvents -AcceptPointerEvents -SecurityTypes VncAuth </dev/null >/var/log/Xtigervnc.log 2>&1 &
     sleep 2
-    DISPLAY=:1 /bin/bash /root/.vnc/xstartup </dev/null >/var/log/xstartup.log 2>&1 &
 fi
 
-if ! ps w | grep -v grep | grep -q "websockify.*6080"; then
-    websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 </dev/null >/var/log/websockify.log 2>&1
+# 5. Launch GNOME 46 macOS Sonoma Desktop
+if [ -x /usr/local/bin/start_gnome_macos.sh ]; then
+    /usr/local/bin/start_gnome_macos.sh </dev/null >/var/log/start_gnome_macos.log 2>&1
 fi
 
-# Compile and start Exynos USB-C DisplayPort / HDMI Bridge (fb2 + /dev/ion)
-if [ -f /usr/local/src/exynos_dp_bridge.c ] && [ ! -x /usr/local/bin/exynos_dp_bridge ]; then
-    gcc -O3 /usr/local/src/exynos_dp_bridge.c -o /usr/local/bin/exynos_dp_bridge -lX11 -lXext 2>/var/log/dp_build.log
-fi
-if [ -x /usr/local/bin/exynos_dp_bridge ] && ! ps w | grep -v grep | grep -q "exynos_dp_bridge"; then
-    nohup /usr/local/bin/exynos_dp_bridge :1 /dev/graphics/fb2 </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
+# 6. Start noVNC / Websockify (:6080 -> localhost:5901)
+if ! pgrep -f 'websockify.*6080' >/dev/null 2>&1; then
+    websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 </dev/null >/dev/null 2>&1 || true
 fi
 
-# Start Docker Engine
-mkdir -p /sys/fs/cgroup/devices /sys/fs/cgroup/systemd
-mount -t cgroup -o none,name=devices cgroup /sys/fs/cgroup/devices 2>/dev/null || true
-mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd 2>/dev/null || true
-if ! ps w | grep -v grep | grep -q "dockerd"; then
-    nohup dockerd --storage-driver=vfs --iptables=false --bridge=none </dev/null >/var/log/dockerd.log 2>&1 &
+# 7. Start Exynos USB-C DisplayPort / HDMI Hotplug Daemon
+if [ -x /usr/local/bin/exynos_dp_bridge ] && ! pgrep -x exynos_dp_bridge >/dev/null 2>&1; then
+    nohup /usr/local/bin/exynos_dp_bridge </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
 fi
-'
 
-# Haptic double-pulse to signal Headless Ubuntu 24.04 + macOS Sonoma Desktop Ready
-echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null
-sleep 0.3
-echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null
+# 8. Start Docker Engine
+if command -v dockerd >/dev/null 2>&1 && ! pgrep -x dockerd >/dev/null 2>&1; then
+    for cg in cpu cpuacct memory devices freezer blkio pids; do
+        mkdir -p /sys/fs/cgroup/\$cg
+        mountpoint -q /sys/fs/cgroup/\$cg || mount -t cgroup -o \$cg cgroup /sys/fs/cgroup/\$cg 2>/dev/null || true
+    done
+    nohup dockerd --iptables=false --bridge=none --storage-driver=vfs </dev/null >/var/log/dockerd.log 2>&1 &
+fi
+"
 
-echo "=== [5/5] All Native Ubuntu 24.04.5 LTS Services Ready ==="
-ip -4 addr show wlan0 | grep inet
+echo "=== [6/6] Signaling Headless Ready (Double Haptic Vibration) ==="
+echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
+sleep 1
+echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
+echo "Ubuntu 24.04.5 LTS + GNOME 46 macOS Sonoma Desktop Ready!"

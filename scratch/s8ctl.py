@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 s8ctl — Samsung Galaxy S8 (SM-G950N, Exynos 8895) Native Hardware Control Suite
 Controls every hardware subsystem on the Galaxy S8:

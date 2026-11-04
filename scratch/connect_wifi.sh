@@ -59,7 +59,7 @@ done
 echo "[*] Requesting DHCP lease on wlan0..."
 printf '#!/sbin/sh\ncase "$1" in\n  deconfig)\n    ip addr flush dev $interface\n    ;;\n  bound|renew)\n    ip addr flush dev $interface\n    ip addr add $ip/$mask dev $interface\n    if [ -n "$router" ]; then\n      for r in $router; do\n        ip route add default via $r dev $interface 2>/dev/null\n      done\n    fi\n    echo "nameserver 8.8.8.8" > /etc/resolv.conf\n    echo "nameserver 1.1.1.1" >> /etc/resolv.conf\n    if [ -d /mnt/ubuntu/etc ]; then\n      rm -f /mnt/ubuntu/etc/resolv.conf\n      echo "nameserver 8.8.8.8" > /mnt/ubuntu/etc/resolv.conf\n      echo "nameserver 1.1.1.1" >> /mnt/ubuntu/etc/resolv.conf\n    fi\n    ;;\nesac\n' > /tmp/udhcpc.script
 chmod 755 /tmp/udhcpc.script
-/sbin/busybox udhcpc -i wlan0 -s /tmp/udhcpc.script -n -q </dev/null
+/sbin/busybox udhcpc -i wlan0 -s /tmp/udhcpc.script -t 4 -T 2 -n -q </dev/null
 
 echo "=== WLAN0 STATUS ==="
 ip -4 addr show wlan0
