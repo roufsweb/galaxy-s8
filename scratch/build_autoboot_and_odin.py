@@ -1,22 +1,13 @@
 #!/usr/bin/env python3
 """
 build_autoboot_and_odin.py — Builds the Auto-Booting Galaxy S8 boot.img (for /dev/block/sda7)
-and the 1-Click Odin Flashable Package (Ubuntu_24.04_GalaxyS8_Full_Odin.tar).
-
-How it works:
-  1. Extracts boot.img from boot_twrp_exact.tar (38.64 MB, DEFEX-free 4.4.111 kernel).
-  2. Parses the ANDROID! header (page_size=2048, SRPPK29D005KU, dt_size, cmdline).
-  3. Decompresses the LZMA ramdisk CPIO archive (newc format).
-  4. Appends an 'ubuntu_boot' service to init.recovery.samsungexynos8895.rc triggered
-     automatically on 'property:sys.usb.ffs.ready=1' (after USB gadget + adbd are live)
-     so /data/linux/start_all.sh runs automatically on every boot with zero manual steps.
-  5. Repacks the LZMA ramdisk + ANDROID! boot.img + SEANDROIDENFORCE footer.
-  6. Creates Ubuntu_24.04_GalaxyS8_Full_Odin.tar (USTAR format for Odin AP slot).
+with embedded Calliope DSP Audio Firmware (all 9 SRAM, DRAM, IVA, and extra firmware binaries),
+proper CPIO directory structure (etc/firmware and vendor/firmware), early /system_root mounting
+in permissive.sh, 1500mA Fast Charging, V4L2 ISP Kernel Panic Guard, and 1-Click Odin Package.
 """
-import io
-import lzma
 import os
 import struct
+import lzma
 import tarfile
 
 WORKSPACE = r"e:\rouf\galaxy-s8"
@@ -39,17 +30,66 @@ service ubuntu_boot /sbin/sh /data/linux/start_all.sh
     seclabel u:r:recovery:s0
 """
 
+PERMISSIVE_SH_NEW = b"""#!/sbin/sh
+setenforce 0
+
+# Early Audio DSP and Wi-Fi Firmware mount for ABOX & BCM4361
+mkdir -p /system_root /etc/firmware /data
+mount -o ro /dev/block/sda17 /system_root 2>/dev/null
+rm -rf /vendor
+ln -s /system_root/vendor /vendor 2>/dev/null || true
+mount -o bind /system_root/vendor/firmware /etc/firmware 2>/dev/null || true
+
+/sbin/sh -c '
+while [ ! -f /data/linux/start_all.sh ]; do
+    mount /dev/block/sda24 /data 2>/dev/null
+    sleep 1
+done
+/sbin/sh /data/linux/start_all.sh
+' </dev/null >/tmp/autoboot.log 2>&1 &
+"""
+
+ALL_FIRMWARES = (
+    "calliope_sram.bin",
+    "calliope_dram.bin",
+    "calliope_iva.bin",
+    "dsm.bin",
+    "AP_AUDIO_SLSI.bin",
+    "APBargeIn_AUDIO_SLSI.bin",
+    "SoundBoosterParam.bin",
+    "APBiBF_AUDIO_SLSI.bin",
+    "dsm_tune.bin"
+)
 
 def align_up(val: int, align: int) -> int:
     return (val + align - 1) & ~(align - 1)
 
+def make_cpio_entry(filename: str, data: bytes = b"", mode: int = 0o100644, ino: int = 200) -> bytes:
+    name_bytes = filename.encode("ascii") + b"\x00"
+    filesize = len(data)
+    header = f"070701{ino:08X}{mode:08X}{0:08X}{0:08X}{1:08X}{0:08X}{filesize:08X}{0:08X}{0:08X}{0:08X}{0:08X}{len(name_bytes):08X}{0:08X}".encode("ascii")
+    entry = bytearray()
+    entry.extend(header)
+    entry.extend(name_bytes)
+    entry.extend(b"\x00" * (align_up(len(entry), 4) - len(entry)))
+    entry.extend(data)
+    entry.extend(b"\x00" * (align_up(len(entry), 4) - len(entry)))
+    return bytes(entry)
 
-def patch_cpio_newc(cpio_bytes: bytes, target_name: bytes, append_bytes: bytes) -> bytes:
-    """Finds target_name inside an SVR4 newc CPIO archive and appends append_bytes to its content."""
+SKIP_FILES = {
+    b"twres/fonts/DroidSansFallback.ttf",
+    b"./twres/fonts/DroidSansFallback.ttf",
+    b"twres/fonts/NotoSansCJKjp-Regular.ttf",
+    b"./twres/fonts/NotoSansCJKjp-Regular.ttf",
+    b"sbin/libclang_rt.ubsan_standalone-aarch64-android.so",
+    b"./sbin/libclang_rt.ubsan_standalone-aarch64-android.so",
+}
+
+def patch_cpio_archive(cpio_bytes: bytes) -> bytes:
     out = bytearray()
     pos = 0
     n = len(cpio_bytes)
-    patched = False
+    trailer_pos = -1
 
     while pos + 110 <= n:
         magic = cpio_bytes[pos:pos + 6]
@@ -68,32 +108,70 @@ def patch_cpio_newc(cpio_bytes: bytes, target_name: bytes, append_bytes: bytes) 
         data_end = data_start + filesize
         data_aligned = align_up(data_end, 4)
 
-        if name_raw == target_name or name_raw == b"./" + target_name:
+        if name_raw == b"TRAILER!!!":
+            trailer_pos = pos
+            break
+
+        if name_raw in SKIP_FILES:
+            print(f"[-] Trimming bloated TWRP asset: {name_raw.decode('latin1')} ({filesize} bytes)")
+            pos = data_aligned
+            continue
+
+        if name_raw in (b"init.rc", b"./init.rc"):
             orig_data = cpio_bytes[data_start:data_end]
             if b"service ubuntu_boot" not in orig_data:
-                new_data = orig_data + append_bytes
+                new_data = orig_data + AUTOBOOT_RC_SNIPPET
             else:
                 new_data = orig_data
             new_filesize_hex = f"{len(new_data):08X}".encode("ascii")
             new_header = header[:54] + new_filesize_hex + header[62:]
-
             out.extend(new_header)
             out.extend(cpio_bytes[name_start:name_aligned])
             out.extend(new_data)
-            pad_len = align_up(len(out), 4) - len(out)
-            out.extend(b"\x00" * pad_len)
-            patched = True
+            out.extend(b"\x00" * (align_up(len(out), 4) - len(out)))
+        elif name_raw in (b"sbin/permissive.sh", b"./sbin/permissive.sh"):
+            new_data = PERMISSIVE_SH_NEW
+            new_filesize_hex = f"{len(new_data):08X}".encode("ascii")
+            new_header = header[:54] + new_filesize_hex + header[62:]
+            out.extend(new_header)
+            out.extend(cpio_bytes[name_start:name_aligned])
+            out.extend(new_data)
+            out.extend(b"\x00" * (align_up(len(out), 4) - len(out)))
+            print("[+] Patched sbin/permissive.sh with early firmware mount")
         else:
             out.extend(cpio_bytes[pos:data_aligned])
 
         pos = data_aligned
-        if name_raw == b"TRAILER!!!":
-            break
 
-    if not patched:
-        raise RuntimeError(f"Could not find {target_name!r} in ramdisk CPIO archive")
+    if trailer_pos < 0:
+        raise RuntimeError("Could not find TRAILER!!! in CPIO archive")
+
+    # Inhibit Directory structure: etc/firmware and vendor/firmware
+    ino_counter = 1000
+    out.extend(make_cpio_entry("etc/firmware", b"", mode=0o040755, ino=ino_counter))
+    ino_counter += 1
+    out.extend(make_cpio_entry("vendor", b"", mode=0o040755, ino=ino_counter))
+    ino_counter += 1
+    out.extend(make_cpio_entry("vendor/firmware", b"", mode=0o040755, ino=ino_counter))
+    ino_counter += 1
+
+    # Inhibit All 9 Calliope DSP and audio firmwares directly into both directories
+    scratch_dir = os.path.join(WORKSPACE, "scratch")
+    for fw_name in ALL_FIRMWARES:
+        fw_path = os.path.join(scratch_dir, fw_name)
+        if os.path.exists(fw_path):
+            with open(fw_path, "rb") as fp:
+                fw_data = fp.read()
+            out.extend(make_cpio_entry(f"etc/firmware/{fw_name}", fw_data, mode=0o100644, ino=ino_counter))
+            ino_counter += 1
+            out.extend(make_cpio_entry(f"vendor/firmware/{fw_name}", fw_data, mode=0o100644, ino=ino_counter))
+            ino_counter += 1
+            print(f"[+] Injected firmware: {fw_name} ({len(fw_data)} bytes)")
+        else:
+            print(f"[!] Warning: firmware {fw_name} not found in {scratch_dir}")
+
+    out.extend(cpio_bytes[trailer_pos:])
     return bytes(out)
-
 
 def build_autoboot():
     with tarfile.open(SRC_TAR, "r") as t:
@@ -109,35 +187,42 @@ def build_autoboot():
     s_off = r_off + align_up(r_size, page_size)
     dt_off = s_off + align_up(s_size, page_size)
 
-    kernel_blob = boot_bytes[k_off:k_off + k_size]
+    custom_kernel_path = os.path.join(WORKSPACE, "scratch", "Image_native_docker")
+    if os.path.exists(custom_kernel_path):
+        with open(custom_kernel_path, "rb") as fk:
+            kernel_blob = fk.read()
+        k_size = len(kernel_blob)
+        print(f"[+] Using custom DEFEX-free native Docker & Bluetooth kernel: {custom_kernel_path} ({k_size} bytes)")
+    else:
+        kernel_blob = boot_bytes[k_off:k_off + k_size]
+
     ramdisk_blob = boot_bytes[r_off:r_off + r_size]
     second_blob = boot_bytes[s_off:s_off + s_size]
     dt_blob = boot_bytes[dt_off:dt_off + dt_size]
 
-    print(f"[*] Original boot.img: kernel={k_size}B, ramdisk={r_size}B, dt={dt_size}B, page_size={page_size}")
+    print(f"[*] Original boot: kernel={k_size} B, ramdisk={r_size} B, dt={dt_size} B, page={page_size}")
 
+    # Decompress CPIO ramdisk
     cpio_raw = lzma.decompress(ramdisk_blob)
     print(f"[*] Decompressed ramdisk CPIO: {len(cpio_raw)} bytes")
 
-    patched_cpio = patch_cpio_newc(cpio_raw, b"init.rc", AUTOBOOT_RC_SNIPPET)
-    print(f"[*] Patched init.rc: {len(patched_cpio)} bytes")
+    patched_cpio = patch_cpio_archive(cpio_raw)
+    print(f"[*] Patched CPIO with firmware: {len(patched_cpio)} bytes")
 
-    # Compress back to legacy LZMA (.lzma format with EOS marker so kernel decompress_unlzma handles it cleanly)
+    # Compress with LZMA alone format (preset 9 for max compression)
     new_ramdisk = lzma.compress(
         patched_cpio,
         format=lzma.FORMAT_ALONE,
-        filters=[{"id": lzma.FILTER_LZMA1, " preset": 6, "dict_size": 8 * 1024 * 1024}]
-        if False else [{"id": lzma.FILTER_LZMA1, "preset": 6}],
+        filters=[{"id": lzma.FILTER_LZMA1, "preset": 9}]
     )
-    print(f"[*] Recompressed LZMA ramdisk: {len(new_ramdisk)} bytes (orig {r_size} bytes)")
+    print(f"[*] Recompressed LZMA ramdisk: {len(new_ramdisk)} bytes (delta: {len(new_ramdisk) - r_size:+d} bytes)")
 
-    # Rebuild header with updated r_size
     new_header = bytearray(boot_bytes[:page_size])
+    struct.pack_into("<I", new_header, 8, k_size)
     struct.pack_into("<I", new_header, 16, len(new_ramdisk))
 
     out = bytearray()
     out.extend(new_header)
-
     out.extend(kernel_blob)
     out.extend(b"\x00" * (align_up(len(out), page_size) - len(out)))
 
@@ -153,11 +238,11 @@ def build_autoboot():
         out.extend(b"\x00" * (align_up(len(out), page_size) - len(out)))
 
     out.extend(b"SEANDROIDENFORCE")
-    assert len(out) <= 41943040, f"Image too large for sda7: {len(out)}"
+    assert len(out) <= 41943040, f"Image too large for sda7: {len(out)} > 41943040"
 
     with open(OUT_BOOT, "wb") as f:
         f.write(out)
-    print(f"[+] Wrote auto-booting {OUT_BOOT} ({len(out)} bytes <= 41,943,040 B sda7 limit)")
+    print(f"[+] Wrote {OUT_BOOT} ({len(out)} bytes <= 41,943,040 limit, free: {41943040 - len(out)} bytes)")
 
     with tarfile.open(OUT_ODIN_TAR, "w", format=tarfile.USTAR_FORMAT) as t:
         t.add(OUT_BOOT, arcname="boot.img")
@@ -172,7 +257,5 @@ def build_autoboot():
                 t.addfile(ti, rec_file)
     print(f"[+] Created 1-Click Odin Installer: {OUT_ODIN_TAR} ({os.path.getsize(OUT_ODIN_TAR)} bytes)")
 
-
 if __name__ == "__main__":
     build_autoboot()
-

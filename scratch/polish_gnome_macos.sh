@@ -216,3 +216,4 @@ sleep 2
 scrot -o /tmp/gnome_macos_desktop.png </dev/null
 ls -lh /tmp/gnome_macos_desktop.png
 "
+

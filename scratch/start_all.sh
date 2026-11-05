@@ -4,6 +4,13 @@
 # ==============================================================================
 export PATH=/sbin:/system/bin:/system/xbin:/vendor/bin
 
+# CRITICAL CGROUP ESCAPE:
+# Android init's libprocessgroup kills all child processes in the set_permissive
+# cgroup (/acct/uid_0/pid_*) when the service finishes.
+# Writing PID to /acct/tasks moves the supervisor to the root cgroup so all
+# spawned daemons (sshd, Xtigervnc, websockify, GNOME, exynos_dp_bridge) are IMMUNE.
+echo $$ > /acct/tasks 2>/dev/null || true
+
 echo "=== [1/6] Unlocking MAX77865 PMIC Charger (1500mA Input/Fast Charge) & V4L2 Panic Guard ==="
 # CRITICAL EXYNOS 8895 KERNEL PANIC GUARD:
 # Samsung's fimc_is_ixs_video_querycap() dereferences NULL in kernel mode if GStreamer
@@ -29,19 +36,20 @@ if [ "$BATT_CAP" -lt 20 ]; then
     done
 fi
 
-echo "=== [2/6] Connecting Broadcom BCM4361 Wi-Fi (<WIFI_SSID>) in Background ==="
-if [ -f /data/linux/connect_wifi.sh ]; then
-    /sbin/sh /data/linux/connect_wifi.sh </dev/null >/data/linux/wifi.log 2>&1 &
-fi
+echo "=== [2/6] Mounting Ubuntu 24.04.5 LTS Rootfs (/data/linux/rootfs.img) ==="
+# DYNAMIC STORAGE EXPANSION (64 GB vs 128 GB UFS Variants):
+# Automatically expands the ext4 filesystem on /dev/block/sda24 (USERDATA) to 100% of the
+# physical flash capacity. Adapts transparently from 54.8 GB on 64 GB models to ~112 GB
+# on 128 GB models (SM-G955N / SM-G9550 Emperor Edition).
+/sbin/resize2fs /dev/block/sda24 2>/dev/null || true
 
-echo "=== [3/6] Mounting Ubuntu 24.04.5 LTS Rootfs (/data/linux/rootfs.img) ==="
 mkdir -p /mnt/ubuntu
 if ! mountpoint -q /mnt/ubuntu; then
     losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null || true
     mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
 fi
 
-mkdir -p /mnt/ubuntu/proc /mnt/ubuntu/sys /mnt/ubuntu/dev /mnt/ubuntu/dev/pts /mnt/ubuntu/dev/shm /mnt/ubuntu/run /mnt/ubuntu/run/dbus /mnt/ubuntu/run/user/0 /mnt/ubuntu/tmp/.X11-unix
+mkdir -p /mnt/ubuntu/proc /mnt/ubuntu/sys /mnt/ubuntu/dev /mnt/ubuntu/dev/pts /mnt/ubuntu/dev/shm /mnt/ubuntu/run /mnt/ubuntu/run/dbus /mnt/ubuntu/run/user/0 /mnt/ubuntu/tmp/.X11-unix /mnt/ubuntu/var/log /mnt/ubuntu/var/log/gnome_apps
 chmod 700 /mnt/ubuntu/run/user/0
 chmod 1777 /mnt/ubuntu/tmp /mnt/ubuntu/tmp/.X11-unix /mnt/ubuntu/dev/shm
 
@@ -51,6 +59,32 @@ mountpoint -q /mnt/ubuntu/dev || mount -o bind /dev /mnt/ubuntu/dev
 mountpoint -q /mnt/ubuntu/dev/pts || mount -t devpts devpts /mnt/ubuntu/dev/pts
 mountpoint -q /mnt/ubuntu/dev/shm || mount -t tmpfs -o size=512M tmpfs /mnt/ubuntu/dev/shm
 
+# Bind high-speed 43GB UFS 2.1 data partition & activate swap
+mkdir -p /mnt/ubuntu/mnt/android_data
+mountpoint -q /mnt/ubuntu/mnt/android_data || mount -o bind /data /mnt/ubuntu/mnt/android_data 2>/dev/null || true
+if [ -f /data/swapfile ]; then
+    swapon /data/swapfile 2>/dev/null || true
+fi
+
+# Auto-detect and mount MicroSD Card (/dev/block/mmcblk0)
+if [ -b /dev/block/mmcblk0 ]; then
+    echo "=== Auto-mounting MicroSD Card (/dev/block/mmcblk0) ==="
+    mkdir -p /mnt/ubuntu/media/sdcard /mnt/ubuntu/mnt/sdcard /mnt/ubuntu/mnt/android_data/sdcard /data/sdcard
+    MMC_DEV=/dev/block/mmcblk0
+    if [ -b /dev/block/mmcblk0p1 ]; then
+        MMC_DEV=/dev/block/mmcblk0p1
+    fi
+    mount -t vfat -o rw,umask=000,iocharset=utf8 $MMC_DEV /mnt/ubuntu/media/sdcard 2>/dev/null || mount $MMC_DEV /mnt/ubuntu/media/sdcard 2>/dev/null || true
+    mount --bind /mnt/ubuntu/media/sdcard /mnt/ubuntu/mnt/sdcard 2>/dev/null || true
+    mount --bind /mnt/ubuntu/media/sdcard /mnt/ubuntu/mnt/android_data/sdcard 2>/dev/null || true
+    mount --bind /mnt/ubuntu/media/sdcard /data/sdcard 2>/dev/null || true
+fi
+
+echo "=== [3/6] Connecting Broadcom BCM4361 Wi-Fi (<WIFI_SSID>) in Background ==="
+if [ -f /data/linux/connect_wifi.sh ]; then
+    /sbin/sh /data/linux/connect_wifi.sh </dev/null >/data/linux/wifi.log 2>&1 &
+fi
+
 echo "=== [4/6] Installing Hardware Tools (s8ctl + exynos_dp_bridge) ==="
 mkdir -p /mnt/ubuntu/usr/local/bin /mnt/ubuntu/usr/local/src /mnt/ubuntu/var/log/gnome_apps
 if [ -f /data/linux/s8ctl.py ]; then
@@ -59,6 +93,13 @@ if [ -f /data/linux/s8ctl.py ]; then
 fi
 if [ -f /data/linux/exynos_dp_bridge.c ]; then
     cp /data/linux/exynos_dp_bridge.c /mnt/ubuntu/usr/local/src/exynos_dp_bridge.c
+fi
+if [ -f /data/linux/init_audio.sh ]; then
+    cp /data/linux/init_audio.sh /mnt/ubuntu/usr/local/bin/init_audio.sh
+    chmod +x /mnt/ubuntu/usr/local/bin/init_audio.sh
+fi
+if [ -f /data/linux/asound.conf ]; then
+    cp /data/linux/asound.conf /mnt/ubuntu/etc/asound.conf
 fi
 
 echo "=== [5/6] Starting Ubuntu 24.04.5 LTS Services & GNOME 46 macOS Sonoma Desktop ==="
@@ -76,11 +117,18 @@ dbus-daemon --system --fork </dev/null >/dev/null 2>&1 || true
 
 # 2. Start OpenSSH Server (:22)
 mkdir -p /run/sshd
-/usr/sbin/sshd </dev/null >/dev/null 2>&1 || true
+if ! pgrep -x sshd >/dev/null 2>&1; then
+    /usr/sbin/sshd -E /var/log/sshd.log </dev/null >/dev/null 2>&1 || true
+fi
+
+# 2b. Initialize Native ALSA Audio Hardware (Speaker & DMIC1 Mic)
+if [ -x /usr/local/bin/init_audio.sh ]; then
+    /usr/local/bin/init_audio.sh </dev/null >/var/log/init_audio.log 2>&1 || true
+fi
 
 # 3. Compile Exynos 8895 USB-C DisplayPort / HDMI Bridge if gcc is installed
 if [ -f /usr/local/src/exynos_dp_bridge.c ] && command -v gcc >/dev/null 2>&1; then
-    gcc -O3 /usr/local/src/exynos_dp_bridge.c -o /usr/local/bin/exynos_dp_bridge -lX11 -lXext 2>/dev/null || true
+    gcc -O3 /usr/local/src/exynos_dp_bridge.c -o /usr/local/bin/exynos_dp_bridge -lX11 -lXext -lXfixes 2>/dev/null || true
     chmod +x /usr/local/bin/exynos_dp_bridge 2>/dev/null || true
 fi
 
@@ -102,23 +150,50 @@ if [ -x /usr/local/bin/start_gnome_macos.sh ]; then
     /usr/local/bin/start_gnome_macos.sh </dev/null >/var/log/start_gnome_macos.log 2>&1
 fi
 
-# 6. Start noVNC / Websockify (:6080 -> localhost:5901)
-if ! pgrep -f 'websockify.*6080' >/dev/null 2>&1; then
-    websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 </dev/null >/dev/null 2>&1 || true
+# 6. Start Nginx (:6080) & Pure Websockify (:6081 -> 127.0.0.1:5901)
+if ! pgrep -x nginx >/dev/null 2>&1; then
+    nginx </dev/null >/var/log/nginx.log 2>&1 || true
+fi
+if ! pgrep -f 'websockify.*6081' >/dev/null 2>&1; then
+    (while true; do python3 /usr/bin/websockify 6081 127.0.0.1:5901; sleep 1; done) </dev/null >/var/log/websockify.log 2>&1 &
 fi
 
-# 7. Start Exynos USB-C DisplayPort / HDMI Hotplug Daemon
+# 7. Start Exynos USB-C DisplayPort / HDMI Hotplug Daemon (Supervised)
 if [ -x /usr/local/bin/exynos_dp_bridge ] && ! pgrep -x exynos_dp_bridge >/dev/null 2>&1; then
-    nohup /usr/local/bin/exynos_dp_bridge </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
+    (while true; do /usr/local/bin/exynos_dp_bridge; sleep 1; done) </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
 fi
 
-# 8. Start Docker Engine
+# 7b. Start USB Input Event Bridge (Mouse & Keyboard -> X11 :1 Supervised)
+if [ -x /usr/local/bin/s8_input_bridge ] && ! pgrep -x s8_input_bridge >/dev/null 2>&1; then
+    (while true; do /usr/local/bin/s8_input_bridge; sleep 1; done) </dev/null >/var/log/s8_input_bridge.log 2>&1 &
+fi
+
+# 7c. Start Physical Chassis Button Supervisor (Power, VolUp, VolDown, Bixby)
+if [ -x /usr/local/bin/s8_button_daemon ] && ! pgrep -x s8_button_daemon >/dev/null 2>&1; then
+    (while true; do /usr/local/bin/s8_button_daemon; sleep 1; done) </dev/null >/var/log/s8_button_daemon.log 2>&1 &
+fi
+
+# 7d. Start S8 macOS Control Center & Wi-Fi Tray Indicator
+if [ -f /usr/local/bin/s8_status_icon.py ] && ! pgrep -f s8_status_icon >/dev/null 2>&1; then
+    (while true; do python3 /usr/local/bin/s8_status_icon.py; sleep 2; done) </dev/null >/var/log/s8_status_icon.log 2>&1 &
+fi
+
+# 7e. Start Broadcom BCM4361 Native Bluetooth (BlueZ)
+if [ -x /usr/local/bin/start_bluetooth.sh ]; then
+    /usr/local/bin/start_bluetooth.sh </dev/null >/var/log/bluetooth_boot.log 2>&1 &
+fi
+
+# 8. Start Native Docker Engine (overlay2 + bridge + iptables)
 if command -v dockerd >/dev/null 2>&1 && ! pgrep -x dockerd >/dev/null 2>&1; then
-    for cg in cpu cpuacct memory devices freezer blkio pids; do
-        mkdir -p /sys/fs/cgroup/\$cg
-        mountpoint -q /sys/fs/cgroup/\$cg || mount -t cgroup -o \$cg cgroup /sys/fs/cgroup/\$cg 2>/dev/null || true
-    done
-    nohup dockerd --iptables=false --bridge=none --storage-driver=vfs </dev/null >/var/log/dockerd.log 2>&1 &
+    /usr/local/bin/mount_cgroups.sh </dev/null >/dev/null 2>&1 || true
+    update-alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || true
+    update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy 2>/dev/null || true
+    nohup dockerd </dev/null >/var/log/dockerd.log 2>&1 &
+fi
+
+# 9. Start CasaOS Personal Cloud Ecosystem
+if [ -x /usr/local/bin/start_casaos.sh ]; then
+    (sleep 5; /usr/local/bin/start_casaos.sh) </dev/null >/var/log/casaos_boot.log 2>&1 &
 fi
 "
 

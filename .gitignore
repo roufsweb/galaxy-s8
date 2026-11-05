@@ -2,6 +2,17 @@
 # Galaxy S8 Native Linux & Docker Project .gitignore
 # ========================================================
 
+# Credentials, tokens, and private secrets
+.env*
+*.token
+*.key
+*.pem
+*.secret
+auth*.json
+credentials*.json
+id_rsa*
+id_ed25519*
+
 # Large firmware images, partition dumps, and Odin archives
 *.tar
 *.tar.md5
@@ -16,14 +27,24 @@
 *.iso
 *.zip
 *.pdf
+*.hcd
+*.fw
+*.blob
 
-# Firmware directories
+# Audio recordings & test media
+*.wav
+*.mp3
+*.mp4
+
+# Firmware directories & raw partitions
 device_firmware/
 galaxy-s8-stock-firmwire/
 AP_G950NKSU5DVG2_*/
 meta-data/
+archive/
+.archive/
 
-# Kernel source tree (independent git repository)
+# Kernel source tree (tracked independently)
 galaxy-s8-kvm-kernel/
 
 # Compiled chroot test binaries & shared libraries
@@ -32,19 +53,11 @@ galaxy-s8-kvm-kernel/
 /echo
 /echo_arm64
 /strace
+/twrp_adbd
 
-# Scratch binary artifacts, workdirs, and large logs
-scratch/*.img
-scratch/*.tar
-scratch/*.cpio
-scratch/*.lz4
-scratch/*.gz
-scratch/*.log
-scratch/*.txt
-scratch/ramdisk_work/
-scratch/ramdisk_root/
-scratch/magisk_boot/
-last_kmsg_switchroot_test.log
+# Scratch development directory
+scratch/
+last_kmsg*
 
 # OS & Editor transients
 .DS_Store
@@ -53,3 +66,5 @@ Thumbs.db
 *~
 __pycache__/
 *.py[cod]
+.vscode/
+.idea/

@@ -12,3 +12,4 @@ sleep 1
 ps aux | grep -E '[e]xynos_dp_bridge'
 cat /var/log/exynos_dp_bridge.log
 "
+

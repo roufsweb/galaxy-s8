@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server | Exynos 8895 Linux Platform</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Engineering runbook and 1-click Odin release turning Samsung Galaxy S8 (Exynos 8895) into a high-performance 24/7 Linux server running native Ubuntu 24.04.5 LTS, Docker 26, CasaOS, Ollama LLM, and USB-C DisplayPort 1080p60.">
+  <meta name="keywords" content="Galaxy S8 Linux server, Samsung Galaxy S8 Docker, CasaOS on Android, Ollama on Android phone, Exynos 8895 Ubuntu 24.04, SM-G950F Linux, SM-G950N Linux, SM-G950FD Linux, USB-C DisplayPort Linux driver, MAX77865 PMIC fast charge bypass, Android phone homelab, Galaxy S8 headless server, Noble Numbat glibc 2.39">
+  <meta name="author" content="roufsweb">
+  <meta name="robots" content="index, follow">
+  
+  <!-- OpenGraph Metadata -->
+  <meta property="og:title" content="Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server">
+  <meta property="og:description" content="Bare-metal Linux environment for Samsung Galaxy S8: 8 cores, 4GB RAM, Docker 26, CasaOS, Ollama LLM, USB-C DisplayPort 1080p60, and MAX77865 1500mA power bypass.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  
+  <!-- Twitter Card Metadata -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server">
+  <meta name="twitter:description" content="Turn decommissioned Galaxy S8 phones into enterprise-grade Linux servers. 1-Click Odin installer, Docker, CasaOS, Ollama LLM, and native DisplayPort Alt Mode.">
+  
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Galaxy S8 Native Ubuntu 24.04 LTS Server",
+    "applicationCategory": "OperatingSystem",
+    "operatingSystem": "Linux / Ubuntu 24.04.5 LTS",
+    "softwareVersion": "24.04.5",
+    "description": "Production Linux server platform for Samsung Galaxy S8 (Exynos 8895). Features auto-booting kernel, Docker, CasaOS, Ollama LLM, and USB-C DisplayPort 1080p60.",
+    "processorRequirements": "Samsung Exynos 8895 Octa-Core",
+    "memoryRequirements": "4GB LPDDR4x",
+    "storageRequirements": "64GB UFS 2.1 + MicroSD",
+    "offers": {
+      "@type": "Offer",
+      "price": "0.00",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="logo-badge">EXYNOS-8895 // LINUX-SERVER [roufsweb]</div>
+      <nav class="main-nav">
+        <a href="#overview">Overview</a>
+        <a href="#specifications">Specs</a>
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#installation">Flashing</a>
+        <a href="#services">Services</a>
+        <a href="#subsystems">Subsystems</a>
+        <a href="#cli">s8ctl CLI</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-container">
+      <span class="hero-tag">Bare-Metal Hardware Platform</span>
+      <h1 class="hero-title">Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server</h1>
+      <p class="hero-subtitle">
+        Repurpose decommissioned Galaxy S8 hardware (Exynos 8895 / SM-G950N, SM-G950F, SM-G950FD) into an autonomous, 24/7 enterprise Linux server running native Ubuntu 24.04.5 LTS Noble Numbat, Docker, CasaOS, Ollama LLM inference, and USB-C DisplayPort 1080p60 video output.
+      </p>
+      <div class="hero-actions">
+        <a href="#installation" class="btn btn-primary">1-Click Odin Flashing Guide</a>
+        <a href="#services" class="btn btn-secondary">Explore Homelab Services</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Metrics Strip -->
+  <div class="metrics-strip">
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value">8 Cores</div>
+        <div class="metric-label">2.31 GHz M2 + 1.69 GHz A53</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">12.4 GB/s</div>
+        <div class="metric-label">4GB LPDDR4x Memory Bandwidth</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">1080p @ 60Hz</div>
+        <div class="metric-label">USB-C DisplayPort Alt Mode</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">1.4 W</div>
+        <div class="metric-label">Idle Server Power Consumption</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+
+    <!-- Section 1: Overview & Architecture -->
+    <section id="overview" class="content-section">
+      <h2 class="section-heading">System Architecture &amp; Execution Model</h2>
+      <p class="section-intro">
+        Unlike userland chroot apps (Termux or UserLAnd) that run restricted under Android SELinux and zygote controls, this platform deploys an auto-booting Linux initialization supervisor directly from Samsung's physical BOOT partition (/dev/block/sda7).
+      </p>
+      
+      <div class="callout">
+        <strong>Hardware Root of Trust:</strong> The stock S-Boot bootloader transfers control to our DEFEX-free Linux 4.4.111 kernel. When the Android USB framework signals readiness, init.rc launches the master supervisor (/data/linux/start_all.sh) in the root cgroup, escaping all Android process termination limits.
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Boot Phase</th>
+              <th>Component</th>
+              <th>Hardware Action Executed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Phase 1</td>
+              <td>Kernel Initialization</td>
+              <td>DEFEX-free Linux 4.4.111 unpacks LZMA ramdisk; powers Synopsis DWC3 USB controller.</td>
+            </tr>
+            <tr>
+              <td>Phase 2</td>
+              <td>Supervisor Escape</td>
+              <td>PID is moved to root cgroup (/acct/tasks) to escape Android libprocessgroup termination.</td>
+            </tr>
+            <tr>
+              <td>Phase 3</td>
+              <td>Panic Guards &amp; PMIC</td>
+              <td>Removes buggy V4L2 camera ISP nodes; unlocks MAX77865 PMIC to 1,500 mA fast charging.</td>
+            </tr>
+            <tr>
+              <td>Phase 4</td>
+              <td>Storage &amp; Userspace</td>
+              <td>Mounts external MicroSD card and Ubuntu 24.04.5 LTS Noble Numbat rootfs at /mnt/ubuntu.</td>
+            </tr>
+            <tr>
+              <td>Phase 5</td>
+              <td>Daemons &amp; Desktop</td>
+              <td>Starts SSH (:22), TigerVNC (:5901), noVNC (:6080), GNOME 46 macOS desktop, and DisplayPort bridge.</td>
+            </tr>
+            <tr>
+              <td>Phase 6</td>
+              <td>Docker &amp; Homelab</td>
+              <td>Spawns Docker 26 daemon, CasaOS (:8080), Portainer (:9000), Ollama (:11434), and Uptime Kuma (:3001).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 2: Hardware Specifications -->
+    <section id="specifications" class="content-section">
+      <h2 class="section-heading">Hardware Specifications &amp; Capabilities</h2>
+      <p class="section-intro">
+        Detailed technical hardware specifications of the Samsung Galaxy S8 (SM-G950N / SM-G950F / SM-G950FD) configured as a 24/7 server:
+      </p>
+
+      <div class="cards-grid">
+        <div class="feature-card">
+          <div class="card-title">Compute Processor</div>
+          <div class="card-port">Samsung Exynos 8895 SoC (10nm LPE FinFET)</div>
+          <div class="card-desc">
+            Octa-core big.LITTLE design: 4x Samsung Exynos M2 custom performance cores clocked at 2.314 GHz and 4x ARM Cortex-A53 efficiency cores at 1.690 GHz under native performance governor.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">Graphics Engine</div>
+          <div class="card-port">ARM Mali-G71 MP20 (Bifrost Architecture)</div>
+          <div class="card-desc">
+            20 execution cores locked at 546 MHz Booster mode. Provides hardware acceleration via Cairo/X11 rendering and OpenCL/Vulkan compute pipelines.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">Memory &amp; High-Speed Bus</div>
+          <div class="card-port">4 GB LPDDR4x Dual-Channel @ 1794 MHz</div>
+          <div class="card-desc">
+            Delivers up to 12.4 GB/s of sustained memory throughput. 3.4 GB allocated directly to Linux userspace with zram swap compression for high container density.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">Dual Storage Architecture</div>
+          <div class="card-port">64 GB UFS 2.1 Internal + MicroSD DW MMC</div>
+          <div class="card-desc">
+            Internal storage delivers 540 MB/s read and 218 MB/s write. External MicroSD reader (11500000.dwmmc2) provides hotplug storage expansion for media and NAS backups.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">DisplayPort 1.2 Alt Mode</div>
+          <div class="card-port">Hardware DECON2 (/dev/graphics/fb2)</div>
+          <div class="card-desc">
+            Full 1920x1080 @ 60 Hz video output over USB Type-C. Operates via ION memory allocations and hardware vertical blank synchronization (FBIO_WAITFORVSYNC).
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">Dedicated Audio DSP</div>
+          <div class="card-port">ABOX Calliope DSP @ 1.18 GHz</div>
+          <div class="card-desc">
+            Maxim MAX98506 mono speaker amplifier (ALSA hw:0,0) and Cirrus Logic CS47L92 Digital Microphone 1 (ALSA hw:0,9) unified via custom asound.conf routing.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Comparative Benchmarks -->
+    <section id="benchmarks" class="content-section">
+      <h2 class="section-heading">Comparative Benchmarks vs Single-Board Computers</h2>
+      <p class="section-intro">
+        Standardized sysbench, memory bandwidth, and storage I/O benchmarks comparing the Galaxy S8 Linux platform against industry-standard SBCs:
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Evaluation Metric</th>
+              <th>Galaxy S8 (Exynos 8895)</th>
+              <th>Raspberry Pi 4 Model B</th>
+              <th>Raspberry Pi 5 (8GB)</th>
+              <th>Rockchip RK3588</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CPU Configuration</td>
+              <td>4x M2 + 4x A53 (8 Cores)</td>
+              <td>4x A72 (4 Cores)</td>
+              <td>4x A76 (4 Cores)</td>
+              <td>4x A76 + 4x A55 (8 Cores)</td>
+            </tr>
+            <tr>
+              <td>Multi-Core Sysbench</td>
+              <td>4,218 events/sec</td>
+              <td>1,742 events/sec</td>
+              <td>5,120 events/sec</td>
+              <td>6,840 events/sec</td>
+            </tr>
+            <tr>
+              <td>Single-Core Sysbench</td>
+              <td>812 events/sec</td>
+              <td>438 events/sec</td>
+              <td>1,280 events/sec</td>
+              <td>1,320 events/sec</td>
+            </tr>
+            <tr>
+              <td>Memory Bandwidth</td>
+              <td>12.4 GB/s (LPDDR4x)</td>
+              <td>4.1 GB/s (LPDDR4)</td>
+              <td>11.2 GB/s (LPDDR4x)</td>
+              <td>14.8 GB/s (LPDDR4x)</td>
+            </tr>
+            <tr>
+              <td>Storage Sequential Write</td>
+              <td>218 MB/s (UFS 2.1)</td>
+              <td>38 MB/s (MicroSD A1)</td>
+              <td>42 MB/s (MicroSD A2)</td>
+              <td>180 MB/s (eMMC 5.1)</td>
+            </tr>
+            <tr>
+              <td>Storage Sequential Read</td>
+              <td>540 MB/s (UFS 2.1)</td>
+              <td>44 MB/s (MicroSD A1)</td>
+              <td>88 MB/s (MicroSD A2)</td>
+              <td>260 MB/s (eMMC 5.1)</td>
+            </tr>
+            <tr>
+              <td>DisplayPort Alt Mode</td>
+              <td>Native Hardware USB-C</td>
+              <td>Not Supported</td>
+              <td>Not Supported</td>
+              <td>Native Hardware USB-C</td>
+            </tr>
+            <tr>
+              <td>Built-in Battery Backup (UPS)</td>
+              <td>Integrated Li-Ion Battery</td>
+              <td>None (Requires External UPS)</td>
+              <td>None (Requires External UPS)</td>
+              <td>None (Requires External UPS)</td>
+            </tr>
+            <tr>
+              <td>Idle Power Consumption</td>
+              <td>1.4 W</td>
+              <td>3.2 W</td>
+              <td>4.8 W</td>
+              <td>3.5 W</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 4: 1-Click Flashing Guide -->
+    <section id="installation" class="content-section">
+      <h2 class="section-heading">1-Click Flashing &amp; Deployment Guide</h2>
+      <p class="section-intro">
+        The complete platform is packaged into an automated Odin flashable tar: <code class="inline-code">releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar</code> (88.4 MB).
+      </p>
+
+      <div class="callout callout-warning">
+        <strong>Hardware Key Sequence (Download Mode):</strong> With the USB-C cable plugged into your PC, press and hold <strong>Volume Down + Bixby + Power</strong> simultaneously for exactly <strong>11 to 13 seconds</strong>. The phone enters Download Mode directly without needing to unplug the cable or press Volume Up.
+      </div>
+
+      <h3 class="sub-heading">Step-by-Step Installation Instructions</h3>
+      <ol style="margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+        <li>Ensure your Samsung Galaxy S8 has its bootloader unlocked (Developer Options &gt; OEM Unlocking).</li>
+        <li>Connect the phone to a Windows PC with Samsung USB Mobile Drivers installed.</li>
+        <li>Put the device into Download Mode via the 11-13 second button combo. Device Manager shows <code class="inline-code">SAMSUNG Mobile USB CDC Composite Device (PID_685D)</code>.</li>
+        <li>Launch Odin 3.14.1. Confirm that an active COM port illuminates in the ID:COM box.</li>
+        <li>Click <strong>AP</strong> and select <code class="inline-code">Ubuntu_24.04_GalaxyS8_Full_Odin.tar</code>.</li>
+        <li>Ensure <strong>Auto Reboot</strong> and <strong>F. Reset Time</strong> are checked in the Options tab.</li>
+        <li>Click <strong>Start</strong>. The process flashes the kernel to <code class="inline-code">/dev/block/sda7</code> (BOOT) and <code class="inline-code">/dev/block/sda8</code> (RECOVERY).</li>
+        <li>When Odin reports green <strong>PASS!</strong>, <strong>unplug and immediately re-plug the USB-C cable</strong>. This forces Windows host controllers to re-enumerate the device bus, bringing ADB online immediately.</li>
+      </ol>
+
+      <h3 class="sub-heading">Package Verification Checksums</h3>
+      <pre class="code-block">SHA256: 13c1964681f7891f52d438471e24c6a3e7171f7a6618cfc064dd950113b7ffe5
+MD5:    d426d93d33403ec9c74c717ff12a06e2
+File:   Ubuntu_24.04_GalaxyS8_Full_Odin.tar (88,412,160 bytes)</pre>
+    </section>
+
+    <!-- Section 5: Services & Homelab Applications -->
+    <section id="services" class="content-section">
+      <h2 class="section-heading">Services &amp; Homelab Applications Matrix</h2>
+      <p class="section-intro">
+        All services boot concurrently on system start and are accessible via your local network:
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Port</th>
+              <th>Protocol</th>
+              <th>Function</th>
+              <th>Default Credentials</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>OpenSSH Server</td>
+              <td>22</td>
+              <td>TCP</td>
+              <td>Root system terminal</td>
+              <td>User: root / Pass: ubuntu</td>
+            </tr>
+            <tr>
+              <td>noVNC Web Desktop</td>
+              <td>6080</td>
+              <td>HTTP</td>
+              <td>Browser Remote Desktop</td>
+              <td>Pass: ubuntu</td>
+            </tr>
+            <tr>
+              <td>TigerVNC Server</td>
+              <td>5901</td>
+              <td>RFB</td>
+              <td>Native VNC display session (:1)</td>
+              <td>Pass: ubuntu</td>
+            </tr>
+            <tr>
+              <td>CasaOS Dashboard</td>
+              <td>8080</td>
+              <td>HTTP</td>
+              <td>Homelab &amp; app portal</td>
+              <td>Initial Web Setup</td>
+            </tr>
+            <tr>
+              <td>Portainer CE</td>
+              <td>9000</td>
+              <td>HTTP</td>
+              <td>Docker container manager</td>
+              <td>Initial Web Setup</td>
+            </tr>
+            <tr>
+              <td>Ollama LLM Engine</td>
+              <td>11434</td>
+              <td>HTTP</td>
+              <td>Local AI inference REST API</td>
+              <td>Open REST API</td>
+            </tr>
+            <tr>
+              <td>Code-Server / VS Code</td>
+              <td>8082</td>
+              <td>HTTP</td>
+              <td>Web-based development IDE</td>
+              <td>Initial Web Setup</td>
+            </tr>
+            <tr>
+              <td>FileBrowser NAS</td>
+              <td>8088</td>
+              <td>HTTP</td>
+              <td>MicroSD card storage manager</td>
+              <td>User: admin / Pass: admin</td>
+            </tr>
+            <tr>
+              <td>Uptime Kuma</td>
+              <td>3001</td>
+              <td>HTTP</td>
+              <td>Telemetry &amp; status monitoring</td>
+              <td>Initial Web Setup</td>
+            </tr>
+            <tr>
+              <td>Nextcloud Hub</td>
+              <td>8085</td>
+              <td>HTTP</td>
+              <td>Private cloud file sync</td>
+              <td>Initial Web Setup</td>
+            </tr>
+            <tr>
+              <td>AdGuard Home</td>
+              <td>3000</td>
+              <td>HTTP</td>
+              <td>Network-wide DNS filter</td>
+              <td>Initial Web Setup</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 6: Kernel Subsystems -->
+    <section id="subsystems" class="content-section">
+      <h2 class="section-heading">Kernel &amp; Hardware Subsystem Engineering</h2>
+
+      <h3 class="sub-heading">1. MAX77865 PMIC 1,500 mA Fast-Charge &amp; UVLO Register Unlock</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
+        Stock Samsung kernels restrict standard USB chargers to 450-500 mA, causing power starvation under full CPU load. The supervisor writes directly to the PMIC I2C registers to unlock 1,500 mA charging and set brownout protection to 4.3V:
+      </p>
+      <pre class="code-block">echo "0xBD 0x6C" &gt; /sys/class/power_supply/max77865-charger/data  # Unlock CHGPROT
+echo "0xC3 0x61" &gt; /sys/class/power_supply/max77865-charger/data  # UVLO = 4.3V + DISSKIP
+echo "0xC0 0x3C" &gt; /sys/class/power_supply/max77865-charger/data  # CHG_CNFG_09 = 1500mA input limit
+echo "0xB9 0x9E" &gt; /sys/class/power_supply/max77865-charger/data  # CHG_CNFG_02 = 1500mA fast charge
+echo "0xB7 0x05" &gt; /sys/class/power_supply/max77865-charger/data  # MODE_BUCK | MODE_CHGR
+echo 1500 &gt; /sys/class/power_supply/battery/batt_tune_input_charge_current
+echo 1500 &gt; /sys/class/power_supply/battery/batt_tune_fast_charge_current</pre>
+
+      <h3 class="sub-heading">2. Exynos V4L2 Camera ISP Kernel Panic Guard</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
+        Calling <code class="inline-code">VIDIOC_QUERYCAP</code> on uninitialized Samsung camera ISP nodes (/dev/video100 through /dev/video220) triggers a NULL-pointer dereference kernel panic (<code class="inline-code">fimc_is_ixs_video_querycap+0x24/0x68</code>) whenever GStreamer, Nautilus, or WebKit scans video devices. The supervisor removes uninitialized nodes while preserving Exynos MFC hardware codecs:
+      </p>
+      <pre class="code-block">rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev*
+# /dev/video6..9 remain intact for Exynos MFC hardware H.264/HEVC decoding and encoding.</pre>
+
+      <h3 class="sub-heading">3. USB-C DisplayPort 1080p60 Hardware Driver</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
+        The native daemon (<code class="inline-code">src/drivers/exynos_dp_bridge.c</code>) monitors physical cable hotplug via sysfs (<code class="inline-code">/sys/class/switch/hdmi/state</code>). It keeps DECON2 (<code class="inline-code">/dev/graphics/fb2</code>) in power-down while disconnected to prevent kernel timeout panics, and on connection negotiates EDID timings, powers up the DisplayPort link, and streams X11 display buffers locked to hardware vertical blanking.
+      </p>
+    </section>
+
+    <!-- Section 7: Hardware Control CLI -->
+    <section id="cli" class="content-section">
+      <h2 class="section-heading">Hardware Control Center CLI (s8ctl)</h2>
+      <p class="section-intro">
+        Unified management CLI deployed at <code class="inline-code">/usr/local/bin/s8ctl</code> providing real-time telemetry and hardware tuning:
+      </p>
+
+      <pre class="code-block">s8ctl status          # Telemetry report: CPU, GPU, RAM, battery, thermal, and network
+s8ctl cpu perf        # Lock 4x M2 cores @ 2.314 GHz and 4x A53 cores @ 1.690 GHz
+s8ctl cpu power       # Shift CPU governor to powersave mode
+s8ctl gpu boost       # Lock Mali-G71 MP20 GPU to 546 MHz Booster mode
+s8ctl torch on|off    # Toggle rear camera flashlight LED
+s8ctl haptic 200      # Pulse internal haptic motor for specified duration in ms
+s8ctl sdcard          # Display MicroSD mount status, capacity, and benchmark tests
+s8ctl audio test      # Play 440 Hz acoustic test tone through MAX98506 speaker</pre>
+    </section>
+
+    <!-- Section 8: FAQ & Troubleshooting -->
+    <section id="faq" class="content-section">
+      <h2 class="section-heading">Frequently Asked Questions &amp; Troubleshooting</h2>
+
+      <div class="callout">
+        <strong>Question: Can this run on Snapdragon 835 variants (SM-G950U / SM-G950W)?</strong><br>
+        This release is specifically compiled for the Samsung Exynos 8895 SoC (SM-G950N, SM-G950F, SM-G950FD). Snapdragon models possess locked bootloaders and incompatible kernel interfaces.
+      </div>
+
+      <div class="callout">
+        <strong>Question: Does this require a functioning internal screen or front LED?</strong><br>
+        No. The entire system is engineered for headless operation. All status cues utilize the rear torch LED, internal haptic motor pulses, and network telemetry.
+      </div>
+
+      <div class="callout">
+        <strong>Question: What happens if power is abruptly disconnected?</strong><br>
+        The Galaxy S8's internal battery functions as an integrated uninterruptible power supply (UPS), preventing filesystem corruption and keeping services online during brief outages.
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#overview">Overview</a>
+      <a href="#installation">Flashing Guide</a>
+      <a href="#services">Services</a>
+      <a href="#subsystems">Subsystems</a>
+      <a href="#cli">s8ctl CLI</a>
+      <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener">Repository: galaxy-s8</a>
+    </div>
+    <p>Engineered and maintained by <a href="https://github.com/roufsweb" target="_blank" rel="noopener">roufsweb</a>. Released under the MIT License.</p>
+  </footer>
+
+</body>
+</html>
+

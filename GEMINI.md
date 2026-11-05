@@ -31,7 +31,26 @@
      * **GNOME Text Editor 46 (`gnome-text-editor`), Calculator 46 (`gnome-calculator`), System Monitor 46 (`gnome-system-monitor`), GNOME Web 46 (`epiphany-browser`), and `Galaxy S8 Hardware Center` (`s8ctl`).**
 3. **USB-C DisplayPort / HDMI Hotplug Daemon (`exynos_dp_bridge`):**
    * Source: `e:\rouf\galaxy-s8\scratch\exynos_dp_bridge.c` $\rightarrow$ `/mnt/ubuntu/usr/local/bin/exynos_dp_bridge`.
-   * Allocates `14.7 MB` in `/dev/ion` (`ION_HEAP_SYSTEM_MASK`), arms `DECON2` (`/dev/graphics/fb2`) in `FB_BLANK_POWERDOWN` while `/sys/class/switch/hdmi/state == 0`, and on plug-in (`state == 1`) negotiates EDID timings via `EXYNOS_GET_DISPLAYPORT_CONFIG` / `EXYNOS_SET_DISPLAYPORT_CONFIG`, calls `FBIOBLANK(FB_BLANK_UNBLANK)` (triggering `decon_enable` $\rightarrow$ `displayport_enable`), vibrates `150ms`, and streams `:1` via `S3CFB_WIN_CONFIG` at 30 FPS.
+   * Allocates `14.7 MB` in `/dev/ion` (`ION_HEAP_SYSTEM_MASK`), arms `DECON2` (`/dev/graphics/fb2`) in `FB_BLANK_POWERDOWN` while `/sys/class/switch/hdmi/state == 0`, and on plug-in (`state == 1`) negotiates EDID timings via `EXYNOS_GET_DISPLAYPORT_CONFIG` / `EXYNOS_SET_DISPLAYPORT_CONFIG`, calls `FBIOBLANK(FB_BLANK_UNBLANK)` (triggering `decon_enable` $\rightarrow$ `displayport_enable`), vibrates `150ms`, overlays hardware mouse cursor via `XFixesGetCursorImage`, and streams `:1` via `S3CFB_WIN_CONFIG` locked to hardware vertical blanking (`FBIO_WAITFORVSYNC` @ 60 Hz).
+4. **Physical Chassis Button Daemon (`s8_button_daemon`):**
+   * Source: `e:\rouf\galaxy-s8\scratch\s8_button_daemon.c` $\rightarrow$ `/usr/local/bin/s8_button_daemon`.
+   * Maps `/dev/input/event3` (`gpio_keys`): Power (short=display DPMS, long=graceful reboot), Volume Up/Down (35ms haptic + X11 volume keys + ALSA master), Bixby single click (GNOME Console `kgx`), Bixby double click (rear torch toggle), Bixby long press (>1.2s: full 1080p screenshot sent directly to Telegram bot `@roufsantigravitybot`).
+5. **Native ALSA Audio Subsystem (Speaker & DMIC1 Mic `[LIVE & VERIFIED]`):**
+   * ABOX Calliope DSP: Embedded full 9-firmware suite in ramdisk, running at 1.18 GHz without IPC timeouts.
+   * Speaker Playback: ALSA `hw:0,0` routed to Maxim MAX98506 amplifier (`SPK out` / `Speaker Gain 25`), verified over-the-air with host USB microphone (4.08x SNR at 440 Hz).
+   * Digital Mic 1: ALSA `hw:0,9` (WDMA1) routed to Cirrus Logic CS47L92 DMIC1, verified capturing ambient sound (245.7 RMS amplitude).
+   * Default ALSA: `/etc/asound.conf` with `type asym` providing universal transparent audio for all Linux apps.
+6. **Hardware Performance Boost & Unified Management (`s8ctl`):**
+   * Octa-core CPU: 4x M2 cores pinned at 2.314 GHz + 4x A53 cores at 1.690 GHz under `performance` governor.
+   * Mali-G71 MP20 GPU: 20 shader cores locked at 546 MHz Booster mode.
+   * Unified CLI at `/usr/local/bin/s8ctl`: status, CPU profiles, GPU boost, Wi-Fi GUI/scan, torch, haptics, battery, audio test, Bluetooth radio.
+7. **noVNC Web Remote Desktop (`:6080` / `vnc.html` `[LIVE & VERIFIED]`):**
+   * Nginx reverse proxy on `:6080` with pure WebSocket forwarder on `:6081` to TigerVNC `:5901`.
+   * Hardened `/usr/share/novnc/app/ui.js` with optional chaining to prevent null element exceptions, allowing interactive control of the desktop from PC or mobile browsers without requiring a physical USB hub. Password: `ubuntu`.
+8. **MicroSD Storage Subsystem (`/dev/block/mmcblk0` `[LIVE & VERIFIED]`):**
+   * Auto-detects 14.6 GB MicroSD card (`ESPAUDIO`, FAT32) under DW MMC host controller `11500000.dwmmc2`, auto-mounts at `/media/sdcard` and bind-mounts to `/mnt/android_data/sdcard` with `umask=000` via `/data/linux/start_all.sh`. Accessible with full read/write across FileBrowser (`:8088`), CasaOS (`:8080`), and `s8ctl sdcard`.
+9. **Cellular Modem & SIM Slot Architecture (`Shannon 359`):**
+   * Kernel Shannon modem drivers active (`/dev/umts_ipc0`, `/dev/umts_boot0`, `/dev/umts_rfs0`) with 8 registered LTE interfaces (`rmnet0..7`). CP Boot Daemon (`/vendor/bin/cbd`) boots with `-tss333 -bs -ml` using `RADIO` partition (`sda10`) and `EFS` (`sda3`) for SMS gateway and mobile LTE internet failover.
 
 ---
 
@@ -59,8 +78,10 @@
      echo 1500 > /sys/class/power_supply/battery/batt_tune_input_charge_current
      echo 1500 > /sys/class/power_supply/battery/batt_tune_fast_charge_current
      ```
-4. **VERIFIED 11-SECOND PLUGGED-IN ODIN DOWNLOAD MODE COMBO:**
-   * Keep the USB-C cable **plugged into the PC** and hold **Volume Down + Bixby + Power** continuously for **11 seconds** $\rightarrow$ enters Odin Download Mode (`PID_685D` on `COM17`) directly with **no need to unplug and no need to press `Volume Up`**.
+4. **VERIFIED ODIN DOWNLOAD MODE COMBO (HOT & COLD RESET) & POST-FLASH RE-PLUG:**
+   * Keep the USB-C cable **plugged into the PC** and hold **Volume Down + Bixby + Power** continuously for **11–13 seconds** $\rightarrow$ enters Odin Download Mode (`PID_685D` on `COM17`) directly with **no need to unplug and no need to press `Volume Up`**.
+   * **Stalled/Halted State Guard:** If the SoC is frozen in an unresponsive state, hold all 3 buttons for **30 seconds** to force PMIC power-latch release, release for 1 second, then hold all 3 buttons for **13 seconds** $\rightarrow$ enters Download Mode reliably.
+   * **Post-Odin USB Re-Plug Rule:** After Odin flashes with green `PASS!`, Windows USB host controllers frequently keep the old `PID_685D` endpoints suspended. Unplugging and immediately re-plugging the USB-C cable triggers instant hardware bus re-enumeration, immediately bringing ADB online.
 5. **DO NOT REPLACE ANDROID `/init` WITH STANDALONE BUSYBOX `/init` ON `sda7`:**
    * Exynos 8895 DWC3 USB (`10c00000.dwc3`) only powers on when `adbd` sets `sys.usb.ffs.ready=1` via Android `/init`'s property socket. Keep `/init` and `adbd` intact and launch `/data/linux/start_all.sh` via `init.rc` `on property:sys.usb.ffs.ready=1`.
 6. **UBUNTU 24.04.5 LTS (`glibc 2.39`) ON KERNEL `4.4.111`:**
@@ -79,8 +100,23 @@
      * `echo -n "/vendor/etc/wifi/bcmdhd_clm.blob" > /sys/module/dhd/parameters/clm_path`
 10. **NEVER USE A2N KERNEL (`4.4.302`), STOCK `DEFEX` KERNEL, OR `CONFIG_KVM=y`.**
 11. **NEVER WRITE SCRIPTS THAT MODIFY `/usr/sbin/runc` SECURITY FIELDS** (triggers Gemini response filter).
-12. **POWERSHELL + `adb shell` QUOTING & BACKGROUND FD RULE:**
+12. **POWERSHELL + `adb shell` QUOTING, BACKGROUND FD & PERSISTENT PORT FORWARDING RULE:**
     * Never nest `\"` inside `adb shell "..."` in PowerShell. Write `.sh` files locally with LF (`\n`) line endings, `adb push` to `/data/linux/`, and redirect `</dev/null >/var/log/... 2>&1 &` on all background daemons so `adb shell` never hangs on open pipe file descriptors.
+    * In Windows, ephemeral subshells kill `adb.exe` on termination. To keep `localhost:6080` (noVNC) and `localhost:5901` (VNC) permanently connected, always launch a detached forwarder loop via CIM: `Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = 'powershell.exe -WindowStyle Hidden -NoProfile -Command "while($true) { adb forward tcp:6080 tcp:6080; adb forward tcp:5901 tcp:5901; adb forward tcp:2222 tcp:22; Start-Sleep -Seconds 3 }"'} `.
+13. **ANDROID INIT `libprocessgroup` CGROUP KILL ESCAPE:**
+    * When `set_permissive` or an `init.rc` oneshot service finishes, Android `init` / `libprocessgroup` sends SIGKILL to all orphan child processes tracked in `/acct/uid_0/pid_<pid>/`.
+    * **ALWAYS** run `echo $$ > /acct/tasks 2>/dev/null` at the top of boot scripts to move into the root cgroup `/acct/`, rendering all spawned background services (sshd, TigerVNC, websockify, GNOME, exynos_dp_bridge) immune to `libprocessgroup` termination.
+14. **DISPLAYPORT SBU MULTIPLEXER SWITCH & AUX POWER SEQUENCING:**
+    * In Exynos 8895 (`displayport_drv.c`), third-party monitors/adapters do not always negotiate Samsung proprietary CCIC VDM, leaving the physical SBU analog switch open (`gpio_sw_oe = 1`) and AUX unpowered.
+    * **ALWAYS** write `echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel` (or `1 0` for flipped orientation) to enable the AUX switch (`gpio_sw_oe = 0`, active low) and power `VDD_DP_3P3`.
+    * Use `echo 22 > /sys/class/dp_sec/link` (2 lanes @ 2.7 Gbps) or `echo 24 > /sys/class/dp_sec/link` (4 lanes @ 2.7 Gbps) to force hardware link training and flip `/sys/class/switch/hdmi/state` to 1. Toggle `echo "1,0" > /sys/class/dp_sec/dp_test` to force reset HDMI state back to 0.
+15. **TYPE-C PORT ROLE: DFP / SOURCE ENFORCEMENT (`port_type = source`):**
+    * In Exynos 8895, CCIC defaults to UFP (Device / Sink). When connected to a DisplayPort monitor or adapter, both sides present Rd pull-down resistors, causing an Alternate Mode negotiation deadlock (`is_dfp=0`, `VDM IRQ Status=0`).
+    * **ALWAYS** write `echo source > /sys/class/typec/port0/port_type` and `echo 1 > /sys/class/sec/ccic/role_swap` to force Rp pull-up resistors and assert DFP / Host mode so the monitor identifies the phone as a DisplayPort source.
+16. **ZERO-RISK GITHUB ACCOUNT PROTECTION & STRICT POLICY COMPLIANCE:**
+    * **Storage & File Size Hard Limits:** Never commit or push any file exceeding 50 MB, and strictly never > 100 MB (GitHub hard rejection limit). All large images (`*.tar`, `*.img`, `*.lz4`, `*.zip`, `*.iso`, `*.bin`, `*.cpio`) and firmware dumps MUST remain strictly excluded via `.gitignore`. All large distribution binaries (`Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar`, 3.37 GB) must be hosted exclusively via Google Drive or external release mirrors.
+    * **Zero Secret & Credential Leakage:** Never commit personal access tokens (PATs), API keys, OAuth secrets, private SSH keys, Wi-Fi passwords, or bot tokens. Always run `python scripts/sanitize_repo.py` before any commit to ensure 100% clean status.
+    * **Acceptable Use & ToS Compliance:** Never commit proprietary Samsung stock system blobs or full commercial factory ROM dumps into git tracking. Maintain clean, original open-source scripts, drivers, configurations, and documentation that strictly adhere to GitHub Terms of Service and Community Guidelines.
 
 ---
 
@@ -88,7 +124,8 @@
 
 | File Path | Role |
 | :--- | :--- |
-| [`e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar`](file:///e:/rouf/galaxy-s8/Ubuntu_24.04_GalaxyS8_Full_Odin.tar) | **1-Click Odin Flashable Package** (`boot.img` with auto-boot `init.rc` + `recovery.img`, `88.76 MB`). |
+| [`releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar) | **1-Click Standalone Odin Package** (`boot.img` + `recovery.img` + `userdata.img.lz4` complete OS, `3,533,455,360` B / `3.37` GB). |
+| [`releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar) | **Kernel-Only Odin Package** (`boot.img` with auto-boot `init.rc` + `recovery.img`, `88,412,160` B / `88.4` MB). |
 | [`e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img`](file:///e:/rouf/galaxy-s8/scratch/boot_ubuntu_autoboot.img) | Auto-booting `BOOT` partition image (`40,521,744` B), already flashed to `/dev/block/sda7`. |
 | [`e:\rouf\galaxy-s8\scratch\build_autoboot_and_odin.py`](file:///e:/rouf/galaxy-s8/scratch/build_autoboot_and_odin.py) | Python builder that unpacks `boot.img` LZMA ramdisk, patches `init.rc` CPIO (`newc`), and builds `Ubuntu_24.04_GalaxyS8_Full_Odin.tar`. |
 | [`e:\rouf\galaxy-s8\scratch\start_all.sh`](file:///e:/rouf/galaxy-s8/scratch/start_all.sh) | Deployed at `/data/linux/start_all.sh` — master boot supervisor (V4L2 guard, `1500mA` MAX77865 unlock, Wi-Fi, Ubuntu mount, GNOME 46 macOS GUI, VNC/noVNC, `exynos_dp_bridge`, Docker). |
