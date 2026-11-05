@@ -238,6 +238,23 @@ All repository commits and release distributions are protected by an automated s
 
 ---
 
+## Acknowledgments & Credits
+
+This project builds upon the foundational work, codebases, and tools created by the global open-source community:
+
+* **Samsung Electronics Co., Ltd.** - Exynos 8895 BSP, DECON display driver, CCIC DisplayPort Alt Mode driver, and ABOX Calliope DSP.
+* **Canonical & Ubuntu** - Ubuntu 24.04.5 LTS Noble Numbat userspace root filesystem and package ecosystem.
+* **The GNOME Project & Vince Liuice** - GNOME 46 desktop suite and the WhiteSur GTK / icon theme.
+* **Docker & CasaOS (IceWhale)** - Docker CE 26 container runtime and CasaOS homelab management portal.
+* **Ollama, Code-Server & Uptime Kuma** - Local LLM inference, browser IDE, and infrastructure telemetry.
+* **TigerVNC & noVNC** - Remote desktop display server and HTML5 WebSocket web client.
+* **John Wu (`topjohnwu`) & TWRP Team** - `magiskboot` image packaging tools and recovery ramdisk trees.
+* **Maxim Integrated & Cirrus Logic** - MAX77865 PMIC, MAX98506 speaker amplifier, and CS47L92 audio codec drivers.
+
+For complete project attributions and component breakdown, see [`CREDITS.md`](CREDITS.md).
+
+---
+
 ## Author & Profile
 
 Engineered and maintained by [roufsweb](https://github.com/roufsweb).
