@@ -1018,3 +1018,20 @@ otification-area and bind launcher paths under instance-config/.
   2. Disabled X11 DPMS screen blanking (`xset -dpms s off s noblank`) to prevent display timeouts.
   3. Recommended connecting external USB-C PD power to the multi-port hub to avoid battery VBUS current spikes when connecting power-hungry USB peripherals.
 
+---
+
+## Finding 77 — Top-Right Control Center Positioning, Quick Settings Integration & Dunst Notification Daemon Architecture
+* **Severity:** Medium / Usability & Desktop Ergonomics
+* **Discovery Date:** 2026-11-05
+* **Symptom:** User unable to open or view the top-right notification panel and control center; clicking the top-right corner of the top panel produced no response.
+* **Root Cause Analysis:**
+  1. **HiDPI Coordinate Doubling Displacing Window Off-Screen:** In `s8-control-center.py`, calling `self.move(1530, 34)` without pre-normalizing for GTK's device scale factor caused GTK3 to multiply coordinates by 2 during realization, positioning the window at `x=3060, y=68`. On the native 1920x1080 display, `x=3060` placed the entire Quick Settings window ~1,140 pixels off the right screen edge in invisible space.
+  2. **Top-Right Panel Hit Area Gap:** In `gnome-panel`, the notification tray only occupied space up to `x=1823`, leaving a 97-pixel dead zone (`x=1823..1920`) in the top-right corner where clicking did nothing.
+  3. **Missing Notification Daemon Subsystem:** Neither `dunst` nor `libnotify-bin` was installed. Applications calling the `org.freedesktop.Notifications` D-Bus interface failed silently with zero desktop feedback.
+* **Permanent Fix & Solution:**
+  1. Corrected `s8-control-center.py` window positioning and verified with `xwininfo`: `Absolute upper-left X: 1530, Y: 34` (`Width: 382, Height: 647`, perfectly occupying `x=1530..1912` at the top right).
+  2. Added dedicated `quick-settings-launcher` at `pack-type='end', pack-index=0` in `/org/gnome/gnome-panel/layout/`, anchoring the Quick Settings drop-down trigger directly in the top-right corner.
+  3. Installed and configured `dunst` (`1.9.2`) and `libnotify-bin` (`0.8.3`) with authentic Ubuntu Yaru Dark styling (`/root/.config/dunst/dunstrc`), rendering notifications in the top right corner (`offset = 20x38`) with Ubuntu orange borders (`#E95420`).
+  4. Audited noVNC web DOM: 45 of 45 linked HTML resources (`app/ui.js`, CSS, SVG icons) confirmed HTTP 200 OK with zero broken assets.
+
+

@@ -555,3 +555,25 @@
   - USB Mouse & DisplayPort Bridge: **ACTIVE & VERIFIED** (s8_input_bridge forwarding event6 to :1)
   - Virtual Keyboard: **ACTIVE & VERIFIED** (onboard operational on display :1)
 
+
+### Task 40: Top-Right Quick Settings Dropdown, Dunst Notifications & DOM Audit
+* **Date:** 2026-11-05
+* **Files Touched:**
+  - `scratch/s8-control-center.py` -> `/usr/local/bin/s8-control-center`
+  - `scratch/s8_status_icon.py` -> `/usr/local/bin/s8_status_icon.py`
+  - `scratch/dunstrc` -> `/root/.config/dunst/dunstrc`
+  - `scratch/start_ubuntu_desktop.sh` -> `/usr/local/bin/start_ubuntu_desktop.sh`
+  - `FINDINGS.md` (Finding 77)
+  - `HISTORY.md` (Task 40)
+* **What Worked:**
+  - Identified and resolved top-right Control Center coordinate bug: GTK HiDPI scale factor caused `self.move()` to double coordinates to `x=3060`, pushing the window off-screen. Re-anchored window directly to `x=1530, y=34` (verified via `xwininfo: Absolute upper-left X: 1530, Y: 34`).
+  - Added dedicated Quick Settings launcher in `gnome-panel` layout at the far right corner (`pack-type='end', pack-index=0`), eliminating the empty dead zone in the top-right corner.
+  - Deployed `dunst` (`1.9.2`) notification daemon and `libnotify-bin` (`0.8.3`) with Ubuntu Yaru Dark styling, successfully testing live desktop notifications (`notify-send`).
+  - Audited noVNC web DOM: verified all 45 linked HTML resources return HTTP 200 OK with zero missing or broken assets.
+  - Verified empirical screenshot of Quick Settings drop-down and Dunst notification banner.
+* **Current Status Matrix:**
+  - Quick Settings Drop-down: **LIVE & VERIFIED** (Anchored at x=1530, y=34 on display :1)
+  - Desktop Notifications: **ACTIVE & VERIFIED** (Dunst running with Yaru Dark styling)
+  - Web DOM Resources: **100% HEALTHY** (45/45 HTTP 200 OK)
+
+
