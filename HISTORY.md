@@ -577,3 +577,20 @@
   - Web DOM Resources: **100% HEALTHY** (45/45 HTTP 200 OK)
 
 
+### Task 41: Top-Bar Modernization, Gripper Removal & Dedicated Unified Settings Integration
+* **Date:** 2026-11-05
+* **Files Touched:**
+  - `scratch/start_ubuntu_desktop.sh` -> `/usr/local/bin/start_ubuntu_desktop.sh`
+  - `FINDINGS.md` (Finding 78)
+  - `HISTORY.md` (Task 41)
+* **What Worked:**
+  - Diagnosed and explained the 12-dot panel widget: it was the unlocked applet drag handle (gripper) in `gnome-panel`. Enforced `org.gnome.gnome-panel.lockdown locked-down true`, completely removing the 12-dot handles for a clean, flush panel surface.
+  - Removed the legacy GNOME 2 "Places" menu from the top panel, replacing it with an authentic modern Ubuntu 24.04 "Activities / Show Apps" launcher on the top-left, center Clock/Calendar, and right Quick Settings.
+  - Validated the official dedicated unified **Ubuntu Settings** application (`gnome-control-center`), auditing all 23 available system configuration panels (Wi-Fi, Bluetooth, Display, Sound, Power, Ubuntu Desktop, System Details).
+  - Captured live empirical screenshots of the modernized clean top bar and the unified Settings window.
+* **Current Status Matrix:**
+  - Top Bar UI: **CLEAN & MODERN** (12-dot grippers removed, "Places" removed, Activities on left, Clock in center, Quick Settings on right)
+  - Unified Settings: **LIVE & VERIFIED** (Official Ubuntu Settings gnome-control-center with 23 panels accessible from dock and app drawer)
+
+
+

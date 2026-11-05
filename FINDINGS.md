@@ -1034,4 +1034,24 @@ otification-area and bind launcher paths under instance-config/.
   3. Installed and configured `dunst` (`1.9.2`) and `libnotify-bin` (`0.8.3`) with authentic Ubuntu Yaru Dark styling (`/root/.config/dunst/dunstrc`), rendering notifications in the top right corner (`offset = 20x38`) with Ubuntu orange borders (`#E95420`).
   4. Audited noVNC web DOM: 45 of 45 linked HTML resources (`app/ui.js`, CSS, SVG icons) confirmed HTTP 200 OK with zero broken assets.
 
+---
+
+## Finding 78 — 12-Dot Applet Grippers, Legacy "Places" Menu Removal & Dedicated Unified Ubuntu Settings Architecture
+* **Severity:** Low / UI Modernization & Usability
+* **Discovery Date:** 2026-11-05
+* **Questions Raised:**
+  1. What is the 12-dot icon/widget in the top-right?
+  2. What is the "Places" menu on the top-left?
+  3. Why is there no dedicated unified Settings page?
+* **Technical Explanation & Root Cause:**
+  1. **12-Dot Panel Gripper Handle:** In `gnome-panel`, when the panel lockdown property is unset (`org.gnome.gnome-panel.lockdown locked-down false`), the panel automatically renders a movable grip handle consisting of a 3x4 dot grid (12 dots) next to applets so users can drag or move them with Alt+Right Click. By enforcing `locked-down true`, the panel hides all drag handles, creating a smooth, modern unified panel surface without modular dots.
+  2. **Legacy "Places" Menu:** "Places" is a classic GNOME 2 dropdown listing filesystem bookmarks (Home, Desktop, Documents, Downloads, Music, Pictures, Videos, Network). Modern Ubuntu 24.04 (GNOME Shell) does not use a "Places" menu, opting instead for a unified "Activities" button on the top-left and file bookmarks integrated directly inside the Files (`nautilus`) sidebar. The `menu-bar` applet was replaced with a clean "Activities / Show Apps" launcher on the top-left.
+  3. **Dedicated Unified Settings Page:** The system includes the official, full **Ubuntu Settings** application (`gnome-control-center`), featuring 23 dedicated panels:
+     * Connectivity: `wifi`, `network`, `bluetooth`, `wwan` (cellular modem).
+     * Hardware & Peripherals: `display`, `sound` (ALSA Maxim amplifier & CS47L92 DMIC1), `power` (battery telemetry & PMIC controls), `printers`, `keyboard`, `mouse`, `wacom`.
+     * Personalization: `background` (Ubuntu Noble Numbat mascot wallpapers), `ubuntu` (desktop layout, dock position, icon size), `notifications`, `search`, `multitasking`, `color`.
+     * System: `system` (Ubuntu 24.04.5 LTS, 64-bit, Exynos 8895 Octa-Core, 4GB RAM), `applications` (default apps), `privacy`, `sharing`, `online-accounts`, `universal-access`.
+     * Accessible via the gear icon on the left dock, in the App Drawer grid, or by running `gnome-control-center`.
+
+
 
