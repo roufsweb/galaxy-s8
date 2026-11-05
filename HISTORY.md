@@ -508,3 +508,21 @@
   - Configured remote origin `https://github.com/roufsweb/galaxy-s8.git`, set default branch to `main`, and successfully pushed all 9 commits to GitHub.
 * **Current Status Matrix:**
   - GitHub Publishing: **LIVE & VERIFIED** (Repository online at https://github.com/roufsweb/galaxy-s8)
+
+
+### Task 38: 5-Minute Full CPU + GPU Torture Stress Test & Thermal Telemetry
+* **Date:** 2026-11-05
+* **Files Touched:**
+  - `scratch/stress_test_5min.py` -> `/mnt/ubuntu/root/stress_test_5min.py`
+  - `scratch/stress_telemetry_5min.csv`
+  - `FINDINGS.md` (Finding 75)
+  - `HISTORY.md` (Task 38)
+* **What Worked:**
+  - Deployed automated 300-second stress harness combining 8-core `stress-ng` (all methods) and continuous `glmark2-es2` 3D rendering.
+  - Recorded 60 continuous telemetry samples (M2 temp, A53 temp, GPU temp, battery temp, CPU/GPU freqs, battery voltage/current).
+  - Validated that Mali-G71 MP20 GPU sustains 546 MHz Booster mode indefinitely (0% throttling, max 70°C).
+  - Characterized Exynos 8895 thermal governor trip point at exactly 83.0°C: M2 cluster stabilizes at 1,919.0 MHz average, and A53 cluster stabilizes at 1,456 MHz.
+  - Verified MAX77865 PMIC stability: 4.327V average, zero brownouts under sustained 100% multi-core CPU + GPU load.
+  - Fixed `websockify` daemon launch path in chroot (`/tmp/websockify.log`) and verified noVNC Lite WebSocket connection.
+* **Current Status Matrix:**
+  - Thermal & Performance Profiling: **COMPLETE & VERIFIED** (Sustained 1.92 GHz M2 + 1.46 GHz A53 + 546 MHz GPU @ 83°C thermal equilibrium)

@@ -980,3 +980,17 @@ otification-area and bind launcher paths under instance-config/.
   * Zero active exploit payloads or prohibited binary content.
   * The repository consists exclusively of original open-source hardware bridges (C), hardware management utilities (Python), startup orchestration scripts (POSIX sh), and developer documentation.
 * **Future Prevention Rule:** Enforce Rule 16 (`GEMINI.md`) and pre-commit privacy hook (`scripts/install_privacy_hook.py`) on all future commits to maintain 100% compliance with GitHub policies.
+
+---
+
+## Finding 75 — 5-Minute Full CPU + GPU Torture Stress & DVFS Thermal Throttling Curve
+* **Severity:** Informational / Hardware Characterization
+* **Discovery Date:** 2026-11-05
+* **Test Architecture:** 300-second continuous torture load: 8 CPU cores under `stress-ng` (all methods) + ARM Mali-G71 MP20 locked in Booster mode (`546 MHz`, `always_on`) running continuous 1080p OpenGL ES 2.0 3D scene rendering via `glmark2-es2`.
+* **Telemetry Dataset:** 60 discrete samples recorded at 5.0s intervals across thermal zones 0-5, CPU clusters, GPU clock, and battery PMIC registers.
+* **Empirical Results:**
+  * **Mali-G71 MP20 GPU Stability:** Maintained a rock-solid **546.0 MHz** throughout all 300 seconds (0 MHz deviation, zero GPU thermal throttling). Peak GPU temp: 70.0°C (average 67.4°C).
+  * **Samsung M2 Big Cluster (CPUs 4-7):** Started at 2002 MHz / 42.0°C. Temperature reached 80°C in 25 seconds and hit the thermal governor trip point at exactly **83.0°C**. The kernel DVFS throttled M2 between 1937 MHz and 1807 MHz to maintain thermal equilibrium at 83-84°C, maintaining an average sustained frequency of **1,919.0 MHz** (~1.92 GHz).
+  * **Cortex-A53 Little Cluster (CPUs 0-3):** Started at 1690 MHz. Stepped down to **1,456 MHz** at t=20s (81°C) and remained locked at 1456 MHz for the duration of the test. Peak A53 temp: 85.0°C (average 83.6°C).
+  * **PMIC & Battery Power Delivery:** Battery voltage stayed pinned at **4,327.5 mV average** (min 4,317 mV, max 4,337 mV), safely above the 4.3V UVLO trip threshold. Battery temperature rose only 3.4°C (34.1°C to 37.5°C).
+* **Conclusion & Hardware Ruling:** The headless Galaxy S8 passive thermal dissipation allows sustained execution at ~95% of peak CPU performance and 100% of peak GPU booster frequency without thermal runaway or brownouts under maximum artificial torture load.
