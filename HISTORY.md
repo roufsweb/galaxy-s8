@@ -526,3 +526,32 @@
   - Fixed `websockify` daemon launch path in chroot (`/tmp/websockify.log`) and verified noVNC Lite WebSocket connection.
 * **Current Status Matrix:**
   - Thermal & Performance Profiling: **COMPLETE & VERIFIED** (Sustained 1.92 GHz M2 + 1.46 GHz A53 + 546 MHz GPU @ 83°C thermal equilibrium)
+
+
+### Task 39: Authentic Ubuntu 24.04 Noble Numbat Desktop Recreation, On-Screen Keyboard & USB Mouse Hotplug Stabilization
+* **Date:** 2026-11-05
+* **Files Touched:**
+  - `scratch/ubuntu_appgrid.rasi` -> `/usr/share/rofi/themes/ubuntu_appgrid.rasi`
+  - `scratch/ubuntu_appgrid.sh` -> `/usr/local/bin/ubuntu_appgrid`
+  - `scratch/ubuntu-appgrid.desktop` -> `/usr/share/applications/ubuntu-appgrid.desktop`
+  - `scratch/toggle_onboard.sh` -> `/usr/local/bin/toggle_onboard.sh`
+  - `scratch/start_ubuntu_desktop.sh` -> `/usr/local/bin/start_ubuntu_desktop.sh`
+  - `/mnt/android_data/linux/start_all.sh`
+  - `FINDINGS.md` (Finding 76)
+  - `HISTORY.md` (Task 39)
+* **What Worked:**
+  - Diagnosed USB mouse plug-in display drop: unpowered USB-C multi-port hubs powered from phone battery experience a momentary VBUS current surge, triggering CCIC renegotiation. Verified `exynos_dp_bridge` hotplug recovery: detected `state == 1`, vibrated 150ms, and restored DisplayPort video within ~1 second.
+  - Resolved mouse responsiveness: launched and supervised `s8_input_bridge` to bridge `/dev/input/event6` (`Telink Wireless Gaming Mouse`) to X11 `:1` via XTest fake motion and button events.
+  - Installed and configured `onboard` virtual on-screen keyboard with `/usr/local/bin/toggle_onboard.sh` for convenient testing without a physical keyboard.
+  - Fully recreated the authentic **Ubuntu 24.04 Noble Numbat Desktop Experience**:
+    - Installed `yaru-theme-gtk`, `yaru-theme-icon`, `yaru-theme-sound`, and set GTK/icon/cursor themes to `Yaru-dark` and right-side window button controls (`:minimize,maximize,close`).
+    - Configured authentic Ubuntu top bar (`gnome-panel`) with "Show Apps" (App Drawer), Applications & Places menus, Ubuntu Clock/Calendar, and system indicators.
+    - Configured left-side vertical Ubuntu Dock (`plank`) with Noble Numbat styling and default Ubuntu app lineup (Files, Browser, Terminal, Settings, Text Editor, Onboard, S8 Center, Show Apps).
+    - Created custom Ubuntu App Drawer using `rofi` with Noble Numbat translucent styling (`#111111f0`), Ubuntu orange accents (`#E95420`), pill search bar, and 6x4 application grid.
+    - Verified native Ubuntu Settings (`gnome-control-center`) launching and rendering on X11 `:1`.
+  - Captured live empirical screenshots of Desktop, App Drawer, Settings, and On-Screen Keyboard.
+* **Current Status Matrix:**
+  - Ubuntu Desktop Transformation: **LIVE & VERIFIED** (Authentic Yaru Dark + Left Dock + App Grid + Settings)
+  - USB Mouse & DisplayPort Bridge: **ACTIVE & VERIFIED** (s8_input_bridge forwarding event6 to :1)
+  - Virtual Keyboard: **ACTIVE & VERIFIED** (onboard operational on display :1)
+

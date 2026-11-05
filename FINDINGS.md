@@ -994,3 +994,27 @@ otification-area and bind launcher paths under instance-config/.
   * **Cortex-A53 Little Cluster (CPUs 0-3):** Started at 1690 MHz. Stepped down to **1,456 MHz** at t=20s (81°C) and remained locked at 1456 MHz for the duration of the test. Peak A53 temp: 85.0°C (average 83.6°C).
   * **PMIC & Battery Power Delivery:** Battery voltage stayed pinned at **4,327.5 mV average** (min 4,317 mV, max 4,337 mV), safely above the 4.3V UVLO trip threshold. Battery temperature rose only 3.4°C (34.1°C to 37.5°C).
 * **Conclusion & Hardware Ruling:** The headless Galaxy S8 passive thermal dissipation allows sustained execution at ~95% of peak CPU performance and 100% of peak GPU booster frequency without thermal runaway or brownouts under maximum artificial torture load.
+
+---
+
+## Finding 76 — USB-C Peripheral Power Spike, DisplayPort Hotplug Recovery & Authentic Ubuntu Desktop Environment
+* **Severity:** Medium / Usability & Power Subsystem
+* **Discovery Date:** 2026-11-05
+* **Symptom:** Connecting a USB wireless gaming mouse dongle (Telink) to an unpowered USB-C multi-port hub caused the external DisplayPort screen to momentarily drop out, the phone haptic motor to pulse, and the display to return, but the mouse did not move the cursor.
+* **Root Cause Analysis:**
+  1. **USB VBUS Current Inrush on Unpowered Hubs:** When an external display dongle or USB-C hub is plugged into the Galaxy S8 without an external USB-C Power Delivery (PD) charger attached to the hub's pass-through port, the phone battery supplies all power (5V boost converter via MAX77865 PMIC). Inserting a peripheral (optical/gaming mouse) draws an instantaneous inrush current spike, causing a brief VBUS voltage droop. This droop causes the USB-C CCIC controller (`usbpd-s2mm005`) to momentarily reset or re-negotiate Alternate Mode (`state -> 0 -> 1`).
+  2. **DisplayPort Hotplug Bridge Resiliency:** The native `exynos_dp_bridge` daemon functioned exactly as engineered: upon detecting the momentary link drop and recovery (`/sys/class/switch/hdmi/state == 1`), it issued a 150ms haptic confirmation pulse, re-negotiated EDID parameters, called `FBIOBLANK(FB_BLANK_UNBLANK)`, and restored DECON2 DisplayPort video streaming within ~1 second without crashing the kernel.
+  3. **Input Event Forwarding in Virtual X11:** TigerVNC (`:1`) operates as a virtual framebuffer server and does not listen to Linux evdev nodes (`/dev/input/event*`) by default. The dedicated `s8_input_bridge` daemon was not running during the initial plug-in event. Once started, `s8_input_bridge` immediately discovered `/dev/input/event6` (`Telink Wireless Gaming Mouse`) and mapped relative motion (`EV_REL`) and clicks (`EV_KEY`) to X11 `:1` via `XTestFakeRelativeMotionEvent` and `XTestFakeButtonEvent`.
+  4. **Authentic Ubuntu 24.04 Noble Numbat Recreation:**
+     * Migrated desktop environment from macOS Sonoma styling to authentic Ubuntu 24.04 Noble Numbat:
+     * **GTK / Icons / Cursors:** Set to `Yaru-dark`, `Yaru`, and `Yaru` with right-side window button controls (`:minimize,maximize,close`).
+     * **Ubuntu Top Bar (`gnome-panel`):** Dark top panel featuring "Show Apps" (App Drawer grid launcher), GNOME Applications/Places menu, centered Ubuntu Clock & Calendar, and system indicator tray.
+     * **Ubuntu Left Vertical Dock (`plank`):** Configured on the left screen edge with Yaru dark theme and pinned launchers: Files (`nautilus`), Chromium Browser, Terminal (`kgx`), Ubuntu Settings (`gnome-control-center`), Text Editor, On-Screen Virtual Keyboard (`onboard`), S8 Hardware Center (`s8ctl`), and Show Applications (9-dots button).
+     * **Ubuntu App Drawer (`rofi`):** Fullscreen application grid with Noble Numbat dark styling (`#111111f0`), Ubuntu orange accents (`#E95420`), pill search bar, and 6x4 large icon layout.
+     * **Ubuntu Settings (`gnome-control-center`):** Verified running natively on X11 `:1` with Adwaita styling.
+     * **On-Screen Keyboard (`onboard`):** Installed and configured with toggle shortcut script `/usr/local/bin/toggle_onboard.sh` for convenient touch/mouse testing.
+* **Permanent Fix & Solution:**
+  1. Enabled supervised `s8_input_bridge` in `/usr/local/bin/start_ubuntu_desktop.sh` and `/data/linux/start_all.sh` to permanently bridge USB mouse and keyboard events.
+  2. Disabled X11 DPMS screen blanking (`xset -dpms s off s noblank`) to prevent display timeouts.
+  3. Recommended connecting external USB-C PD power to the multi-port hub to avoid battery VBUS current spikes when connecting power-hungry USB peripherals.
+
