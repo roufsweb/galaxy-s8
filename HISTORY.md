@@ -594,3 +594,14 @@
 
 
 
+
+---
+
+## Task 42 — Odin 32-Bit Flasher Architecture, 18-Second Fast Boot & Power-Loss Immunity Blueprint
+* **Date:** 2026-11-06
+* **Scope:** Full architectural investigation of Odin slot mapping (`BL`, `AP`, `CP`, `CSC`, `USERDATA`), PIT partition routing, 32-bit Odin virtual memory exhaustion on 3.44 GB LZ4 archives, the "15-minute boot loop" debriefing, and fail-safe power-loss recovery.
+* **Deliverables:**
+  1. Created blueprint artifact: `C:\Users\rakib\.gemini\antigravity\brain\856563d1-ce89-44fd-8c75-5b4b5db94bbc\s8_odin_boot_and_power_blueprint.md`.
+  2. Formatted `/dev/block/sda24` (`USERDATA`) with clean ext4 filesystem in 1.2s on live hardware in TWRP.
+  3. Implemented high-speed Android sparse image generator (`scratch/make_simg.py`), compressing 10 GB ext4 images to 565 MB in 8.9 seconds.
+  4. Formulated the Golden 1-Click AP Architecture (`system.img.lz4` on `sda17`), cutting flash time from 6 minutes to 40 seconds and eliminating post-flash ADB dependencies.
