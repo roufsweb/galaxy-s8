@@ -147,7 +147,7 @@ static void handle_bixby_action(const char *action) {
         toggle_torch();
     } else if (strcmp(action, "long") == 0) {
         vibrate(200);
-        run_async_cmd("DISPLAY=:1 /usr/bin/scrot /tmp/screenshot_bixby.png && python3 /usr/local/bin/notify_telegram.py '📸 [Galaxy S8 Bixby Key]: Desktop screenshot captured!' && python3 -c \"import requests; requests.post('https://api.telegram.org/<TELEGRAM_BOT_TOKEN>/sendPhoto', data={'chat_id': '<TELEGRAM_CHAT_ID>', 'caption': '📸 Captured via Physical Bixby Key'}, files={'photo': open('/tmp/screenshot_bixby.png', 'rb')})\" 2>/dev/null");
+        run_async_cmd("DISPLAY=:1 /usr/bin/scrot /tmp/screenshot_bixby.png && python3 /usr/local/bin/notify_telegram.py '📸 [Galaxy S8 Bixby Key]: Desktop screenshot captured!' && python3 -c \"import requests; requests.post('https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/sendPhoto', data={'chat_id': '<TELEGRAM_CHAT_ID>', 'caption': '📸 Captured via Physical Bixby Key'}, files={'photo': open('/tmp/screenshot_bixby.png', 'rb')})\" 2>/dev/null");
     }
 }
 
