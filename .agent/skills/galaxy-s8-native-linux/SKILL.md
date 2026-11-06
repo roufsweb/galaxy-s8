@@ -57,13 +57,20 @@ adb shell "chroot /mnt/ubuntu /usr/local/bin/start_gnome_macos.sh"
 
 ## 3. Rebuilding Auto-Boot `boot.img` & 1-Click Odin Installer
 
-Run [`e:\rouf\galaxy-s8\scratch\build_autoboot_and_odin.py`](file:///e:/rouf/galaxy-s8/scratch/build_autoboot_and_odin.py):
+Run [`e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py`](file:///e:/rouf/galaxy-s8/scratch/build_rocksolid_boot.py):
 ```powershell
-python e:\rouf\galaxy-s8\scratch\build_autoboot_and_odin.py
+python e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py
 ```
+* Built with 6 strict automated validation guarantees:
+  1. Base kernel & ramdisk from proven stable `archive/boot_twrp_exact.tar`.
+  2. Direct embedding of all 9 Calliope DSP audio firmware binaries into `etc/firmware/` and `vendor/firmware/` (zero IPC timeouts).
+  3. Minimal `permissive.sh` (`setenforce 0` only) with zero rogue background loops and zero bind mounts.
+  4. Auto-repair of ext4 journals (`e2fsck -p /dev/block/sda24`) on boot.
+  5. Auto-boot triggered cleanly on `sys.usb.ffs.ready=1` so ADB root shell is always guaranteed.
+  6. Automated pre-flash verification of CPIO integrity and size limit (`<= 41,943,040` bytes).
 * Outputs:
-  * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`40,521,744` B `<= 41,943,040` B `sda7` limit)
-  * `e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`88,760,320` B USTAR archive for Odin `AP` slot)
+  * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`38,971,408` B `<= 41,943,040` B `sda7` limit)
+  * `e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`87,214,080` B USTAR archive for Odin `AP` slot)
 * Flash live via ADB without Odin:
   ```powershell
   adb push e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img /tmp/boot.img

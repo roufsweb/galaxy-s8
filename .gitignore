@@ -20,6 +20,7 @@ id_ed25519*
 *.tar.xz
 *.tar.bz2
 *.img
+*.img.gz
 *.img.lz4
 *.lz4
 *.cpio
@@ -30,6 +31,7 @@ id_ed25519*
 *.hcd
 *.fw
 *.blob
+releases/
 
 # Audio recordings & test media
 *.wav
