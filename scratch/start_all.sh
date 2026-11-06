@@ -45,8 +45,10 @@ echo "=== [2/6] Mounting Ubuntu 24.04.5 LTS Rootfs (/data/linux/rootfs.img) ==="
 
 mkdir -p /mnt/ubuntu
 if ! mountpoint -q /mnt/ubuntu; then
-    losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null || true
-    mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
+    mount -t ext4 -o rw,noatime /dev/block/sda17 /mnt/ubuntu 2>/dev/null || {
+        losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null || true
+        mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu 2>/dev/null || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
+    }
 fi
 
 mkdir -p /mnt/ubuntu/proc /mnt/ubuntu/sys /mnt/ubuntu/dev /mnt/ubuntu/dev/pts /mnt/ubuntu/dev/shm /mnt/ubuntu/run /mnt/ubuntu/run/dbus /mnt/ubuntu/run/user/0 /mnt/ubuntu/tmp/.X11-unix /mnt/ubuntu/var/log /mnt/ubuntu/var/log/gnome_apps
