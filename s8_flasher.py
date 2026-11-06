@@ -16,6 +16,18 @@ DEFAULT_ROM = os.path.join(WORKSPACE, "releases", "ubuntu-24.04-arm64.img.gz")
 ALT_ROM = os.path.join(WORKSPACE, "releases", "ubuntu-24.04-arm64.img")
 
 def find_adb():
+    # 1. Check embedded adb from PyInstaller bundle
+    if hasattr(sys, "_MEIPASS"):
+        embedded_adb = os.path.join(sys._MEIPASS, "adb.exe")
+        if os.path.exists(embedded_adb):
+            return embedded_adb
+
+    # 2. Check local tools directory
+    local_adb = os.path.join(WORKSPACE, "tools", "adb.exe")
+    if os.path.exists(local_adb):
+        return local_adb
+
+    # 3. Check system PATH
     adb = shutil.which("adb")
     if adb:
         return adb

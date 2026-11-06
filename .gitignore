@@ -32,6 +32,10 @@ id_ed25519*
 *.fw
 *.blob
 releases/
+tools/
+dist/
+build/
+*.spec
 
 # Audio recordings & test media
 *.wav
