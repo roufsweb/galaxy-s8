@@ -5,7 +5,7 @@
 
 Convert a Samsung Galaxy S8 (`SM-G950N`, Exynos 8895 Octa-Core 64-bit, 4 GB LPDDR4x, 64 GB UFS 2.1) — including **headless salvaged units with broken or removed OLED screens** — into a native ARM64 Linux desktop, server, or homelab appliance without modifying the upstream operating system distribution.
 
-**[Live Project Documentation & Interactive Architecture Page (GitHub Pages)](https://roufsweb.github.io/galaxy-s8/)** | **[Releases (`v1.0.0`)](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0)** | **[Full Credits](CREDITS.md)**
+**[Live Project Documentation & Architecture Page (`galaxy-s8.roufsweb.com`)](https://galaxy-s8.roufsweb.com/)** | **[Releases (`v1.0.0`)](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0)** | **[Full Credits](CREDITS.md)**
 
 ![Galaxy S8 Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd](docs/assets/screenshots/s8_ubuntu_gnome_desktop.png)
 *Unmodified Canonical Ubuntu 24.04.5 LTS ARM64 (`systemd` as `PID 1`) running on Linux `4.4.111-s8-native-linux` with `galaxy-s8-hw v1.0.0`, GNOME 46, and Plank Dock.*
