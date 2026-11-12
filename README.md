@@ -1,3 +1,7 @@
+> [!WARNING]
+> **WORK IN PROGRESS — PROJECT STILL UNDER DEVELOPMENT (ON HOLD AT `v1.0.0`)**
+> This repository is **still under work** and remains experimental low-level firmware, kernel, and Linux bring-up software (currently paused on hold after milestone `v1.0.0`). Hardware support (`SM-G950N` Exynos 8895), tooling workflows, and documentation may contain rough edges or incomplete features — always inspect commands carefully and back up device partitions before flashing.
+
 # Samsung Galaxy S8 (`SM-G950N`) — Native ARM64 Linux Platform (`4.4.111`)
 
 > **[PROJECT STATUS — MILESTONE HOLD (`v1.0.0`)]**
