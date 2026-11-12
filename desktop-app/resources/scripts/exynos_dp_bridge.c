@@ -17,10 +17,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -386,12 +388,178 @@ static int ignore_x_io_error(Display *d) {
   return 0;
 }
 
+typedef struct {
+  uint32_t magic;
+  uint32_t width;
+  uint32_t height;
+  uint32_t seq;
+  uint64_t timestamp_ms;
+} shm_fb_hdr_t;
+
+static uint64_t monotonic_ms(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+}
+
+static bool ap_dp_daemon_active(void) {
+  int fd = open("/dev/.s8_dp_daemon.lock", O_RDONLY);
+  if (fd < 0)
+    return false;
+  bool busy = (flock(fd, LOCK_EX | LOCK_NB) != 0 && errno == EWOULDBLOCK);
+  if (!busy)
+    flock(fd, LOCK_UN);
+  close(fd);
+  return busy;
+}
+
+static int run_shm_feeder_mode(void) {
+  printf("[exynos_dp_bridge] /sbin/s8_dp_daemon owns fb2 -> running in tear-free X11 SHM feeder mode (/dev/shm/s8_dp_fb).\n");
+  mkdir("/dev/shm", 01777);
+  chmod("/dev/shm", 01777);
+
+  uint32_t w = 1920, h = 1080;
+  size_t map_sz = sizeof(shm_fb_hdr_t) + (size_t)w * h * 4;
+  int shm_fd = open("/dev/shm/s8_dp_fb", O_CREAT | O_RDWR, 0666);
+  if (shm_fd < 0 || ftruncate(shm_fd, (off_t)map_sz) != 0) {
+    if (shm_fd >= 0) close(shm_fd);
+    return 1;
+  }
+  uint8_t *base = mmap(NULL, map_sz, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  if (base == MAP_FAILED) {
+    close(shm_fd);
+    return 1;
+  }
+  shm_fb_hdr_t *hdr = (shm_fb_hdr_t *)base;
+  uint32_t *pix = (uint32_t *)(base + sizeof(shm_fb_hdr_t));
+  hdr->magic = 0x53384642U;
+  hdr->width = w;
+  hdr->height = h;
+  hdr->seq = 0;
+  hdr->timestamp_ms = 0;
+
+  Display *dpy = NULL;
+  XShmSegmentInfo shminfo;
+  XImage *shm_img = NULL;
+  bool use_shm = false;
+  uint32_t xw = w, xh = h;
+
+  while (1) {
+    if (read_int_file("/sys/class/switch/hdmi/state", 0) <= 0) {
+      hdr->timestamp_ms = 0;
+      usleep(300000);
+      continue;
+    }
+    if (!dpy) {
+      dpy = XOpenDisplay(":1");
+      if (!dpy) dpy = XOpenDisplay(":0");
+      if (!dpy) {
+        usleep(400000);
+        continue;
+      }
+      int scr = DefaultScreen(dpy);
+      xw = (uint32_t)DisplayWidth(dpy, scr);
+      xh = (uint32_t)DisplayHeight(dpy, scr);
+      shm_img = XShmCreateImage(dpy, DefaultVisual(dpy, scr), DefaultDepth(dpy, scr), ZPixmap, NULL, &shminfo, xw, xh);
+      if (shm_img) {
+        shminfo.shmid = shmget(IPC_PRIVATE, (size_t)shm_img->bytes_per_line * shm_img->height, IPC_CREAT | 0777);
+        if (shminfo.shmid >= 0) {
+          shminfo.shmaddr = shm_img->data = shmat(shminfo.shmid, 0, 0);
+          shminfo.readOnly = False;
+          if (shminfo.shmaddr != (void *)-1 && XShmAttach(dpy, &shminfo)) {
+            XSync(dpy, False);
+            shmctl(shminfo.shmid, IPC_RMID, 0);
+            use_shm = true;
+          }
+        }
+      }
+    }
+    struct timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    Window root = DefaultRootWindow(dpy);
+    Window q_root = 0, q_parent = 0, *q_children = NULL;
+    unsigned int nchildren = 0;
+    if (!XQueryTree(dpy, root, &q_root, &q_parent, &q_children, &nchildren)) {
+      hdr->timestamp_ms = 0;
+      if (shm_img && use_shm) XShmDetach(dpy, &shminfo);
+      XCloseDisplay(dpy);
+      dpy = NULL;
+      use_shm = false;
+      usleep(300000);
+      continue;
+    }
+    if (q_children) XFree(q_children);
+    if (nchildren == 0) {
+      hdr->timestamp_ms = 0;
+      usleep(300000);
+      continue;
+    }
+    bool captured = false;
+    if (use_shm && shm_img && XShmGetImage(dpy, root, shm_img, 0, 0, AllPlanes)) {
+      blit_or_scale(pix, (const uint32_t *)shm_img->data, w, h, xw, xh);
+      captured = true;
+    } else {
+      XImage *img = XGetImage(dpy, root, 0, 0, xw, xh, AllPlanes, ZPixmap);
+      if (img) {
+        blit_or_scale(pix, (const uint32_t *)img->data, w, h, xw, xh);
+        XDestroyImage(img);
+        captured = true;
+      }
+    }
+    if (captured) {
+      XFixesCursorImage *cur = XFixesGetCursorImage(dpy);
+      if (cur) {
+        int sx = cur->x - cur->xhot, sy = cur->y - cur->yhot;
+        for (int cy = 0; cy < cur->height; cy++) {
+          int py = sy + cy;
+          if (py < 0 || py >= (int)h) continue;
+          for (int cx = 0; cx < cur->width; cx++) {
+            int px = sx + cx;
+            if (px < 0 || px >= (int)w) continue;
+            uint32_t cp = (uint32_t)cur->pixels[cy * cur->width + cx];
+            uint8_t a = (cp >> 24) & 0xff;
+            if (a == 0) continue;
+            if (a == 255) { pix[py * w + px] = cp; }
+            else {
+              uint8_t *dp = (uint8_t *)&pix[py * w + px], *sp = (uint8_t *)&cp;
+              uint32_t inv = 255 - a;
+              dp[0] = sp[0] + (uint8_t)((dp[0] * inv) >> 8);
+              dp[1] = sp[1] + (uint8_t)((dp[1] * inv) >> 8);
+              dp[2] = sp[2] + (uint8_t)((dp[2] * inv) >> 8);
+            }
+          }
+        }
+        XFree(cur);
+      }
+      __sync_synchronize();
+      hdr->width = w;
+      hdr->height = h;
+      hdr->seq++;
+      hdr->timestamp_ms = monotonic_ms();
+    } else {
+      if (shm_img && use_shm) XShmDetach(dpy, &shminfo);
+      XCloseDisplay(dpy);
+      dpy = NULL;
+      use_shm = false;
+    }
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    long elapsed = (t1.tv_sec - t0.tv_sec) * 1000000L + (t1.tv_nsec - t0.tv_nsec) / 1000L;
+    if (elapsed < 16666L) usleep((useconds_t)(16666L - elapsed));
+    else usleep(500);
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) {
   setvbuf(stdout, NULL, _IOLBF, 0);
   setvbuf(stderr, NULL, _IOLBF, 0);
 
   XSetErrorHandler(ignore_x_error);
   XSetIOErrorHandler(ignore_x_io_error);
+
+  if (ap_dp_daemon_active()) {
+    return run_shm_feeder_mode();
+  }
 
   const char *fb_path = "/dev/graphics/fb2";
   if (access(fb_path, R_OK | W_OK) != 0)

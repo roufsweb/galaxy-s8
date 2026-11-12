@@ -189,6 +189,7 @@
           S8 Imager
         </h1>
         <span class="text-xs font-semibold text-appDim tracking-wide">by roufsweb</span>
+        <span id="appVersionBadge" class="text-[10px] font-mono font-semibold text-sky-300 bg-sky-500/10 border border-sky-500/25 px-2 py-0.5 rounded-lg">v2.6.0 | AP v3.0.0 | HW v1.0.2</span>
         <span id="pageHeaderTitle" class="hidden"></span>
       </div>
 
@@ -303,9 +304,15 @@
             <div id="allocDataBar" class="bg-emerald-400 h-full transition-all duration-150" style="width: 70%"></div>
           </div>
 
-          <div class="flex items-center justify-between text-[10px] font-mono text-appDim">
-            <span id="deviceUfsVariant" class="text-appMuted font-semibold">64 GB UFS 2.1 (/dev/block/sda24)</span>
-            <span>Total Userdata: <span id="totalUfsDisplay" class="text-slate-200 font-bold">53.7</span> GB</span>
+          <div class="flex items-center justify-between text-[10px] font-mono text-appDim gap-2">
+            <select id="storageTargetSelect" title="Select target storage medium"
+              class="bg-appCard border border-appBorder rounded px-1.5 py-0.5 text-[10px] font-mono text-sky-300 focus:outline-none focus:border-appBlue">
+              <option value="internal">UFS 2.1 (/data/linux/rootfs.img)</option>
+              <option value="sdcard">MicroSD Loop (/media/sdcard/linux/rootfs.img)</option>
+              <option value="sdcard_part">MicroSD Partition (/dev/mmcblk0p2)</option>
+            </select>
+            <span id="deviceUfsVariant" class="hidden">64 GB UFS 2.1 (/dev/block/sda24)</span>
+            <span>Total: <span id="totalUfsDisplay" class="text-slate-200 font-bold">53.7</span> GB</span>
           </div>
         </div>
       </div>
@@ -864,6 +871,39 @@
             </div>
           </div>
         </section>
+
+        <!-- Universal Version & 1-Click Rollback Manager Card -->
+        <section id="versionRollbackCard" class="bg-appCard rounded-3xl border border-appBorder p-5 shadow-xl flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i data-lucide="history" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-white">Version &amp; Rollback Governance</h2>
+                <p class="text-[11px] text-appMuted">Restore known-good Odin AP &amp; Kernel snapshots</p>
+              </div>
+            </div>
+            <span id="rollbackStatusBadge" class="text-[10px] font-mono text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-400/20">
+              AP v3.0.0 ACTIVE
+            </span>
+          </div>
+          <div class="flex gap-2">
+            <select id="apRollbackSelect" class="flex-1 min-w-0 bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-appBlue">
+              <option value="3.0.0">AP v3.0.0 — Kernel 4.4.111-s8-universal-v3 [VERIFIED]</option>
+              <option value="2.0.2">AP v2.0.2 — Kernel 4.4.111-s8-universal-v2 [VERIFIED]</option>
+              <option value="1.0.0">AP v1.0.0 — Proven Android-Init Fallback [VERIFIED]</option>
+            </select>
+            <button id="btnRollbackAp" onclick="triggerApRollback()"
+              class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shrink-0">
+              ROLL BACK AP
+            </button>
+          </div>
+          <label class="flex items-center gap-2 text-[11px] font-mono text-slate-300 cursor-pointer select-none">
+            <input id="chkLiveRollback" type="checkbox" checked class="rounded border-appBorder bg-appCardAlt text-amber-400 focus:ring-0">
+            <span>Flash rollback directly to live phone (/dev/sda7 &amp; /dev/sda8) over USB RNDIS</span>
+          </label>
+        </section>
       </div>
 
       <!-- Right Column (6 cols): Device Identity & Access Configuration -->
@@ -1085,14 +1125,47 @@
         </div>
 
         <!-- Upstream Distro 6: Alpine Linux -->
-        <div onclick="selectDistro('Alpine Linux', 'alpine-minirootfs-3.20.3-aarch64.tar.gz', 'distros/alpine-minirootfs-3.20.3-aarch64.tar.gz', 'ALPINE 3.20')"
+        <div onclick="selectDistro('Alpine Linux 3.20.3', 'alpine-minirootfs-3.20.3-aarch64.tar.gz', 'distros/alpine-minirootfs-3.20.3-aarch64.tar.gz', 'ALPINE 3.20.3')"
           class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
           <div>
-            <div class="text-xs font-bold text-white">Alpine Linux 3.20 Minirootfs (Official)</div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Alpine Linux 3.20.3 Minirootfs (Official)</span>
+              <span class="text-[9px] bg-sky-500/20 text-sky-300 px-1.5 py-0.2 rounded font-mono font-semibold">v3.20.3</span>
+            </div>
             <div class="text-[10px] text-appMuted font-mono mt-0.5">Ultra-light OpenRC Container Base &middot; 3.8 MB</div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
             <button onclick="downloadDistro('alpine-3.20')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 7: Home Assistant OS 18.4 -->
+        <div onclick="selectDistro('Home Assistant OS 18.4', 'haos_generic-aarch64-18.4.img.xz', 'distros/haos_generic-aarch64-18.4.img.xz', 'HAOS 18.4')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Home Assistant OS 18.4 ARM64 (Official)</span>
+              <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-semibold">VERIFIED WORKING</span>
+            </div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Full Supervisor + Cgroup v1 Container Permissions &middot; 327 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('haos-18.4')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 8: OpenWrt 23.05.5 Router OS -->
+        <div onclick="selectDistro('OpenWrt 23.05.5 Router OS', 'openwrt-23.05.5-armsr-armv8-rootfs.tar.gz', 'distros/openwrt-23.05.5-armsr-armv8-rootfs.tar.gz', 'OPENWRT 23.05.5')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>OpenWrt 23.05.5 ARMv8 Router OS (Official)</span>
+              <span class="text-[9px] bg-sky-500/20 text-sky-300 px-1.5 py-0.2 rounded font-mono font-semibold">v23.05.5</span>
+            </div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Official procd / UCI / LuCI Router Rootfs + USB-LAN Routing &middot; 3.9 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('openwrt-23.05')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
           </div>
         </div>
       </div>
@@ -1663,8 +1736,9 @@
       const seedHost = (document.getElementById('seedHostInput')?.value || 'galaxy-s8').trim() || 'galaxy-s8';
       const seedWifiSsid = (document.getElementById('seedWifiSsidInput')?.value || '').trim();
       const seedWifiPass = document.getElementById('seedWifiPassInput')?.value || '';
+      const storageTarget = document.getElementById('storageTargetSelect')?.value || 'internal';
 
-      logBuffer.innerHTML = `<div class="text-sky-400 font-medium">[SYSTEM] Initializing unmodified OS deployment: ${escapeHtml(imagePath)} (${allocGb} GB)...</div>`;
+      logBuffer.innerHTML = `<div class="text-sky-400 font-medium">[SYSTEM] Initializing unmodified OS deployment: ${escapeHtml(imagePath)} (${allocGb} GB, target=${escapeHtml(storageTarget)})...</div>`;
 
       try {
         const startRes = await fetch('/api/flash', {
@@ -1679,7 +1753,9 @@
             password: seedPass,
             hostname: seedHost,
             wifi_ssid: seedWifiSsid,
-            wifi_password: seedWifiPass
+            wifi_password: seedWifiPass,
+            storage_target: storageTarget,
+            install_hw_pack: true
           })
         });
         const startData = await startRes.json();
@@ -2368,6 +2444,11 @@
           dpEl.innerText = dpText;
         }
 
+        const verBadge = document.getElementById('appVersionBadge');
+        if (verBadge && data.app_version) {
+          verBadge.innerText = `v${data.app_version} | AP v${data.ap_version || '2.0.2'} | HW v${data.hw_pack_version || data.repo_hw_pack_version || '1.0.2'}`;
+        }
+
         updateHwPackBanner(data);
       } catch (e) { }
     }
@@ -2513,6 +2594,44 @@
     }
 
     // 16. Device Identity & Security Handlers
+    async function triggerApRollback() {
+      const sel = document.getElementById('apRollbackSelect');
+      const liveChk = document.getElementById('chkLiveRollback');
+      const btn = document.getElementById('btnRollbackAp');
+      const badge = document.getElementById('rollbackStatusBadge');
+      const ver = sel ? sel.value : '3.0.0';
+      const live = liveChk ? liveChk.checked : false;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'ROLLING BACK...';
+      }
+      if (badge) badge.innerText = `RESTORING v${ver}...`;
+      try {
+        const res = await fetch('/api/versions/rollback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_type: 'ap', version: ver, live })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (badge) badge.innerText = `AP v${ver} ACTIVE`;
+          showToast(`Rolled back AP to v${ver}${live ? ' (Flashed Live)' : ''}`, 'success');
+          pollDeviceTelemetry();
+        } else {
+          if (badge) badge.innerText = 'ROLLBACK ERROR';
+          showToast(data.output || data.error || 'Rollback failed', 'error');
+        }
+      } catch (e) {
+        if (badge) badge.innerText = 'ERROR';
+        showToast(`Rollback error: ${e}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'ROLL BACK AP';
+        }
+      }
+    }
+
     async function applyHostname() {
       const input = document.getElementById('configHostnameInput');
       const badge = document.getElementById('configFeedbackBadge');

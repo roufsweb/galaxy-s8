@@ -1,0 +1,19 @@
+[Unit]
+Description=Galaxy S8 Lightweight X11 Desktop Session (:1)
+After=s8-vnc.service
+Requires=s8-vnc.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:1
+Environment=HOME=/root
+Environment=USER=root
+Environment=XDG_RUNTIME_DIR=/run/user/0
+Environment=DBUS_SESSION_BUS_ADDRESS=
+ExecStart=/root/.vnc/xstartup
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

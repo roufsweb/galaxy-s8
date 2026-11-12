@@ -1,6 +1,7 @@
 [Unit]
 Description=Galaxy S8 Physical Chassis Button Daemon (Power, Bixby, Volume)
 After=s8-hardware.service
+ConditionPathExists=!/run/s8/s8_button_daemon
 
 [Service]
 Type=simple

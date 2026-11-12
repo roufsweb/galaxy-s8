@@ -4,13 +4,14 @@ All images listed here come strictly from official upstream release mirrors.
 """
 
 import hashlib
+import json
 import threading
 import time
 import urllib.request
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from app.config import DISTROS_DIR
+from app.config import DISTROS_DIR, REPO_ROOT
 
 UPSTREAM_DISTROS: List[Dict] = [
     {
@@ -111,6 +112,34 @@ UPSTREAM_DISTROS: List[Dict] = [
         "desktop": False,
         "description": "Official rolling-release Arch Linux ARM generic aarch64 rootfs.",
     },
+    {
+        "id": "openwrt-23.05",
+        "name": "OpenWrt 23.05.5 ARMv8 Router OS (Official Upstream)",
+        "vendor": "OpenWrt Project",
+        "filename": "openwrt-23.05.5-armsr-armv8-rootfs.tar.gz",
+        "url": "https://downloads.openwrt.org/releases/23.05.5/targets/armsr/armv8/openwrt-23.05.5-armsr-armv8-rootfs.tar.gz",
+        "sha256_url": "https://downloads.openwrt.org/releases/23.05.5/targets/armsr/armv8/sha256sums",
+        "sha256_match_name": "openwrt-23.05.5-armsr-armv8-rootfs.tar.gz",
+        "sha256": "",
+        "format": "tar.gz",
+        "recommended_gb": 2,
+        "desktop": False,
+        "description": "Official OpenWrt 23.05.5 ARM64 rootfs with procd, UCI, LuCI support, and full netfilter routing.",
+    },
+    {
+        "id": "haos-18.4",
+        "name": "Home Assistant OS 18.4 ARM64 (Official Upstream)",
+        "vendor": "Home Assistant",
+        "filename": "haos_generic-aarch64-18.4.img.xz",
+        "url": "https://github.com/home-assistant/operating-system/releases/download/18.4/haos_generic-aarch64-18.4.img.xz",
+        "sha256_url": "",
+        "sha256_match_name": "",
+        "sha256": "",
+        "format": "img.xz",
+        "recommended_gb": 10,
+        "desktop": False,
+        "description": "Full Home Assistant OS 18.4 generic aarch64 system image with full cgroup/container permissions.",
+    },
 ]
 
 
@@ -133,14 +162,37 @@ class DistroManager:
             "error": "",
         }
 
+    def _load_manifest_distros(self) -> Dict[str, Dict]:
+        manifest_path = REPO_ROOT / "VERSION_MANIFEST.json"
+        if not manifest_path.is_file():
+            return {}
+        try:
+            data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            out = {}
+            for d in data.get("distros", []):
+                out[d.get("id", "")] = d
+                out[d.get("filename", "")] = d
+            return out
+        except Exception:
+            return {}
+
     def list_catalog(self) -> List[Dict]:
+        manifest_map = self._load_manifest_distros()
         items = []
         for entry in UPSTREAM_DISTROS:
             local_path = self.distros_dir / entry["filename"]
             item = dict(entry)
+            m = manifest_map.get(entry["id"]) or manifest_map.get(entry["filename"]) or {}
             item["local_path"] = str(local_path)
             item["downloaded"] = local_path.is_file()
             item["local_bytes"] = local_path.stat().st_size if item["downloaded"] else 0
+            item["version"] = m.get("upstream_version", entry.get("version", "latest"))
+            item["verification_status"] = m.get("status", "READY_TO_TEST")
+            item["verified_with_ap"] = m.get("verified_with_ap", "2.0.2")
+            item["verified_with_hw_pack"] = m.get("verified_with_hw_pack", "1.0.2")
+            item["verification_notes"] = m.get("notes", "")
+            if not item.get("sha256") and m.get("sha256"):
+                item["sha256"] = m["sha256"]
             items.append(item)
         return items
 

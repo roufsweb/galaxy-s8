@@ -1,0 +1,15 @@
+[Unit]
+Description=Galaxy S8 Hotplug USB & Bluetooth Mouse/Keyboard Input Bridge to X11 (:1)
+After=s8-desktop.service s8-vnc.service
+ConditionPathExists=/usr/local/bin/s8_input_bridge
+
+[Service]
+Type=simple
+Environment=DISPLAY=:1
+ExecStart=/usr/local/bin/s8_input_bridge
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target
+

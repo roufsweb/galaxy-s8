@@ -109,11 +109,23 @@ def validate_boot_image(boot_bytes):
     all_passed &= log_gate(5, "Watchdog Timing & Firmware Non-Shadowing", passed_5,
                           "Zero synchronous blocking e2fsck, zero firmware shadowing")
 
-    # Gate 6: USB ADB Alignment (Samsung 04E8:6860 Presence)
-    has_samsung_usb = (b"04e8" in cpio_data or b"0x04e8" in cpio_data or b"6860" in cpio_data) if 'cpio_data' in locals() else True
-    passed_6 = True  # Verified in ramdisk
-    all_passed &= log_gate(6, "USB Gadget Infallibility (Root ADB Armed)", passed_6,
-                          "Root adbd embedded, UDC auto-binds on boot")
+    # Gate 6: Pure Native Linux USB & systemd PID 1 Alignment (GEMINI.md Rule 28)
+    has_pure_linux = (
+        'cpio_data' in locals()
+        and b"switch_root" in cpio_data
+        and b"rndis.usb0" in cpio_data
+        and b"10c00000.dwc3" in cpio_data
+        and b"s8_usb_agentd" in cpio_data
+        and b"sepolicy" not in cpio_data
+        and b"on property:sys.usb.ffs.ready" not in cpio_data
+    )
+    passed_6 = bool(has_pure_linux)
+    all_passed &= log_gate(
+        6,
+        "Native Linux systemd & USB Gadget (Rule 28)",
+        passed_6,
+        "Pure Linux /init -> switch_root -> systemd PID 1; ConfigFS RNDIS+ACM + zero Android init/sepolicy",
+    )
 
     print("=============================================")
     if all_passed:
@@ -139,7 +151,7 @@ def validate_tar_archive(tar_path):
     return validate_boot_image(boot_bytes)
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else str(WORKSPACE / "releases" / "Galaxy_S8_Linux_AP_Proven.tar")
+    target = sys.argv[1] if len(sys.argv) > 1 else str(WORKSPACE / "releases" / "Galaxy_S8_Linux_AP.tar")
     if target.endswith(".tar"):
         ok = validate_tar_archive(target)
     else:

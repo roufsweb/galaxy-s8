@@ -1067,3 +1067,23 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Power Button Behavior: **Short `<2.5s` = 80ms haptic + DPMS wake; Double `<450ms` = reboot; Long `>=2.5s` = poweroff**
   - Daemon & Input Binding: **Active (`s8-buttons.service`), auto-discovers `gpio_keys` (`event2`/`event3`)**
 
+
+---
+
+### Task 60: Universal Native Linux Platform `v3.0.0` (`4.4.111-s8-universal-v3`), `S8 Imager v2.6.0`, 21-Point Hardware Verification & Rollback Governance
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  1. Synthesize project skills, enforce industry-standard folder structure, and reclaim 7.38 GB of redundant scratch/build intermediates.
+  2. Compile and flash Universal Native Linux Kernel `4.4.111-s8-universal-v3` (`AP v3.0.0`) with `CONFIG_USB_UAS=y`, `CONFIG_BRIDGE_NF_EBTABLES=y`, `CONFIG_ANDROID_PARANOID_NETWORK=n`, USB Ethernet dongle drivers, and `panic_on_oops=0` disconnect guard.
+  3. Build `galaxy-s8-hw v1.0.2` (`.deb` + universal `.tar.gz` for `systemd`, `OpenRC`, `procd`) with DisplayPort cursor alpha fix and `s8_input_bridge` USB mouse/keyboard X11 injector.
+  4. Upgrade `S8 Imager` to `v2.6.0` with Storage Target Selector, OpenWrt 23.05.5 & Home Assistant OS 18.4 catalog support, and 1-click Version & Rollback Governance (`VERSION_MANIFEST.json`, `VERSIONS.md`, `scripts/version_manager.py`).
+  5. Execute full 21-point physical hardware verification (`verify_21_point_hardware.py`) and non-regression E2E suite (`test_full_non_regression_e2e.py`) on the live Galaxy S8 (`192.168.7.2`), and update GitHub Pages (`docs/index.html`) and `README.md`.
+* **Actions Taken & Verified:**
+  1. **Compiled & Flashed `4.4.111-s8-universal-v3` (`AP v3.0.0`):** Built `kernel/arch/arm64/boot/Image` (`28,534,552 B`) and `releases/Galaxy_S8_Linux_AP.tar` (`64,696,320 B`, SHA-256 `6d7992efb1e1...`, `boot.img` `32,342,032 B` / `30.84 MiB`), streamed over RNDIS HTTP (`140 MB/s`) to `/dev/sda7` and `/dev/sda8`, and rebooted cleanly in 14 seconds.
+  2. **21/21 Physical Hardware & 27/27 E2E Verification Passed:** Verified PID 1 `systemd`, unprivileged sockets (`nobody`), Docker cgroups/overlayfs/ebtables, USB 3.1 UASP (`uas`), RNDIS `:7860`, DisplayPort + cursor + input bridge, MAX77865 `1500 mA` fast charge, CPU scaling + thermal governor, Calliope ABOX speaker + DMIC1 + 3.5mm jack, Rear Torch pulse, Haptic pulse, `s8_button_daemon`, BCM4361 Wi-Fi + Bluetooth 5.0 + Shannon LTE, 8x IIO sensors, MicroSD RW probe, and `panic_on_oops=0`.
+  3. **Universal Versioning & GitHub Sync:** Archived `Galaxy_S8_Linux_AP_v3.0.0.tar`, `v2.0.2.tar`, and `v1.0.0.tar` in `releases/history/`, updated all 5 UI screenshots in `docs/assets/screenshots/`, and updated `README.md` and `docs/index.html`.
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.2`, `S8 Imager v2.6.0`)**
+  - Physical Verification Matrix: **`21/21 PASS` (`tests/hardware/last_21_point_report.json`)**
+
+

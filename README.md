@@ -1,32 +1,32 @@
-> [!WARNING]
-> **WORK IN PROGRESS — PROJECT STILL UNDER DEVELOPMENT (ON HOLD AT `v1.0.0`)**
-> This repository is **still under work** and remains experimental low-level firmware, kernel, and Linux bring-up software (currently paused on hold after milestone `v1.0.0`). Hardware support (`SM-G950N` Exynos 8895), tooling workflows, and documentation may contain rough edges or incomplete features — always inspect commands carefully and back up device partitions before flashing.
+> [!NOTE]
+> **ACTIVE RELEASE — UNIVERSAL NATIVE LINUX PLATFORM (`v3.0.0`)**
+> This repository provides low-level firmware, kernel (`4.4.111-s8-universal-v3`), and native Linux bring-up software for the **Samsung Galaxy S8 (`SM-G950N` Exynos 8895)**. All components are tracked under strict semantic versioning (`VERSION_MANIFEST.json` / [VERSIONS.md](VERSIONS.md)) with 1-click live rollback support and a 21-point physical hardware verification suite (`21/21 PASS`). Always inspect commands carefully and back up device partitions before flashing.
 
-# Samsung Galaxy S8 (`SM-G950N`) — Native ARM64 Linux Platform (`4.4.111`)
+# Samsung Galaxy S8 (`SM-G950N`) — Universal Native ARM64 Linux Platform (`v3.0.0` / `4.4.111-s8-universal-v3`)
 
-> **[PROJECT STATUS — MILESTONE HOLD (`v1.0.0`)]**
-> Development is currently **paused on hold** after completing the `v1.0.0` milestone: pure-Linux `switch_root -> systemd (PID 1)` AP firmware (`Galaxy_S8_Linux_AP.tar`), unmodified upstream ARM64 distro deployment (`S8 Imager`), wired/wireless Roufsweb Protocol (RWP) remote management, and the modular `galaxy-s8-hw` hardware support package (`.deb` + universal `.tar.gz`). All source code, build pipelines, release images, and documentation in this repository reflect the verified working state.
+> **[RELEASE STATUS — `v3.0.0` VERIFIED ACTIVE (`21/21 HARDWARE PASS`)]**
+> Milestone `v3.0.0` delivers the **Universal Native Linux Kernel (`4.4.111-s8-universal-v3`)** with `CONFIG_ANDROID_PARANOID_NETWORK=n` (zero-patch unprivileged sockets for Docker/OpenWrt/Home Assistant OS/Alpine), `CONFIG_USB_UAS=y` (USB 3.1 SuperSpeed UASP storage), built-in USB Ethernet dongle drivers (`RTL8152`, `AX88179`, `CDC-NCM`, `CDC-ECM`), `panic_on_oops=0` hardware disconnect fault tolerance, the **Universal Odin AP (`Galaxy_S8_Linux_AP.tar v3.0.0`)** with embedded `s8_usb_agentd` (`192.168.7.2:7860` RWP v1.0), **`S8 Imager v2.6.0`** with multi-storage target flashing (`sda24` loopback, `sda24` native partition, `mmcblk0` MicroSD, `sdb` USB SSD) and 1-click Version Rollback, and **`galaxy-s8-hw v1.0.2`** (`.deb` + universal `.tar.gz`).
 
-Convert a Samsung Galaxy S8 (`SM-G950N`, Exynos 8895 Octa-Core 64-bit, 4 GB LPDDR4x, 64 GB UFS 2.1) — including **headless salvaged units with broken or removed OLED screens** — into a native ARM64 Linux desktop, server, or homelab appliance without modifying the upstream operating system distribution.
+Convert a Samsung Galaxy S8 (`SM-G950N`, Exynos 8895 Octa-Core 64-bit, 4 GB LPDDR4x, 64 GB UFS 2.1) — including **headless salvaged units with broken or removed OLED screens** — into a native ARM64 Linux desktop, server, OpenWrt router, or Home Assistant OS appliance without modifying the upstream operating system distribution.
 
-**[Live Project Documentation & Architecture Page (`galaxy-s8.roufsweb.com`)](https://galaxy-s8.roufsweb.com/)** | **[Releases (`v1.0.0`)](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0)** | **[Full Credits](CREDITS.md)**
+**[Live Project Documentation & Architecture Page (`galaxy-s8.roufsweb.com`)](https://galaxy-s8.roufsweb.com/)** | **[Version & Rollback Ledger (`VERSIONS.md`)](VERSIONS.md)** | **[Releases (`v3.0.0`)](https://github.com/roufsweb/galaxy-s8/releases)** | **[Full Credits](CREDITS.md)**
 
 ![Galaxy S8 Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd](docs/assets/screenshots/s8_ubuntu_gnome_desktop.png)
-*Unmodified Canonical Ubuntu 24.04.5 LTS ARM64 (`systemd` as `PID 1`) running on Linux `4.4.111-s8-native-linux` with `galaxy-s8-hw v1.0.0`, GNOME 46, and Plank Dock.*
+*Unmodified Canonical Ubuntu 24.04.5 LTS ARM64 (`systemd` as `PID 1`) running on Linux `4.4.111-s8-universal-v3` with `galaxy-s8-hw v1.0.2`, GNOME 46, and Plank Dock.*
 
 ---
 
 ## Table of Contents
 
-1. [Kernel & Hardware Capability Infographic](#1-kernel--hardware-capability-infographic)
+1. [Kernel `4.4.111-s8-universal-v3` & 21-Point Hardware Capability Matrix](#1-kernel--hardware-capability-infographic)
 2. [Prerequisites, Used Phone Preparation & OEM Unlock](#2-prerequisites-used-phone-preparation--oem-unlock)
 3. [Physical Button Combinations (Wired, Recovery, Normal & Cold Reset)](#3-physical-button-combinations-wired-recovery-normal--cold-reset)
-4. [Flashing the AP Package via Odin (`boot.img` + TWRP `recovery.img`)](#4-flashing-the-ap-package-via-odin-bootimg--twrp-recoveryimg)
-5. [Flashing Unmodified Linux Distros Using `S8 Imager` (Step-by-Step Visual Guide)](#5-flashing-unmodified-linux-distros-using-s8-imager-step-by-step-visual-guide)
-6. [Post-Flash Access: USB RNDIS, SSH, Terminal & Wi-Fi Setup](#6-post-flash-access-usb-rndis-ssh-terminal--wi-fi-setup)
-7. [Installing the Device Hardware Package (`galaxy-s8-hw` v1.0.0)](#7-installing-the-device-hardware-package-galaxy-s8-hw-v100)
+4. [Flashing the Universal AP (`Galaxy_S8_Linux_AP.tar v3.0.0`)](#4-flashing-the-ap-package-via-odin-bootimg--twrp-recoveryimg)
+5. [Flashing Unmodified Linux Distros Using `S8 Imager v2.6.0`](#5-flashing-unmodified-linux-distros-using-s8-imager-step-by-step-visual-guide)
+6. [Post-Flash Access: USB RNDIS (`192.168.7.2`), RWP `:7860`, SSH & Wi-Fi](#6-post-flash-access-usb-rndis-ssh-terminal--wi-fi-setup)
+7. [Installing the Device Hardware Package (`galaxy-s8-hw v1.0.2`) & Version Rollback](#7-installing-the-device-hardware-package-galaxy-s8-hw-v102)
 8. [Hardware Controls, Physical Buttons, Desktop Access & DisplayPort](#8-hardware-controls-physical-buttons-desktop-access--displayport)
-9. [Building Release Artifacts from Source & Verification](#9-building-release-artifacts-from-source--verification)
+9. [Building Release Artifacts, 21-Point Verification & Version Governance](#9-building-release-artifacts-from-source--verification)
 10. [Credits & Attributions](#10-credits--attributions)
 11. [Buy Me a Coffee (Voluntary Support)](#11-buy-me-a-coffee-voluntary-support)
 
@@ -34,26 +34,26 @@ Convert a Samsung Galaxy S8 (`SM-G950N`, Exynos 8895 Octa-Core 64-bit, 4 GB LPDD
 
 ## 1. Kernel & Hardware Capability Infographic
 
-All Linux distributions run atop the verified **DEFEX-free Samsung Exynos 8895 Linux `4.4.111-s8-native-linux`** kernel compiled safely for EL2 TrustZone CFP compatibility (`# CONFIG_RKP_CFP is not set`), paired with an **LZMA pure-Linux BusyBox initramfs** (`sda7`) and **TWRP 3.7.0** (`sda8`).
+All Linux distributions run atop the verified **DEFEX-free Samsung Exynos 8895 Linux `4.4.111-s8-universal-v3`** kernel compiled safely for EL2 TrustZone CFP compatibility (`# CONFIG_RKP_CFP is not set`), paired with our **Universal Pure-Linux Initramfs (`boot_s8_universal.img v3.0.0`, `30.84 MiB`)** flashed identically to both `BOOT` (`sda7`) and `RECOVERY` (`sda8`).
 
 ![Galaxy S8 Linux 4.4.111 Kernel & System Architecture Infographic](docs/assets/kernel_infographic.svg)
 
-### Verified Kernel (`kernel/.config`) & Silicon Capabilities
+### Verified Kernel (`kernel/.config` `v3.0.0`) & 21-Point Silicon Capabilities (`21/21 PASS`)
 
-| Subsystem | Kernel Config / Hardware Node | Verified Runtime Capability |
+| Subsystem | Kernel Config / Hardware Node | Verified Runtime Capability (`4.4.111-s8-universal-v3`) |
 | :--- | :--- | :--- |
-| **SoC & Big.LITTLE CPU** | Exynos 8895 ARM64 (`CONFIG_PREEMPT=y`, `CONFIG_ARM64_VA_BITS=39`) | `4x Exynos M2 @ 2.314 GHz` + `4x Cortex-A53 @ 1.690 GHz` |
+| **SoC & Big.LITTLE CPU** | Exynos 8895 ARM64 (`CONFIG_PREEMPT=y`, `CONFIG_ARM64_VA_BITS=39`) | `4x Exynos M2 @ 2.314 GHz` + `4x Cortex-A53 @ 1.690 GHz` (`interactive` / `schedutil` idle scaling `598–741 MHz` to `2.314 GHz` boost) |
 | **GPU & Hardware Codecs** | Mali-G71 MP20 (`Bifrost`), `CONFIG_VIDEO_EXYNOS_MFC=y` | 20 shader cores @ `546 MHz` + Exynos MFC hardware H.264/HEVC (`/dev/video6..9`) |
 | **Memory & ZRAM Swap** | 4 GB LPDDR4x + `CONFIG_ZRAM=y`, `CONFIG_CRYPTO_LZ4=y` | `~3.6 GB` usable physical RAM + `2 GB` LZ4 compressed ZRAM swap |
-| **Security & `glibc 2.39`** | `# CONFIG_SECURITY_DEFEX is not set`, `# CONFIG_RKP_CFP is not set` | Unlocks modern Ubuntu 24.04+ / Debian 12 / Arch `glibc` without Samsung binary kills |
-| **Containers & Networking** | `CONFIG_NAMESPACES=y`, `CONFIG_CGROUPS=y`, `CONFIG_OVERLAY_FS=y`, `CONFIG_VETH=y`, `CONFIG_BRIDGE=y`, `CONFIG_TUN=y`, `CONFIG_NETFILTER=y`, `CONFIG_NF_NAT=y`, `CONFIG_IP_NF_IPTABLES=y` | Full Docker Engine, LXC containers, VPN/WireGuard tunnels, NAT bridges, firewalls (`aid_inet`/`3003`, `aid_net_raw`/`3004`, `aid_net_admin`/`3005` auto-configured by `galaxy-s8-hw`) |
-| **Storage & Filesystems** | `CONFIG_EXT4_FS=y`, `CONFIG_F2FS_FS=y`, `CONFIG_VFAT_FS=y`, `CONFIG_FUSE_FS=y`, `CONFIG_MMC_DW=y` | `64 GB` UFS 2.1 (`sda24` `~53.7 GB` usable formatted ext4 without `^extents` issues) + `mmcblk0` MicroSD (`/media/sdcard`) *(Note: `CONFIG_NTFS_FS` is disabled)* |
-| **USB Gadget & Ethernet** | `CONFIG_USB_CONFIGFS_RNDIS=y`, `CONFIG_USB_HID=y`, `CONFIG_USB_NET_AX88179_178A=y` | Plug-and-play USB RNDIS Ethernet (`192.168.7.2`), USB keyboard/mouse HID, USB3 Gigabit adapters |
-| **Display Output (`DECON2`)** | `/dev/graphics/fb2` (`# CONFIG_VT is not set`, `# CONFIG_FRAMEBUFFER_CONSOLE is not set`) | `1080p60` USB-C DisplayPort / HDMI via `exynos_dp_bridge` (`fb2` kept blanked when unplugged to prevent DECON2 VSYNC watchdog panic; Type-C DFP `source` role + SBU `"0 0"`) |
-| **Camera ISP Panic Guard** | Boot init + udev `99-s8-no-fimc.rules` | Removes uninitialized `/dev/video100+` (`fimc_is_ixs_video_querycap` NULL dereference guard on desktop/GStreamer probes) |
-| **Power & Fast Charge** | `CONFIG_CHARGER_MAX77865=y` (`/sys/class/power_supply/max77865-charger/data`) | Register unlock (`0xBD`, `0xC3`, `0xC0`, `0xB9`, `0xB7`): `1,500 mA` fast charging + `4.3V` UVLO brownout protection |
-| **Audio DSP & Amplifiers** | `CONFIG_SND_SOC_SAMSUNG_ABOX=y`, `CONFIG_SND_SOC_MAX98506=y`, `CONFIG_SND_SOC_MADERA=y` | Calliope ABOX DSP (9 firmwares embedded in `boot.img` ramdisk), `hw:0,0` Speaker amp (`MAX98506`), `hw:0,9` Digital Mic (`CS47L92` DMIC1) |
-| **Wireless & Cellular** | Broadcom `BCM4361` (`dhd` + `CONFIG_BT_BCM=y`), Shannon 359 LTE | Dual-band `2.4/5 GHz` Wi-Fi + Bluetooth 5.0 + `/dev/umts_ipc0` (`rmnet0..7`) |
+| **Native Linux Permissions** | `# CONFIG_SECURITY_DEFEX is not set`, `# CONFIG_RKP_CFP is not set`, `# CONFIG_ANDROID_PARANOID_NETWORK is not set` | Unlocks modern `glibc 2.39+` AND unprivileged TCP/UDP sockets for **any** UID (`nobody`, Alpine, OpenWrt, Home Assistant OS, Docker containers) with zero `aid_inet` patches |
+| **Containers & Networking** | `CONFIG_NAMESPACES=y`, `CONFIG_CGROUPS=y`, `CONFIG_OVERLAY_FS=y`, `CONFIG_VETH=y`, `CONFIG_BRIDGE=y`, `CONFIG_BRIDGE_NF_EBTABLES=y`, `CONFIG_TUN=y`, `CONFIG_NETFILTER=y`, `CONFIG_NF_NAT=y` | Full Docker Engine, Home Assistant OS Supervisor, OpenWrt firewall/routing, LXC, WireGuard, NAT bridges |
+| **Storage & USB 3.1 UASP** | `CONFIG_EXT4_FS=y`, `CONFIG_F2FS_FS=y`, `CONFIG_VFAT_FS=y`, `CONFIG_FUSE_FS=y`, `CONFIG_MMC_DW=y`, `CONFIG_USB_UAS=y` | `64 GB` UFS 2.1 (`sda24` `~53.7 GB`) + `mmcblk0` MicroSD (`/media/sdcard`) + USB 3.1 Gen 1 SuperSpeed UASP SSDs (`/sys/bus/usb/drivers/uas`) |
+| **USB Gadget & Dongle NICs** | `CONFIG_USB_CONFIGFS_RNDIS=y`, `CONFIG_USB_HID=y`, `CONFIG_USB_RTL8152=y`, `CONFIG_USB_NET_AX88179_178A=y`, `CONFIG_USB_NET_CDC_NCM=y`, `CONFIG_USB_NET_CDC_ETHER=y` | Zero-config USB RNDIS (`192.168.7.2` + `s8_dhcpd.py` + `s8_usb_agentd :7860`) + plug-and-play USB Ethernet dongles (`eth0`/`usb*` auto-DHCP) |
+| **Display Output (`DECON2`)** | `/dev/graphics/fb2` + `exynos_dp_bridge` + `s8_dp_input_bridge` | `1080p60` USB-C DisplayPort / HDMI with synthetic software cursor fallback & live `/dev/input/event*` USB mouse/keyboard X11 bridge |
+| **Disconnect & Panic Guard** | `kernel.panic_on_oops=0`, `DECON2` graceful timeout recovery, `fimc_is_*_video_querycap` NULL guards | Unplugging USB-C DisplayPort hubs, cameras, or sensors never triggers a kernel panic |
+| **Power & Fast Charge** | `CONFIG_CHARGER_MAX77865=y` (`/sys/class/power_supply/max77865-charger/data`) | Register unlock (`0xBD`, `0xC3`, `0xC0`, `0xB9`, `0xB7`): `1,500 mA` fast charging + `4.3V` UVLO brownout protection + Fuel Gauge telemetry |
+| **Audio DSP & Amplifiers** | `CONFIG_SND_SOC_SAMSUNG_ABOX=y`, `CONFIG_SND_SOC_MAX98506=y`, `CONFIG_SND_SOC_MADERA=y` | Calliope ABOX DSP (9 firmwares in `boot.img`), `hw:0,0` Speaker (`MAX98506`), `hw:0,9` Digital Mic (`CS47L92` DMIC1), 3.5mm Jack (`HEADPHONE`) |
+| **Wireless, LTE & Sensors** | Broadcom `BCM4361` (`dhd` + `CONFIG_BT_BCM=y`), Shannon 359 LTE, 8x IIO Sensors | Dual-band `2.4/5 GHz` Wi-Fi + AP Hotspot (`wlan0`) + Bluetooth 5.0 + `/dev/umts_ipc0` (`rmnet0..7`) + Barometer/IMU/Light (`iio:device0..7`) |
 
 ---
 
@@ -83,7 +83,7 @@ If you purchased a **used Samsung Galaxy S8 (`SM-G950N`)** or wiped stock Androi
   cd galaxy-s8
   ```
   (All Python runtime dependencies and bundled Windows `adb.exe` live inside [desktop-app/](desktop-app/); run `pip install -r desktop-app/requirements.txt` if launching from source for the first time.)
-* **Download `Galaxy_S8_Linux_AP.tar`** from **[Releases v1.0.0](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0)** (exact size `79,472,640 B`, SHA-256 `9f1fa748a6901bee612274e47f6b5e7d74ab9f11751a97504fe7f4afcaf6b721`).
+* **Download `Galaxy_S8_Linux_AP.tar` (`v3.0.0`)** from **[Releases](https://github.com/roufsweb/galaxy-s8/releases)** (exact size `64,696,320 B`, SHA-256 `6d7992efb1e10a596886c97ba0fd1cf761d9a4a8fb02c6c31382524c51c39321`; previous verified archives `v2.0.2` and `v1.0.0` are also cataloged in [VERSIONS.md](VERSIONS.md)).
 
 ---
 
@@ -96,16 +96,16 @@ Because many boards in this project are **headless (`lcdtype=-1` — no OLED scr
 | **Odin Download Mode** | Keep USB-C plugged into PC -> Hold **`Volume Down + Bixby + Power`** continuously for **11–13 seconds**, then release. *(No `Volume Up` press required with this wired 11–13s hold.)* | Odin log prints **`Added!!`**; Windows Device Manager shows Samsung Mobile USB Modem (`COMxx` / `PID_685D`). |
 | **PMIC Hard Cold Reset** *(if SoC is frozen/unresponsive)* | Hold **`Volume Down + Bixby + Power`** for **30 seconds** -> release all for **1 second** -> immediately hold **`Volume Down + Bixby + Power`** for **11–13 seconds**. | Forces MAX77865 PMIC power-latch drop and re-enters Odin Download Mode reliably. |
 | **Exit Download Mode / Force Reboot** | While in Download Mode, hold **`Volume Down + Power`** for **7 seconds**. | USB `PID_685D` disconnects cleanly and SoC cold-boots. |
-| **Boot to TWRP Recovery (`sda8`)** *(Required for `S8 Imager` OS flashing)* | From powered off (or at the exact moment the phone resets): hold **`Volume Up + Bixby + Power`** together for **8–12 seconds**. Or from Linux/Android run `adb reboot recovery` or click **`TWRP Recovery`** in `S8 Imager`. | `adb devices` lists `ce10171ab3e9620804    recovery` (or your serial + `recovery`). `S8 Imager` status pill turns green **`Connected`**. |
-| **Boot to AP Linux Mode (`sda7`)** | Power on normally (short-press **`Power`**) or let Odin/TWRP reboot normally without holding Volume Up. | Initramfs checks `sda24` `/data/linux/rootfs.img` and executes `switch_root -> /sbin/init`. Phone exposes USB RNDIS at **`192.168.7.2`** (or BusyBox rescue `telnet` `:2323` + 3x haptic if no OS image is flashed yet). |
+| **Boot to TWRP Recovery (`sda8`)** *(Or Universal Rescue on `AP v3.0.0`)* | From powered off (or at the exact moment the phone resets): hold **`Volume Up + Bixby + Power`** together for **8–12 seconds**. Or from `S8 Imager` click **`TWRP Recovery`**. | On Universal AP `v3.0.0`, both `sda7` and `sda8` expose zero-config USB RNDIS (`192.168.7.2:7860` RWP HTTP & `:2323` telnet). `S8 Imager` status pill turns green **`Connected`**. |
+| **Boot to AP Linux Mode (`sda7`)** | Power on normally (short-press **`Power`**) or let Odin reboot normally without holding Volume Up. | Initramfs checks `sda24` `/data/linux/rootfs.img` (or native partition / MicroSD / USB SSD) and executes `switch_root -> /sbin/init`, keeping `192.168.7.2:7860` (`s8_usb_agentd`) and SSH `:22` online. |
 
 ---
 
-## 4. Flashing the AP Package via Odin (`boot.img` + TWRP `recovery.img`)
+## 4. Flashing the AP Package via Odin (`boot.img` + `recovery.img`)
 
-`Galaxy_S8_Linux_AP.tar` (`79,472,640 B`) flashes **two partitions simultaneously** in one Odin pass without modifying bootloader (`BL`), modem (`CP`), or wiping `USERDATA` (`sda24`):
-* **`boot.img` -> `/dev/block/sda7` (`BOOT`)**: `31,227,920 B` (under the strict `41,943,040 B` / `40.00 MB` UFS slot limit) containing the `4.4.111-s8-native-linux` kernel, DTB, Calliope 9 DSP firmwares, and pure-Linux `switch_root` + rescue initramfs.
-* **`recovery.img` -> `/dev/block/sda8` (`RECOVERY`)**: `48,234,496 B` containing TWRP 3.7.0 with root ADB enabled for `S8 Imager`.
+`Galaxy_S8_Linux_AP.tar` (`v3.0.0`, `64,696,320 B`) flashes **two partitions simultaneously** in one Odin pass without modifying bootloader (`BL`), modem (`CP`), or wiping `USERDATA` (`sda24`):
+* **`boot.img` -> `/dev/block/sda7` (`BOOT`)**: `32,342,032 B` (`30.84 MiB`, `9.16 MB` safety headroom under the `41,943,040 B` / `40.00 MB` UFS slot limit) containing the `4.4.111-s8-universal-v3` kernel, DTB, Calliope 9 DSP firmwares, static `e2fsprogs`, `s8_usb_agentd` (`192.168.7.2:7860`), `s8_dhcpd.py`, and pure-Linux `switch_root` initramfs.
+* **`recovery.img` -> `/dev/block/sda8` (`RECOVERY`)**: `32,342,032 B` containing an identical fail-safe copy of the Universal AP image (or TWRP 3.7.0 in legacy `v1.0.0`).
 
 ### Step-by-Step Odin Procedure
 1. **Put the Galaxy S8 into Download Mode**: Hold **`Volume Down + Bixby + Power`** for **11–13 seconds** while plugged into your PC via USB-C. Verify Odin shows `ID:COM` highlighted and `Added!!`. (If inspecting a screened unit, confirm `OEM LOCK: OFF` and `FRP LOCK: OFF`.)
@@ -144,31 +144,35 @@ Because many boards in this project are **headless (`lcdtype=-1` — no OLED scr
      * **Kali Linux ARM64 Minimal** (`kali-nethunter-rootfs-minimal-arm64.tar.xz`)
      * **Alpine Linux 3.20 Minirootfs** (`alpine-minirootfs-3.20.3-aarch64.tar.gz`)
      * **Arch Linux ARM** (`ArchLinuxARM-aarch64-latest.tar.gz`)
+     * **Home Assistant OS 18.4 (Generic AArch64)** (`haos_generic-aarch64-18.4.img.xz` — Supervised IoT / Matter / Zigbee appliance)
+     * **OpenWrt 23.05.5 ARM64 Router** (`openwrt-23.05.5-armsr-armv8-generic-ext4-combined.img.gz` — Dual-band Wi-Fi AP & USB3 Gigabit router)
      Click **`FETCH`** to download straight into `distros/` and **`VERIFY`** to check the official **SHA-256** checksum before clicking the row to select it.
    * **Option B — Local File**: Click **`Select Image File...`** and browse to any `.img.xz`, `.img`, `.raw`, `.tar.xz`, or `.tar.gz` image on your PC.
 
 ![S8 Imager Official Upstream ARM64 OS Catalog](docs/assets/screenshots/s8_imager_os_catalog.png)
 
-3. **Set UFS Storage Allocation**: Drag the **`Storage Allocation`** slider (`4 GB` to `48 GB`, e.g., `16 GB` or `24 GB`). Remaining space on `/dev/block/sda24` (`~53.7 GB` total UFS 2.1 Userdata) stays available as host data space.
+3. **Choose Target Storage Mode & UFS Allocation**:
+   * Select your **Storage Target** (`UFS Loopback (/data/linux/rootfs.img — Safe Dual-Exist)`, `Direct UFS Partition (/dev/sda24 — Full 53.7 GB Native Ext4)`, `MicroSD Card (/dev/mmcblk0)`, or `USB 3.1 SuperSpeed Drive (/dev/sdb)`).
+   * Drag the **`Storage Allocation`** slider (`4 GB` to `52 GB`, e.g., `16 GB` or `24 GB`). Remaining space on `/dev/block/sda24` (`~53.7 GB` total UFS 2.1 Userdata) stays available as host data space.
 4. **Fill the `First-Boot Seed` Row**:
    * **Username**: e.g. `ubuntu` (creates user + sudo access or updates preinstalled user)
    * **Password**: password for both your Linux user and `root` SSH login
    * **Hostname**: e.g. `galaxy-s8`
    * **Wi-Fi SSID & Password (Optional)**: writes a NetworkManager / Netplan (`90-s8-wifi.yaml`) seed profile so Wi-Fi can onboard cleanly once `galaxy-s8-hw` or firmware loads, or leave blank and configure later in **Config**.
-5. **Click `Flash Image`**: Watch **`Unified Flashing & Hardware Telemetry Log`** execute TWRP staging -> ext4 extraction/resize -> `/data/linux/rootfs.img` creation -> `e2fsck -fy` -> connectivity seed injection -> clean unmount (`100%`).
-6. **Boot into Linux**: Switch to **`Dashboard`** and click **`Reboot Device`** (or run `adb reboot` in terminal). Do **not** hold Volume Up during reboot so S-Boot boots **`sda7` (`boot.img`)**, which mounts `/data/linux/rootfs.img` and calls `switch_root` straight into Linux `PID 1 systemd` (takes ~20–35 seconds on first systemd initialization).
+5. **Click `Flash Image`**: Watch **`Unified Flashing & Hardware Telemetry Log`** stream the image over live RNDIS (`192.168.7.2:7860`) or TWRP ADB -> ext4 formatting/resize -> `e2fsck -fy` -> connectivity seed & `galaxy-s8-hw` injection -> clean unmount (`100%`).
+6. **Boot into Linux**: Switch to **`Dashboard`** and click **`Reboot Device`** (or run `adb reboot` in terminal). Do **not** hold Volume Up during reboot so S-Boot boots **`sda7` (`boot.img`)**, which mounts your rootfs and calls `switch_root` straight into Linux `PID 1 systemd` (takes ~14–20 seconds).
 
 ---
 
 ## 6. Post-Flash Access: USB RNDIS, SSH, Terminal & Wi-Fi Setup
 
-Once Linux finishes booting (`20–35s` after reboot), the phone automatically activates its **USB RNDIS virtual network interface (`192.168.7.2`)** and **SSH server (port `22`)** thanks to the connectivity seed—even **before** Wi-Fi or `galaxy-s8-hw` is configured!
+Once Linux finishes booting (`14–20s` after reboot), the phone automatically activates its **USB RNDIS virtual network interface (`192.168.7.2`)**, **RWP HTTP/Exec Agent (`:7860`)**, **USB DHCP Responder (`s8_dhcpd.py`)**, and **SSH server (port `22`)**—even **before** Wi-Fi is configured!
 
 ### A. Getting Immediate Access Over USB (`192.168.7.2`)
-* **`S8 Imager` Dual-Transport (`Connected`)**: `S8 Imager` detects `192.168.7.2:22` automatically via Roufsweb Protocol (RWP SSH) and switches the dashboard/terminal to live Linux OS telemetry.
+* **`S8 Imager v2.6.0` Dual-Transport (`Connected`)**: `S8 Imager` detects `192.168.7.2:7860` (`s8_usb_agentd` RWP v1.0) and `:22` (SSH) automatically and switches the dashboard/terminal to live Linux OS telemetry.
 * **Built-In Terminal (`S8 Imager -> Terminal`)**:
-  * Use **`OS Root`** mode to run commands directly inside the booted Ubuntu/Debian/Kali/Arch/Alpine OS over USB RNDIS or Wi-Fi.
-  * Switch to **`AP Base`** if you ever reboot into TWRP recovery and need raw recovery/partition shell access.
+  * Use **`OS Root`** mode to run commands directly inside the booted Ubuntu/Debian/Kali/Arch/Alpine/HAOS/OpenWrt OS over USB RNDIS or Wi-Fi.
+  * Switch to **`AP Base`** for direct initramfs/partition inspection.
   * Built-in **`s8ctl Commands`** dropdown inserts hardware helpers once `galaxy-s8-hw` is installed.
 * **Standard PC SSH Client (PowerShell / Windows Terminal / Linux)**:
   ```bash
@@ -176,14 +180,14 @@ Once Linux finishes booting (`20–35s` after reboot), the phone automatically a
   # or root login:
   ssh root@192.168.7.2
   ```
-  *(Note: If Windows assigns `192.168.7.x` via DHCP automatically on the "Remote NDIS Compatible Device" adapter, `192.168.7.2` is reachable immediately. If Windows shows `169.254.x.x` on first plug-in, wait 5 seconds for `dnsmasq`/DHCP or set the PC RNDIS adapter IPv4 to `192.168.7.1 / 255.255.255.0`.)*
+  *(Note: `s8_dhcpd.py` automatically assigns `192.168.7.10` to the Windows host on the "Remote NDIS Compatible Device" adapter so `192.168.7.2` is reachable immediately with zero manual IP setup.)*
 
 ![S8 Imager Terminal running live OS commands and s8ctl telemetry](docs/assets/screenshots/s8_imager_terminal.png)
 
 ### B. Configuring Wi-Fi (`BCM4361` Dual-Band) & Identity/SSH Keys
-Open **`S8 Imager -> Config`** (or run commands after installing `galaxy-s8-hw`, which supplies the BCM4361 Wi-Fi firmware parameters and `aid_inet` socket permissions):
+Open **`S8 Imager -> Config`** (or run commands after installing `galaxy-s8-hw`):
 
-![S8 Imager Config tab showing BCM4361 Wi-Fi Scan and S8 Hardware Pack Installed](docs/assets/screenshots/s8_imager_config_wifi_hw.png)
+![S8 Imager Config tab showing BCM4361 Wi-Fi Scan, S8 Hardware Pack v1.0.2, and Version & Rollback Governance](docs/assets/screenshots/s8_imager_config_wifi_hw.png)
 
 1. **In `S8 Imager -> Config` (GUI Method)**:
    * Under **Network Onboarding**, click **`SCAN`** to list 2.4 GHz & 5 GHz SSIDs via Broadcom BCM4361.
@@ -200,14 +204,14 @@ Open **`S8 Imager -> Config`** (or run commands after installing `galaxy-s8-hw`,
 
 ---
 
-## 7. Installing the Device Hardware Package (`galaxy-s8-hw` v1.0.0)
+## 7. Installing the Device Hardware Package (`galaxy-s8-hw` v1.0.2) & Version Rollback
 
-Upstream Linux distributions do not ship Samsung Exynos 8895 charger register overrides, Calliope DSP routing, BCM4361 module loaders, or chassis button handlers. Instead of baking proprietary edits into distro images, **all hardware integration is packaged cleanly into `galaxy-s8-hw` (`v1.0.0`)**.
+Upstream Linux distributions do not ship Samsung Exynos 8895 charger register overrides, Calliope DSP routing, BCM4361 module loaders, or chassis button handlers. Instead of baking proprietary edits into distro images, **all hardware integration is packaged cleanly into `galaxy-s8-hw` (`v1.0.2`)** with universal init support (`systemd`, `OpenRC` for Alpine, and `procd` for OpenWrt).
 
-### What `galaxy-s8-hw` Installs & Configures
-* **PMIC, Thermal, ZRAM & Camera Panic Guard (`s8-hardware.service`)**: Unlocks MAX77865 `1,500 mA` + `4.3V` UVLO brownout guard, disables `/dev/video100+` (`99-s8-no-fimc.rules`), loads Broadcom BCM4361 Wi-Fi firmware parameters, creates `2 GB` LZ4 ZRAM swap, mounts MicroSD (`/dev/block/mmcblk0` -> `/media/sdcard`), configures Calliope ABOX ALSA (`hw:0,0` speaker + `hw:0,9` mic via `/etc/asound.conf`), sets `APT::Sandbox::User "root"` + `Seccomp "false"` for `4.4.111` `apt`, and adds Android `PARANOID_NETWORK` groups (`aid_inet`, `aid_net_raw`, `aid_net_admin`, etc.) so `apt`, `curl`, `docker`, and desktop users have unrestricted networking.
+### What `galaxy-s8-hw v1.0.2` Installs & Configures
+* **PMIC, Thermal, ZRAM, Disconnect & Camera Panic Guard (`s8-hardware.service`)**: Unlocks MAX77865 `1,500 mA` + `4.3V` UVLO brownout guard, sets `kernel.panic_on_oops=0` & `kernel.panic=5` hardware disconnect guard, disables `/dev/video100+` (`99-s8-no-fimc.rules`), loads Broadcom BCM4361 Wi-Fi firmware parameters, creates `2 GB` LZ4 ZRAM swap, mounts MicroSD (`/dev/block/mmcblk0` -> `/media/sdcard`), configures Calliope ABOX ALSA (`hw:0,0` speaker + `hw:0,9` mic via `/etc/asound.conf`), and auto-Starts DHCP on USB Ethernet dongles (`99-s8-usb-net.rules`).
 * **Physical Chassis Buttons (`s8-buttons.service` + `99-s8-power.conf`)**: Disables abrupt `systemd-logind` single-tap shutdown and runs `s8_button_daemon` (`/dev/input/event3`).
-* **USB-C Role, Gadget, BT, LED, DisplayPort & Time Sync**: `s8-typec.service` (enforces USB-C DFP `source` role), `s8-usb-gadget.service` (`192.168.7.2` RNDIS + DHCP), `s8-bluetooth.service`, `s8-led.service`, `s8-time-sync.service`, `s8-dp-bridge.service` (`exynos_dp_bridge`), plus `s8-vnc.service` (`:5901`) & `s8-novnc-ws.service` (`:6080`).
+* **USB-C Role, Gadget, DisplayPort Cursor + Input Bridge & Time Sync**: `s8-typec.service` (enforces USB-C DFP `source` role), `s8-usb-gadget.service` (`192.168.7.2` RNDIS + `s8_dhcpd.py` + `s8_usb_agentd :7860`), `s8-bluetooth.service`, `s8-led.service`, `s8-time-sync.service`, `s8-dp-bridge.service` (`exynos_dp_bridge` with synthetic cursor fallback), `s8-dp-input.service` (`s8_dp_input_bridge` USB mouse/keyboard X11 injector), plus `s8-vnc.service` (`:5901`) & `s8-novnc-ws.service` (`:6080`).
 * **Unified Hardware CLI**: Installs `/usr/local/bin/s8ctl` and `/usr/bin/s8ctl`.
 
 ### Installation Methods (Choose Any Supported Path)
@@ -215,29 +219,36 @@ Upstream Linux distributions do not ship Samsung Exynos 8895 charger register ov
 #### Method A — 1-Click Install Inside `S8 Imager` (Recommended)
 1. Ensure the phone is booted into Linux and connected over USB RNDIS (`192.168.7.2`) or Wi-Fi (`Connected` status pill).
 2. Open **`S8 Imager -> Config`**.
-3. Locate the **`S8 Hardware Pack (galaxy-s8-hw)`** card (bottom-right).
-4. *(Optional)* If your phone already has internet access (Wi-Fi or PC internet sharing) and you want browser remote desktop (`noVNC :6080` / `TigerVNC :5901`), tick **`Also install VNC / noVNC / OpenSSH packages when online`**.
-5. Click **`INSTALL S8 PACK`**. `S8 Imager` pushes the `.deb` (for Ubuntu/Debian/Kali) or universal `.tar.gz` (for Arch/Alpine) over SSH, runs `dpkg -i` / `install.sh`, enables all services, and updates the badge to **`INSTALLED v1.0.0`**.
+3. Locate the **`S8 Hardware Pack (galaxy-s8-hw)`** card.
+4. *(Optional)* Tick **`Also install VNC / noVNC / OpenSSH packages when online`**.
+5. Click **`INSTALL S8 PACK`**. `S8 Imager` pushes the `.deb` (`v1.0.2` for Ubuntu/Debian/Kali) or universal `.tar.gz` (`v1.0.2` for Arch/Alpine/OpenWrt/HAOS) over RWP/SSH, runs `dpkg -i` / `install.sh`, enables all services, and updates the badge to **`INSTALLED v1.0.2`**.
 
 #### Method B — Manual `.deb` Installation (Ubuntu, Debian, Kali)
-Download **`galaxy-s8-hw_1.0.0_arm64.deb`** (`303,442 B`, SHA-256 `5f0ad9e56a87a1cc246ff5916b89481113374d2e04ce73d91abee59d7a7947e5`) from [Releases v1.0.0](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0) (or build from [packages/galaxy-s8-hw/build_packages.py](packages/galaxy-s8-hw/build_packages.py)):
+Download **`galaxy-s8-hw_1.0.2_arm64.deb`** (`253,890 B`, SHA-256 `4c9aeac88b1936fc5d59c9f1ff6a0762100a08f0697028e887a0bfee2b5a4d77`) from [Releases](https://github.com/roufsweb/galaxy-s8/releases) (or build from [packages/galaxy-s8-hw/build_packages.py](packages/galaxy-s8-hw/build_packages.py)):
 ```bash
-scp galaxy-s8-hw_1.0.0_arm64.deb root@192.168.7.2:/tmp/
-ssh root@192.168.7.2 "dpkg -i /tmp/galaxy-s8-hw_1.0.0_arm64.deb && rm -f /tmp/galaxy-s8-hw_1.0.0_arm64.deb"
+scp galaxy-s8-hw_1.0.2_arm64.deb root@192.168.7.2:/tmp/
+ssh root@192.168.7.2 "dpkg -i /tmp/galaxy-s8-hw_1.0.2_arm64.deb && rm -f /tmp/galaxy-s8-hw_1.0.2_arm64.deb"
 ```
 Verify installation:
 ```bash
-cat /etc/s8-hw-version    # 1.0.0
+cat /etc/s8-hw-version    # 1.0.2
 s8ctl status
 ```
 
-#### Method C — Universal `.tar.gz` Installation (Alpine, Arch Linux ARM, Any ARM64 Distro)
-Download **`galaxy-s8-hw-1.0.0-arm64.tar.gz`** (`340,850 B`, SHA-256 `94bcbdbad5aad0e674e4643ef97500304869683b805ef7a60af29b3eac0b5cfd`) from [Releases v1.0.0](https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0):
+#### Method C — Universal `.tar.gz` Installation (Alpine, Arch Linux ARM, OpenWrt, HAOS, Any ARM64 Distro)
+Download **`galaxy-s8-hw-1.0.2-arm64.tar.gz`** (`263,404 B`, SHA-256 `fd8de0bf1656565f80db60a473f291ac11c2649a4abcc4f6dd4036e82b18477e`):
 ```bash
-scp galaxy-s8-hw-1.0.0-arm64.tar.gz root@192.168.7.2:/tmp/
-ssh root@192.168.7.2 "tar -xzf /tmp/galaxy-s8-hw-1.0.0-arm64.tar.gz -C /tmp && cd /tmp/galaxy-s8-hw-1.0.0-arm64 && ./install.sh"
+scp galaxy-s8-hw-1.0.2-arm64.tar.gz root@192.168.7.2:/tmp/
+ssh root@192.168.7.2 "tar -xzf /tmp/galaxy-s8-hw-1.0.2-arm64.tar.gz -C /tmp && cd /tmp/galaxy-s8-hw-1.0.2-arm64 && ./install.sh"
 ```
-*(If VNC/OpenSSH packages were not installed yet, bring the device online via Wi-Fi and run `sudo /usr/local/bin/s8-vnc-setup.sh` at any time.)*
+
+### Version & Rollback Governance (`VERSION_MANIFEST.json` & [VERSIONS.md](VERSIONS.md))
+Every release, kernel, Odin AP (`v3.0.0`, `v2.0.2`, `v1.0.0`), and `galaxy-s8-hw` (`v1.0.2`, `v1.0.0`) is tracked in `VERSION_MANIFEST.json` and [VERSIONS.md](VERSIONS.md). You can switch or roll back versions in 1 click inside **`S8 Imager -> Config -> Version & Rollback Governance`**, or via CLI:
+```powershell
+python scripts/version_manager.py --status
+python scripts/version_manager.py --rollback-ap 2.0.2 --live
+python scripts/version_manager.py --rollback-hw 1.0.2 --live
+```
 
 ---
 
@@ -263,7 +274,7 @@ Verified timings in [src/drivers/s8_button_daemon.c](src/drivers/s8_button_daemo
 * **In `S8 Imager -> Dashboard`**:
   * Monitor live **Octa-Core M2/A53 CPU clocks**, **LPDDR4x RAM**, **UFS + MicroSD (`mmcblk0`)**, **MAX77865 charge current + 4.3V UVLO**, **TMU Thermal Zones**, and trigger **Rear Torch**, **Haptic Pulse**, **Odin Mode**, **TWRP Recovery**, **Reboot Device**, or **`Device Screen`**.
 * **Browser noVNC / VNC**: Once `s8-vnc-setup.sh` runs, open `http://192.168.7.2:6080` (or `http://<wifi-ip>:6080` / VNC port `:5901`).
-* **Direct HDMI / DisplayPort Monitor (1080p60)**: Connect a USB-C DisplayPort/HDMI hub with external mouse/keyboard (`CONFIG_USB_HID=y`). `s8-dp-bridge.service` (`exynos_dp_bridge`) negotiates Type-C DFP role + SBU `"0 0"` and streams X11 display `:1` to `/dev/graphics/fb2` (`DECON2`) locked to `FBIO_WAITFORVSYNC`. Manual trigger: `sudo s8ctl dp on` or `sudo s8-dp`.
+* **Direct HDMI / DisplayPort Monitor (1080p60)**: Connect a USB-C DisplayPort/HDMI hub with external mouse/keyboard (`CONFIG_USB_HID=y`). `s8-dp-bridge.service` (`exynos_dp_bridge`) negotiates Type-C DFP role + SBU `"0 0"` and streams X11 display `:1` to `/dev/graphics/fb2` (`DECON2`) locked to `FBIO_WAITFORVSYNC` with synthetic cursor fallback, while `s8-dp-input.service` (`s8_dp_input_bridge`) forwards USB mouse/keyboard movement directly into X11 `:1`.
 
 ### `s8ctl` CLI Quick Reference
 ```bash
@@ -285,27 +296,33 @@ s8ctl haptic 150          # 150ms haptic pulse
 Reproduce the release binaries or run automated repository tests cleanly from your workstation:
 
 ```powershell
-# 1. Build standalone pure-Linux initramfs boot image (requires base assets & checks <= 40 MB sda7 limit)
-python scripts/build/build_native_linux_boot.py
+# 1. Build Universal Odin AP v3.0.0 & boot_s8_universal.img (verifies 6/6 pre-flash gates <= 40 MB sda7 limit)
+python scripts/build_universal_ap.py
 
-# 2. Validate boot image structural integrity & zero-rogue-loop safety
-python scripts/pre_flash_validator.py
+# 2. Check Universal Version & Rollback Ledger Status
+python scripts/version_manager.py --status
 
-# 3. Build galaxy-s8-hw .deb and universal .tar.gz inside WSL2 / ARM64 Linux (requires dpkg-deb & aarch64-linux-gnu-gcc)
-python3 packages/galaxy-s8-hw/build_packages.py
+# 3. Build galaxy-s8-hw v1.0.2 .deb and universal .tar.gz
+python packages/galaxy-s8-hw/build_packages.py
 
-# 4. Run Privacy & Secret Sanitization check
+# 4. Run 21-Point Physical Hardware Verification & Non-Regression E2E Suites
+python tests/hardware/verify_21_point_hardware.py
+python tests/hardware/test_full_non_regression_e2e.py
+
+# 5. Run Privacy & Secret Sanitization check
 python scripts/sanitize_repo.py
 
-# 5. Run Desktop App CI/CD Verification Gates
-python desktop-app/scripts/ci_cd_validator.py
+# 6. Run Desktop App Unit, UI & Human-Flow E2E Tests
+python -m unittest desktop-app/tests/test_unit_core.py desktop-app/tests/test_ui_syntax.py desktop-app/tests/test_flash_human_flow.py
 ```
 
 Key architectural documentation files in [`docs/`](docs/):
+* [VERSIONS.md](VERSIONS.md) — Universal Version Ledger, SHA-256 Matrix, Verified vs. Failed History & Rollback Guide
 * [docs/AP_AND_KERNEL_BUILD_GUIDE.md](docs/AP_AND_KERNEL_BUILD_GUIDE.md) — Partition tables, EL2 CFP toolchain rule, kernel `.config` flags, cold reset specs
 * [docs/OS_MANAGEMENT_AND_FLASHING.md](docs/OS_MANAGEMENT_AND_FLASHING.md) — UFS storage architecture (`sda7`, `sda8`, `sda24` `^extents`), hardware nodes
 * [docs/UNIVERSAL_DISPLAY_AND_CONSOLE_ARCHITECTURE.md](docs/UNIVERSAL_DISPLAY_AND_CONSOLE_ARCHITECTURE.md) — DECON2 `fb2` architecture and `CONFIG_VT` rules
 * [docs/SENSORS_GUIDE.md](docs/SENSORS_GUIDE.md) — Sensor and peripheral hardware reference
+* [docs/GEMINI_3_8_HANDOFF.md](docs/GEMINI_3_8_HANDOFF.md) — Complete engineering continuity handoff guide
 
 ---
 

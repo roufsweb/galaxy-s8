@@ -1,48 +1,45 @@
 ---
 name: galaxy-s8-ap-kernel-builder
-description: Operational runbook and mathematical verification guide for compiling the custom Samsung Exynos 8895 Linux kernel, constructing auto-booting boot and recovery images, embedding Calliope DSP audio firmwares, and packaging Odin AP slot tar archives on the headless Samsung Galaxy S8 (SM-G950N).
+description: Operational runbook and mathematical verification guide for compiling the custom Samsung Exynos 8895 Linux kernel (4.4.111-s8-universal-v2), constructing Pure Native Linux systemd PID 1 boot images, embedding Calliope DSP firmwares, and packaging Odin AP slot tar archives on the headless Samsung Galaxy S8 (SM-G950N).
 ---
 
-# Galaxy S8 Exynos 8895 — AP & Kernel Builder Runbook (`galaxy-s8-ap-kernel-builder`)
+# Galaxy S8 Exynos 8895 — Universal AP & Kernel Builder Runbook (`galaxy-s8-ap-kernel-builder`)
 
 > [!CRITICAL]
 > **MANDATORY HARDWARE GUARDS & PARTITION BOUNDARIES:**
-> 1. **Size Hard Stop:** `boot.img` and `recovery.img` MUST be `<= 41,943,040 bytes` (`40.0 MB`). Exceeding this boundary fails Odin flashing or corrupts adjacent partition blocks (`sda7` / `sda8`).
-> 2. **9 Calliope DSP Firmwares:** All 9 Calliope audio firmwares must reside directly in `etc/firmware/` and `vendor/firmware/` in the ramdisk. Never shadow `/etc/firmware` with a bind mount (causes ABOX IPC timeout and second-12 watchdog panic).
-> 3. **Cgroup Task Escape:** All boot scripts must begin with `echo $$ > /acct/tasks 2>/dev/null` to escape Android `libprocessgroup` SIGKILL.
-> 4. **No Internal Screen:** The phone is headless (`lcdtype=-1`). Only check vibrations, torch, and host USB/ADB status.
+> 1. **Size Hard Stop:** `boot.img` and `recovery.img` MUST be `<= 41,943,040 bytes` (`40.0 MB`, `/dev/sda7` and `/dev/sda8`).
+> 2. **9 Calliope DSP Firmwares:** All 9 Calliope audio firmwares (`calliope_sram.bin`, `calliope_dram.bin`, `calliope_iva.bin`, `dsm.bin`, `AP_AUDIO_SLSI.bin`, `APBargeIn_AUDIO_SLSI.bin`, `SoundBoosterParam.bin`, `APBiBF_AUDIO_SLSI.bin`, `dsm_tune.bin`) must reside directly in `etc/firmware/` and `vendor/firmware/`.
+> 3. **Pure Native Linux PID 1 (`switch_root`):** Ramdisk `/init` is a staticBusyBox POSIX script that configures PMIC 1500mA fast charge, mounts target rootfs (`/dev/sda25`, `/dev/mmcblk0p2`, or `/data/linux/rootfs.img`), injects `/usr/sbin/s8-usb-gadget.sh` and `s8_usb_agentd`, and executes `switch_root` into the guest OS `/sbin/init` as PID 1.
+> 4. **USB ConfigFS UEVENT Bridge:** `CONFIG_USB_CONFIGFS_UEVENT=y` MUST remain enabled in `.config` so `drivers/usb/manager/usb_typec_manager_notifier.c` activates DWC3 endpoints on cold boot.
 
 ---
 
 ## 1. Fast Reference Commands
 
-### Build Verified Rock-Solid Boot Image & Odin AP Package
+### Build Universal Linux AP Package & Hardware Bundles
 ```powershell
-python scratch/build_rocksolid_boot.py
+python scripts/build_universal_ap.py
+python scripts/pre_flash_validator.py releases/Galaxy_S8_Linux_AP.tar
 ```
-* **Inputs:** `archive/boot_twrp_exact.tar`, Calliope DSP firmwares.
 * **Outputs:**
-  * `scratch/boot_ubuntu_autoboot.img` (`38,977,552` B $\le$ `41,943,040` B limit)
-  * `releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`77,967,360` B USTAR archive for Odin `AP` slot)
+  * `scratch/boot_universal_ap.img` (`<= 41,943,040` B)
+  * `releases/Galaxy_S8_Linux_AP.tar` (USTAR archive containing `boot.img` + `recovery.img` for Odin `AP` slot)
+  * `packages/dist/galaxy-s8-hw_1.0.2_arm64.deb` (Debian/Ubuntu/Kali package)
+  * `packages/dist/galaxy-s8-hw-universal-arm64.tar.gz` (Universal distro-agnostic tarball for Alpine, OpenWrt, Arch, Home Assistant OS, SteamOS)
 
-### Flash Live via ADB (Without Odin)
-```powershell
-adb push scratch/boot_ubuntu_autoboot.img /tmp/boot.img
-adb shell "dd if=/tmp/boot.img of=/dev/block/sda7 bs=4096 conv=fsync"
-adb shell "dd if=/tmp/boot.img of=/dev/block/sda8 bs=4096 conv=fsync"
-adb shell "rm /tmp/boot.img && sync"
-```
+### Live Kernel/AP Update Over RWP (`192.168.7.2`) Without Odin
+When the phone is already running Linux on RNDIS (`192.168.7.2:7860`), `/dev/sda7` (`BOOT`) and `/dev/sda8` (`RECOVERY`) can be updated directly in-place using `dd bs=4096 conv=fsync`.
 
-### Enter Odin Download Mode (Windows / USB Host)
+### Enter Odin Download Mode (Hardware Combo)
 1. Keep the USB-C cable plugged into the PC.
-2. Hold **Volume Down + Bixby + Power** for **11–13 seconds**.
-3. Phone immediately enumerates in Odin Download Mode (`PID_685D` on `COM17`).
-4. Select `releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar` in the **AP** slot $\rightarrow$ Start.
-5. **Post-Flash USB Re-Plug:** After `PASS!`, unplug and re-plug USB-C to re-enumerate ADB endpoints.
+2. Hold **Volume Down + Bixby + Power** continuously for **11–13 seconds**.
+3. Phone enumerates in Odin Download Mode (`PID_685D`).
+4. Select `releases/Galaxy_S8_Linux_AP.tar` in the **AP** slot -> Start.
+5. After `PASS!`, unplug and re-plug the USB-C cable to trigger host bus re-enumeration.
 
 ---
 
-## 2. Kernel Compilation Runbook (WSL2 / Linux)
+## 2. Kernel Compilation Runbook (WSL2 `/root/s8_kernel_build`)
 
 ### 2.1 Toolchain & Environment Variables
 ```bash
@@ -54,129 +51,53 @@ export CROSS_COMPILE=aarch64-linux-android-
 export KCFLAGS="-w -Wno-error"
 ```
 
-### 2.2 Mandatory Kernel Kconfig Settings
-* **DEFEX:** MUST be disabled (`# CONFIG_SECURITY_DEFEX is not set`).
-* **Container Namespaces:**
-  ```ini
-  CONFIG_NAMESPACES=y
-  CONFIG_PID_NS=y
-  CONFIG_NET_NS=y
-  CONFIG_IPC_NS=y
-  CONFIG_UTS_NS=y
-  CONFIG_CGROUP_DEVICE=y
-  ```
-* **DisplayPort & DECON:**
-  ```ini
-  CONFIG_EXYNOS_DISPLAYPORT=y
-  CONFIG_EXYNOS_DECON_FB=y
-  CONFIG_EXYNOS_ION=y
-  ```
-* **ABOX Audio:**
-  ```ini
-  CONFIG_SND_SOC_SAMSUNG_ABOX=y
-  CONFIG_SND_SOC_CS47L92=y
-  ```
-* **Netfilter TCPMSS Fix:**
-  ```ini
-  # CONFIG_NETFILTER_XT_TARGET_TCPMSS is not set
-  ```
+### 2.2 Mandatory Full-Permission Kconfig Flags
+```ini
+# Zero Samsung Restrictions
+# CONFIG_SECURITY_DEFEX is not set
+# CONFIG_RKP_CFP is not set
+# CONFIG_RKP_CFP_JOPP is not set
+# CONFIG_FIVE is not set
+# CONFIG_PROCA is not set
 
-### 2.3 Compilation Commands
-```bash
-make exynos8895-dreamlte_defconfig
-make olddefconfig
-make -j$(nproc) Image
-make dtbs
+# Full Systemd, Docker, LXC & Home Assistant OS Permissions
+CONFIG_NAMESPACES=y
+CONFIG_USER_NS=y
+CONFIG_PID_NS=y
+CONFIG_NET_NS=y
+CONFIG_IPC_NS=y
+CONFIG_UTS_NS=y
+CONFIG_CGROUPS=y
+CONFIG_CGROUP_DEVICE=y
+CONFIG_CGROUP_FREEZER=y
+CONFIG_CGROUP_PIDS=y
+CONFIG_CGROUP_SCHED=y
+CONFIG_FAIR_GROUP_SCHED=y
+CONFIG_CFS_BANDWIDTH=y
+CONFIG_MEMCG=y
+CONFIG_BLK_CGROUP=y
+CONFIG_CPUSETS=y
+CONFIG_OVERLAY_FS=y
+CONFIG_POSIX_MQUEUE=y
+CONFIG_SECCOMP=y
+CONFIG_SECCOMP_FILTER=y
+CONFIG_BINFMT_MISC=y
+CONFIG_BRIDGE=y
+CONFIG_VETH=y
+CONFIG_MACVLAN=y
+CONFIG_VLAN_8021Q=y
 
-# Generate Korean SM-G950N Rev 11 Device Tree
-./scripts/dtbtool_exynos/dtbtool -s 2048 \
-    --platform 0x50a6 \
-    --subtype 0x217584da \
-    -o arch/arm64/boot/dtb_rev11.img \
-    arch/arm64/boot/dts/exynos/exynos8895-dreamlte_kor_11.dtb
+# USB ConfigFS RNDIS + ACM + UEVENT Bridge
+CONFIG_USB_CONFIGFS_UEVENT=y
+CONFIG_USB_CONFIGFS_RNDIS=y
+CONFIG_USB_RNDIS_MULTIPACKET=y
+CONFIG_USB_CONFIGFS_ACM=y
+CONFIG_USB_CONFIGFS_F_FS=y
+
+# DisplayPort, DECON & ABOX Audio
+CONFIG_EXYNOS_DISPLAYPORT=y
+CONFIG_EXYNOS_DECON_FB=y
+CONFIG_EXYNOS_ION=y
+CONFIG_SND_SOC_SAMSUNG_ABOX=y
+CONFIG_SND_SOC_CS47L92=y
 ```
-
----
-
-## 3. Ramdisk & AP Package Assembly Rules
-
-### 3.1 TWRP Ramdisk Slimming
-To guarantee the boot image stays under the 40 MB partition boundary, remove heavy TWRP fonts from the CPIO ramdisk:
-* `twres/fonts/DroidSansFallback.ttf` (saves 5.2 MB)
-* `twres/fonts/NotoSansCJKjp-Regular.ttf` (saves 3.5 MB)
-* `sbin/libclang_rt.ubsan_standalone-aarch64-android.so` (saves 1.4 MB)
-* Total savings: **~10.1 MB**
-
-### 3.2 Embedding Calliope Audio DSP Firmware Suite
-The 9 required firmware binaries:
-1. `calliope_sram.bin`
-2. `calliope_dram.bin`
-3. `calliope_iva.bin`
-4. `dsm.bin`
-5. `AP_AUDIO_SLSI.bin`
-6. `APBargeIn_AUDIO_SLSI.bin`
-7. `SoundBoosterParam.bin`
-8. `APBiBF_AUDIO_SLSI.bin`
-9. `dsm_tune.bin`
-
-Place each binary in:
-* `etc/firmware/<fw_name>`
-* `vendor/firmware/<fw_name>`
-
-### 3.3 Root Cgroup Task Escape
-In `sbin/permissive.sh`:
-```sh
-#!/sbin/sh
-echo $$ > /acct/tasks 2>/dev/null || true
-/sbin/busybox setenforce 0 2>/dev/null || setenforce 0 2>/dev/null || true
-```
-
-### 3.4 Auto-Boot Trigger Hook in `init.rc`
-```rc
-on property:sys.usb.ffs.ready=1
-    setprop sys.usb.config adb
-    start ubuntu_boot
-
-service ubuntu_boot /sbin/sh /sbin/boot_supervisor.sh
-    user root
-    group root
-    disabled
-    oneshot
-    seclabel u:r:recovery:s0
-```
-
-### 3.5 MAX77865 PMIC Power Sequence (in `boot_supervisor.sh`)
-```sh
-echo "0xBD 0x6C" > /sys/class/power_supply/max77865-charger/data
-echo "0xC3 0x61" > /sys/class/power_supply/max77865-charger/data
-echo "0xC0 0x3C" > /sys/class/power_supply/max77865-charger/data
-echo "0xB9 0x9E" > /sys/class/power_supply/max77865-charger/data
-echo "0xB7 0x05" > /sys/class/power_supply/max77865-charger/data
-```
-
----
-
-## 4. Boot Image Header Specifications
-
-* **Header Version:** 0
-* **Page Size:** `2048` (`0x800`)
-* **Base:** `0x10000000`
-* **Kernel Load Address:** `0x10008000`
-* **Ramdisk Load Address:** `0x11000000`
-* **Cmdline:**
-  ```text
-  console=ram loglevel=4 androidboot.hardware=samsungexynos8895 androidboot.selinux=permissive loop.max_part=7
-  ```
-
----
-
-## 5. Verification Checklist Before Release
-
-- [ ] File size of `boot.img` $\le$ `41,943,040 bytes` (`40.0 MB`).
-- [ ] File size of `recovery.img` $\le$ `41,943,040 bytes` (`40.0 MB`).
-- [ ] Ramdisk SVR4 CPIO magic `070701` with 4-byte padding.
-- [ ] Zero bind-mount loops in `permissive.sh`.
-- [ ] All 9 Calliope DSP binaries verified present in CPIO catalog.
-- [ ] Odin tarball formatted as standard POSIX `ustar`.
-- [ ] SHA-256 and MD5 checksums generated and matched.
-

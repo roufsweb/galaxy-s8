@@ -1786,3 +1786,22 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   - Updated `src/drivers/s8_button_daemon.c` (`find_gpio_keys_device()`, static ARM64 binary `/usr/local/bin/s8_button_daemon`, SHA-256 `3aa07e6077b0bcbcd9d20deb3234bd741aecfe673af943b25b82c64ed31b4c42`) to discover `gpio_keys` via sysfs/`EVIOCGNAME` and map Power (`KEY_POWER`): short press (`<2500ms`) = 80ms haptic + DPMS wake, double click (`<450ms`) = 3-pulse haptic + `systemctl reboot`, long press (`>=2500ms`) = 350ms haptic + `systemctl poweroff`.
   - Verified `/dev/uinput` state transitions (`E2E_UINPUT_BUTTON_TESTS_PASSED`), `systemd-logind` no-op on injected `KEY_POWER`, and dynamic discovery across `systemctl reboot` (`event2` pre-reboot -> `event3` post-reboot). Backported into `scripts/build/customize_s8_ubuntu.sh`, `scratch/s8_latest_bins/s8_button_daemon`, and WSL2 `/root/s8_ubuntu_native.img`.
 
+
+---
+
+## Finding 127 -- Universal Native Linux Kernel `4.4.111-s8-universal-v3`, 21-Point Hardware Fault-Tolerance & Universal Versioning/Rollback (`v3.0.0`)
+* **Severity:** Platform Architecture & Hardware Verification Milestone (`Rule 29` & `Rule 30`)
+* **Discovery Date:** 2026-11-13
+* **Key Engineering Breakthroughs:**
+  1. **Kernel `4.4.111-s8-universal-v3` (`AP v3.0.0`, `32,342,032 B` / `30.84 MiB`):**
+     - Compiled with `CONFIG_LOCALVERSION="-s8-universal-v3"`, `CONFIG_USB_UAS=y` (USB 3.1 Gen 1 SuperSpeed UASP storage `/sys/bus/usb/drivers/uas`), `CONFIG_BRIDGE_NF_EBTABLES=y` (Docker/HAOS/OpenWrt L2 bridge filtering), `# CONFIG_ANDROID_PARANOID_NETWORK is not set` (zero-patch unprivileged sockets for any UID including `nobody`), built-in USB Ethernet dongle drivers (`RTL8152`, `AX88179`, `CDC-NCM`, `CDC-ECM`, `RNDIS_HOST`, `SMSC95XX`), `fimc_is_*_video_querycap` NULL guards, and `DECON2` graceful timeout recovery.
+     - Enforced `echo 0 > /proc/sys/kernel/panic_on_oops` and `echo 5 > /proc/sys/kernel/panic` in both `scripts/build_universal_ap.py` (`PURE_LINUX_INIT`) and `packages/galaxy-s8-hw/scripts/s8-hardware-init.sh` so guest distro `sysctl` defaults can never re-enable `panic_on_oops=1` on hardware peripheral disconnects.
+  2. **DisplayPort Cursor Alpha Fix & USB Mouse/Keyboard Input Bridge (`galaxy-s8-hw v1.0.2`):**
+     - Patched `src/drivers/exynos_dp_bridge.c` to enforce `0xFF` alpha channel in `DECON2` `S3CFB_WIN_CONFIG` and draw a high-contrast `16x16` synthetic pointer whenever `XFixesGetCursorImage` returns an empty cursor on headless X11 `:1`, plus automatic USB Host (`DFP` / `source`) assertion on DisplayPort hotplug (`state == 1`).
+     - Created `src/drivers/s8_input_bridge.c` (`s8-input-bridge.service`) to poll `/dev/input/event*` (`REL_X`/`REL_Y`, `BTN_LEFT`/`BTN_RIGHT`, keyboard scancodes) and inject cursor motion/clicks into X11 `:1` via `XTest`.
+  3. **21-Point Physical Hardware Verification Suite (`tests/hardware/verify_21_point_hardware.py`):**
+     - Verified `21/21` subsystems live on `192.168.7.2` running `4.4.111-s8-universal-v3` after a full `sda7` + `sda8` flash and cold reboot (`tests/hardware/last_21_point_report.json`).
+  4. **Universal Versioning & 1-Click Rollback Governance (`VERSION_MANIFEST.json`, `VERSIONS.md`, `scripts/version_manager.py`, `S8 Imager v2.6.0`):**
+     - Every release (`v3.0.0`), kernel, Odin AP (`v3.0.0`, `v2.0.2`, `v1.0.0` archived in `releases/history/`), hardware package (`v1.0.2`), daemon, desktop app (`v2.6.0`), and catalog distro is tracked with SHA-256 checksums and instant live rollback over RNDIS HTTP (`140 MB/s`).
+
+

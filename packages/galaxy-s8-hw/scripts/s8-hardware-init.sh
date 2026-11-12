@@ -2,14 +2,24 @@
 # s8-hardware-init.sh -- Samsung Galaxy S8 (SM-G950N, Exynos 8895) Boot Hardware Provisioner
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# 1. Enforce Exynos V4L2 FIMC-IS2 panic guard
+# 1. Enforce Exynos V4L2 FIMC-IS2 panic guard & Hardware Disconnect Fault-Tolerance (Rule 29)
+echo 0 > /proc/sys/kernel/panic_on_oops 2>/dev/null || true
+echo 5 > /proc/sys/kernel/panic 2>/dev/null || true
 rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev* 2>/dev/null || true
 
 # 2. Android-compatible /dev/graphics/fb* and /dev/block/* symlinks + GPU/ION permissions
 mkdir -p /dev/graphics /dev/block
 for fb in /dev/fb*; do
-    [ -e "$fb" ] && ln -sf "$fb" "/dev/graphics/$(basename "$fb")"
+    name="$(basename "$fb")"
+    if [ -c "$fb" ] && [ ! -L "$fb" ] && [ ! -c "/dev/graphics/$name" ]; then
+        ln -sf "$fb" "/dev/graphics/$name"
+    fi
 done
+if [ ! -c /dev/graphics/fb2 ]; then
+    rm -f /dev/graphics/fb2 2>/dev/null || true
+    mknod /dev/graphics/fb2 c 29 2 2>/dev/null || true
+fi
+chmod 660 /dev/graphics/fb* 2>/dev/null || true
 for blk in /dev/sd* /dev/mmcblk*; do
     [ -b "$blk" ] && ln -sf "$blk" "/dev/block/$(basename "$blk")"
 done
@@ -106,12 +116,44 @@ fi
 ip link set wlan0 up 2>/dev/null || true
 echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel 2>/dev/null || true
 
-# 10. Initialize Calliope ABOX Native ALSA Audio if amixer is available
+# 10. Exynos 8895 Cool-Idle Interactive CPU/GPU Tuning + Snapd 4.4.111 Crash-Loop Guard
+tune_exynos_governor() {
+    for c in 0 4; do
+        gov="/sys/devices/system/cpu/cpu${c}/cpufreq/scaling_governor"
+        [ -w "$gov" ] && echo interactive > "$gov" 2>/dev/null || true
+    done
+    if [ -d /sys/devices/system/cpu/cpu0/cpufreq/interactive ]; then
+        echo 832000 > /sys/devices/system/cpu/cpu0/cpufreq/interactive/hispeed_freq 2>/dev/null || true
+        echo 90 > /sys/devices/system/cpu/cpu0/cpufreq/interactive/go_hispeed_load 2>/dev/null || true
+        echo "75 832000:88 1053000:95 1456000:98" > /sys/devices/system/cpu/cpu0/cpufreq/interactive/target_loads 2>/dev/null || true
+        echo "20000 1053000:40000 1456000:80000" > /sys/devices/system/cpu/cpu0/cpufreq/interactive/above_hispeed_delay 2>/dev/null || true
+        echo 30000 > /sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_rate 2>/dev/null || true
+    fi
+    if [ -d /sys/devices/system/cpu/cpu4/cpufreq/interactive ]; then
+        echo 1066000 > /sys/devices/system/cpu/cpu4/cpufreq/interactive/hispeed_freq 2>/dev/null || true
+        echo 90 > /sys/devices/system/cpu/cpu4/cpufreq/interactive/go_hispeed_load 2>/dev/null || true
+        echo "80 1066000:90 1469000:96 1937000:99" > /sys/devices/system/cpu/cpu4/cpufreq/interactive/target_loads 2>/dev/null || true
+        echo "20000 1469000:50000 1937000:100000" > /sys/devices/system/cpu/cpu4/cpufreq/interactive/above_hispeed_delay 2>/dev/null || true
+        echo 30000 > /sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_rate 2>/dev/null || true
+    fi
+    if [ -w /sys/devices/platform/13900000.mali/dvfs_governor ]; then
+        echo -1 > /sys/devices/platform/13900000.mali/dvfs_min_lock 2>/dev/null || true
+        echo Interactive > /sys/devices/platform/13900000.mali/dvfs_governor 2>/dev/null || true
+    fi
+}
+tune_exynos_governor
+
+# Prevent snapd 120% CPU crash-rollback seeding loop on 4.4.111 kernels lacking /dev/pts/ptmx & AppArmor
+if [ ! -e /dev/pts/ptmx ] && [ -d /run/systemd/system ] && systemctl list-unit-files snapd.service >/dev/null 2>&1; then
+    systemctl stop --no-block snapd.seeded.service snapd.service snapd.socket 2>/dev/null || true
+fi
+
+# 11. Initialize Calliope ABOX Native ALSA Audio if amixer is available
 if [ -x /usr/local/bin/init_audio.sh ] && command -v amixer >/dev/null 2>&1; then
     /usr/local/bin/init_audio.sh >/var/log/s8_init_audio.log 2>&1 || true
 fi
 
-# 11. Double haptic pulse on native Linux ready
+# 12. Double haptic pulse on native Linux ready
 echo 120 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
 sleep 0.35
 echo 120 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true

@@ -17,7 +17,7 @@ import tarfile
 from pathlib import Path
 
 PKG_NAME = "galaxy-s8-hw"
-PKG_VERSION = "1.0.0"
+PKG_VERSION = "1.0.2"
 PKG_ARCH = "arm64"
 
 PKG_DIR = Path(__file__).resolve().parent
@@ -80,6 +80,13 @@ def stage_rootfs(root: Path):
         print(f"[build] Staged exynos_dp_bridge ({dp_prebuilt.stat().st_size:,} B)")
     else:
         print("[warn] prebuilt/exynos_dp_bridge not found; skipping optional HDMI bridge ELF.")
+
+    inp_prebuilt = PKG_DIR / "prebuilt" / "s8_input_bridge"
+    if inp_prebuilt.is_file():
+        copy_bin(inp_prebuilt, usr_bin / "s8_input_bridge", 0o755)
+        print(f"[build] Staged s8_input_bridge ({inp_prebuilt.stat().st_size:,} B)")
+    else:
+        print("[warn] prebuilt/s8_input_bridge not found; skipping optional input bridge ELF.")
 
     # 2. Tracked control/network/audio/driver scripts
     script_map = [
@@ -151,7 +158,7 @@ def build_deb(stage_dir: Path) -> Path:
         "#!/bin/bash\n"
         "set -e\n"
         "if [ \"$1\" = \"remove\" ] && [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then\n"
-        "    for svc in s8-dp-bridge.service s8-novnc-ws.service s8-vnc.service s8-buttons.service s8-typec.service s8-led.service s8-time-sync.service s8-bluetooth.service s8-usb-gadget.service s8-hardware.service; do\n"
+        "    for svc in s8-dp-bridge.service s8-desktop.service s8-novnc-ws.service s8-vnc.service s8-buttons.service s8-typec.service s8-led.service s8-time-sync.service s8-bluetooth.service s8-usb-gadget.service s8-hardware.service; do\n"
         "        systemctl disable --now \"$svc\" 2>/dev/null || true\n"
         "    done\n"
         "fi\n"
@@ -199,10 +206,16 @@ def main():
     deb_path = build_deb(stage_dir)
     tar_path = build_tarball(stage_dir)
 
+    # Maintain canonical aliases and backward-compatible filenames
+    shutil.copy2(deb_path, DIST_DIR / f"{PKG_NAME}_1.0.1_{PKG_ARCH}.deb")
+    shutil.copy2(tar_path, DIST_DIR / f"{PKG_NAME}-1.0.1-{PKG_ARCH}.tar.gz")
+    shutil.copy2(tar_path, DIST_DIR / f"{PKG_NAME}-universal-{PKG_ARCH}.tar.gz")
+
     sums = []
-    for artifact in (deb_path, tar_path):
-        digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
-        sums.append(f"{digest}  {artifact.name}")
+    for artifact in sorted(DIST_DIR.glob(f"{PKG_NAME}*")):
+        if artifact.is_file():
+            digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            sums.append(f"{digest}  {artifact.name}")
     (DIST_DIR / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
     shutil.rmtree(stage_dir, ignore_errors=True)
     print("[build] SHA256SUMS written cleanly.")

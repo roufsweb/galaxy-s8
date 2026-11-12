@@ -8,7 +8,9 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xfixes.h>
+#include <dirent.h>
 #include <errno.h>
+#include "s8_dp_font.h"
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <linux/videodev2.h>
@@ -17,10 +19,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -417,12 +421,362 @@ static int ignore_x_io_error(Display *d) {
   return 0;
 }
 
+static void fill_rect(uint32_t *buf, uint32_t bw, uint32_t bh, int x0, int y0,
+                      int rw, int rh, uint32_t argb) {
+  int x1 = x0 + rw;
+  int y1 = y0 + rh;
+  if (x0 < 0) x0 = 0;
+  if (y0 < 0) y0 = 0;
+  if (x1 > (int)bw) x1 = (int)bw;
+  if (y1 > (int)bh) y1 = (int)bh;
+  for (int y = y0; y < y1; y++) {
+    uint32_t *row = buf + (size_t)y * bw;
+    for (int x = x0; x < x1; x++)
+      row[x] = argb;
+  }
+}
+
+static void draw_text(uint32_t *buf, uint32_t bw, uint32_t bh, int px, int py,
+                      const char *s, uint32_t argb, int scale) {
+  if (!s) return;
+  int cur_x = px;
+  for (; *s; s++) {
+    unsigned char ch = (unsigned char)*s;
+    if (ch < 32 || ch > 126) ch = '?';
+    const uint8_t *glyph = S8_FONT8X8[ch - 32];
+    for (int gy = 0; gy < 8; gy++) {
+      uint8_t bits = glyph[gy];
+      if (!bits) continue;
+      for (int gx = 0; gx < 8; gx++) {
+        if (bits & (0x80 >> gx)) {
+          fill_rect(buf, bw, bh, cur_x + gx * scale, py + gy * scale,
+                    scale, scale, argb);
+        }
+      }
+    }
+    cur_x += 8 * scale;
+  }
+}
+
+static void read_str_trim(const char *path, char *out, size_t cap, const char *def_val) {
+  FILE *fp = fopen(path, "r");
+  if (!fp) {
+    snprintf(out, cap, "%s", def_val);
+    return;
+  }
+  if (!fgets(out, (int)cap, fp)) {
+    snprintf(out, cap, "%s", def_val);
+  }
+  fclose(fp);
+  size_t len = strlen(out);
+  while (len > 0 && (out[len - 1] == '\n' || out[len - 1] == '\r' || out[len - 1] == ' '))
+    out[--len] = '\0';
+}
+
+static void render_console_fallback(uint32_t *buf, uint32_t w, uint32_t h) {
+  fill_rect(buf, w, h, 0, 0, (int)w, (int)h, 0xFF0B1220U);
+  fill_rect(buf, w, h, 0, 0, (int)w, 88, 0xFF162338U);
+  fill_rect(buf, w, h, 0, 88, (int)w, 3, 0xFF38BDF8U);
+
+  draw_text(buf, w, h, 48, 28,
+            "SAMSUNG GALAXY S8 NATIVE LINUX  |  EXYNOS 8895 DECON2 DISPLAYPORT",
+            0xFFF8FAFCU, 3);
+
+  int temp_mc = read_int_file("/sys/class/thermal/thermal_zone0/temp", 0);
+  int cpu0_khz = read_int_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", 0);
+  int cpu4_khz = read_int_file("/sys/devices/system/cpu/cpu4/cpufreq/scaling_cur_freq", 0);
+  int batt_cap = read_int_file("/sys/class/power_supply/battery/capacity", -1);
+  char gov0[32], os_line[128] = "Ubuntu ARM64";
+  read_str_trim("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", gov0, sizeof(gov0), "n/a");
+
+  FILE *fp = fopen("/etc/os-release", "r");
+  if (fp) {
+    char line[160];
+    while (fgets(line, sizeof(line), fp)) {
+      if (strncmp(line, "PRETTY_NAME=", 12) == 0) {
+        char *q = strchr(line, '"');
+        if (q) {
+          char *q2 = strchr(q + 1, '"');
+          if (q2) *q2 = '\0';
+          snprintf(os_line, sizeof(os_line), "%s", q + 1);
+        }
+        break;
+      }
+    }
+    fclose(fp);
+  }
+
+  fill_rect(buf, w, h, 48, 128, (int)w - 96, 260, 0xFF111C2EU);
+  char buf_line[192];
+  snprintf(buf_line, sizeof(buf_line), "OS Release : %s", os_line);
+  draw_text(buf, w, h, 76, 152, buf_line, 0xFFE2E8F0U, 2);
+  snprintf(buf_line, sizeof(buf_line),
+           "CPU Clocks : 4xA53 @ %d MHz  |  4xM2 @ %d MHz  |  Governor: %s",
+           cpu0_khz / 1000, cpu4_khz / 1000, gov0);
+  draw_text(buf, w, h, 76, 196, buf_line, 0xFF7DD3FCU, 2);
+  snprintf(buf_line, sizeof(buf_line),
+           "Thermals   : SoC %.1f C   |   Battery: %d%%   |   Output: %ux%u",
+           temp_mc / 1000.0, batt_cap, w, h);
+  draw_text(buf, w, h, 76, 240, buf_line, 0xFF86EFACU, 2);
+  draw_text(buf, w, h, 76, 288,
+            "Access     : SSH root@192.168.7.2 (USB RNDIS)  |  noVNC :6080",
+            0xFFFDE047U, 2);
+  draw_text(buf, w, h, 76, 332,
+            "Desktop X11: Waiting for X11 server (:1 or :0) - Run s8-vnc-setup.sh for GUI",
+            0xFFCBD5E1U, 2);
+
+  /* Render tail of TTY1 / /dev/vcs1 if readable, or kernel dmesg highlights */
+  fill_rect(buf, w, h, 48, 420, (int)w - 96, (int)h - 468, 0xFF080D17U);
+  draw_text(buf, w, h, 76, 444, "SYSTEM CONSOLE / HARDWARE TELEMETRY FEED:", 0xFF38BDF8U, 2);
+  FILE *vcs = fopen("/dev/vcs1", "rb");
+  if (vcs) {
+    char row[81];
+    int y = 490;
+    for (int r = 0; r < 22 && y + 24 < (int)h - 48; r++) {
+      if (fread(row, 1, 80, vcs) != 80) break;
+      row[80] = '\0';
+      int end = 79;
+      while (end >= 0 && row[end] == ' ') row[end--] = '\0';
+      if (end >= 0) {
+        draw_text(buf, w, h, 76, y, row, 0xFFE2E8F0U, 2);
+        y += 24;
+      }
+    }
+    fclose(vcs);
+  } else {
+    draw_text(buf, w, h, 76, 496, "Waiting for X11 (:1 / :0). DisplayPort hardware pipeline active.",
+              0xFFE2E8F0U, 2);
+  }
+}
+
+typedef struct {
+  Display *dpy;
+  Window root;
+  XShmSegmentInfo shminfo;
+  XImage *shm_img;
+  bool use_shm;
+  uint32_t w;
+  uint32_t h;
+  char name[16];
+} X11CaptureState;
+
+static void x11_close(X11CaptureState *x) {
+  if (x->shm_img) {
+    if (x->use_shm && x->dpy) {
+      XShmDetach(x->dpy, &x->shminfo);
+    }
+    if (x->shminfo.shmaddr && x->shminfo.shmaddr != (void *)-1) {
+      shmdt(x->shminfo.shmaddr);
+    }
+    x->shm_img->data = NULL;
+    XDestroyImage(x->shm_img);
+    x->shm_img = NULL;
+  }
+  x->use_shm = false;
+  if (x->dpy) {
+    XCloseDisplay(x->dpy);
+    x->dpy = NULL;
+  }
+}
+
+static bool x11_try_open(X11CaptureState *x) {
+  const char *candidates[3] = {NULL, ":1", ":0"};
+  const char *env_disp = getenv("DISPLAY");
+  if (env_disp && env_disp[0] == ':')
+    candidates[0] = env_disp;
+
+  for (int i = 0; i < 3; i++) {
+    const char *disp = candidates[i];
+    if (!disp || disp[0] != ':') continue;
+    char sock_path[64];
+    snprintf(sock_path, sizeof(sock_path), "/tmp/.X11-unix/X%d", atoi(disp + 1));
+    if (access(sock_path, F_OK) != 0) continue;
+
+    Display *dpy = XOpenDisplay(disp);
+    if (!dpy) continue;
+
+    memset(x, 0, sizeof(*x));
+    x->dpy = dpy;
+    x->root = DefaultRootWindow(dpy);
+    int scr = DefaultScreen(dpy);
+    x->w = (uint32_t)DisplayWidth(dpy, scr);
+    x->h = (uint32_t)DisplayHeight(dpy, scr);
+    snprintf(x->name, sizeof(x->name), "%s", disp);
+
+    x->shm_img = XShmCreateImage(dpy, DefaultVisual(dpy, scr),
+                                 DefaultDepth(dpy, scr), ZPixmap, NULL,
+                                 &x->shminfo, x->w, x->h);
+    if (x->shm_img) {
+      x->shminfo.shmid = shmget(
+          IPC_PRIVATE, (size_t)x->shm_img->bytes_per_line * x->shm_img->height,
+          IPC_CREAT | 0777);
+      if (x->shminfo.shmid >= 0) {
+        x->shminfo.shmaddr = x->shm_img->data = shmat(x->shminfo.shmid, 0, 0);
+        x->shminfo.readOnly = False;
+        if (x->shminfo.shmaddr != (void *)-1 && XShmAttach(dpy, &x->shminfo)) {
+          XSync(dpy, False);
+          shmctl(x->shminfo.shmid, IPC_RMID, 0);
+          x->use_shm = true;
+        }
+      }
+    }
+    printf("[exynos_dp_bridge] Attached X11 display %s (%ux%u, use_shm=%d)\n",
+           x->name, x->w, x->h, x->use_shm);
+    return true;
+  }
+  return false;
+}
+
+typedef struct {
+  uint32_t magic;
+  uint32_t width;
+  uint32_t height;
+  uint32_t seq;
+  uint64_t timestamp_ms;
+} shm_fb_hdr_t;
+
+static uint64_t monotonic_ms(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)ts.tv_nsec / 1000000ULL;
+}
+
+static bool ap_dp_daemon_active(void) {
+  int fd = open("/dev/.s8_dp_daemon.lock", O_RDONLY);
+  if (fd < 0)
+    return false;
+  bool busy = (flock(fd, LOCK_EX | LOCK_NB) != 0 && errno == EWOULDBLOCK);
+  if (!busy)
+    flock(fd, LOCK_UN);
+  close(fd);
+  return busy;
+}
+
+static int run_shm_feeder_mode(void) {
+  printf("[exynos_dp_bridge] /sbin/s8_dp_daemon owns fb2 -> running in tear-free X11 SHM feeder mode (/dev/shm/s8_dp_fb).\n");
+  mkdir("/dev/shm", 01777);
+  chmod("/dev/shm", 01777);
+
+  X11CaptureState x11;
+  memset(&x11, 0, sizeof(x11));
+  uint32_t w = 1920, h = 1080;
+  size_t map_sz = sizeof(shm_fb_hdr_t) + (size_t)w * h * 4;
+  int shm_fd = open("/dev/shm/s8_dp_fb", O_CREAT | O_RDWR, 0666);
+  if (shm_fd < 0 || ftruncate(shm_fd, (off_t)map_sz) != 0) {
+    perror("shm /dev/shm/s8_dp_fb");
+    if (shm_fd >= 0) close(shm_fd);
+    return 1;
+  }
+  uint8_t *base = mmap(NULL, map_sz, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  if (base == MAP_FAILED) {
+    close(shm_fd);
+    return 1;
+  }
+  shm_fb_hdr_t *hdr = (shm_fb_hdr_t *)base;
+  uint32_t *pix = (uint32_t *)(base + sizeof(shm_fb_hdr_t));
+  hdr->magic = 0x53384642U;
+  hdr->width = w;
+  hdr->height = h;
+  hdr->seq = 0;
+  hdr->timestamp_ms = 0;
+
+  while (1) {
+    int hpd = read_int_file("/sys/class/switch/hdmi/state", 0);
+    if (hpd <= 0) {
+      hdr->timestamp_ms = 0;
+      usleep(300000);
+      continue;
+    }
+    ensure_usb_host_mode();
+    if (!x11.dpy && !x11_try_open(&x11)) {
+      usleep(400000);
+      continue;
+    }
+    Window q_root = 0, q_parent = 0, *q_children = NULL;
+    unsigned int nchildren = 0;
+    if (!XQueryTree(x11.dpy, x11.root, &q_root, &q_parent, &q_children, &nchildren)) {
+      hdr->timestamp_ms = 0;
+      x11_close(&x11);
+      usleep(300000);
+      continue;
+    }
+    if (q_children) XFree(q_children);
+    if (nchildren == 0) {
+      hdr->timestamp_ms = 0;
+      usleep(300000);
+      continue;
+    }
+    struct timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    bool captured = false;
+    if (x11.use_shm) {
+      if (XShmGetImage(x11.dpy, x11.root, x11.shm_img, 0, 0, AllPlanes)) {
+        blit_or_scale(pix, (const uint32_t *)x11.shm_img->data, w, h, x11.w, x11.h);
+        captured = true;
+      }
+    } else {
+      XImage *img = XGetImage(x11.dpy, x11.root, 0, 0, x11.w, x11.h, AllPlanes, ZPixmap);
+      if (img) {
+        blit_or_scale(pix, (const uint32_t *)img->data, w, h, x11.w, x11.h);
+        XDestroyImage(img);
+        captured = true;
+      }
+    }
+    if (captured) {
+      XFixesCursorImage *cur = XFixesGetCursorImage(x11.dpy);
+      if (cur) {
+        int sx = cur->x - cur->xhot;
+        int sy = cur->y - cur->yhot;
+        for (int cy = 0; cy < cur->height; cy++) {
+          int py = sy + cy;
+          if (py < 0 || py >= (int)h) continue;
+          for (int cx = 0; cx < cur->width; cx++) {
+            int px = sx + cx;
+            if (px < 0 || px >= (int)w) continue;
+            uint32_t cp = (uint32_t)cur->pixels[cy * cur->width + cx];
+            uint8_t a = (cp >> 24) & 0xff;
+            if (a == 0) continue;
+            if (a == 255) {
+              pix[py * w + px] = cp | 0xFF000000U;
+            } else {
+              uint8_t *dp = (uint8_t *)&pix[py * w + px];
+              uint8_t *sp = (uint8_t *)&cp;
+              uint32_t inv = 255 - a;
+              dp[0] = sp[0] + (uint8_t)((dp[0] * inv) >> 8);
+              dp[1] = sp[1] + (uint8_t)((dp[1] * inv) >> 8);
+              dp[2] = sp[2] + (uint8_t)((dp[2] * inv) >> 8);
+              dp[3] = 0xFF;
+            }
+          }
+        }
+        XFree(cur);
+      }
+      __sync_synchronize();
+      hdr->width = w;
+      hdr->height = h;
+      hdr->seq++;
+      hdr->timestamp_ms = monotonic_ms();
+    } else {
+      x11_close(&x11);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    long elapsed = (t1.tv_sec - t0.tv_sec) * 1000000L + (t1.tv_nsec - t0.tv_nsec) / 1000L;
+    if (elapsed < 16666L) usleep((useconds_t)(16666L - elapsed));
+    else usleep(500);
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) {
   setvbuf(stdout, NULL, _IOLBF, 0);
   setvbuf(stderr, NULL, _IOLBF, 0);
 
   XSetErrorHandler(ignore_x_error);
   XSetIOErrorHandler(ignore_x_io_error);
+
+  if (ap_dp_daemon_active()) {
+    return run_shm_feeder_mode();
+  }
 
   const char *fb_path = "/dev/graphics/fb2";
   if (access(fb_path, R_OK | W_OK) != 0)
@@ -488,46 +842,19 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  /* Connect to X11 display :1 */
-  const uint32_t x11_w = 1920, x11_h = 1080;
-  Display *dpy = NULL;
-  while (!dpy) {
-    dpy = XOpenDisplay(":1");
-    if (!dpy)
-      sleep(1);
+  X11CaptureState x11;
+  memset(&x11, 0, sizeof(x11));
+  if (!x11_try_open(&x11)) {
+    printf("[exynos_dp_bridge] No active X11 display yet — monitoring HPD with "
+           "hardware console fallback...\n");
   }
-  Window root = DefaultRootWindow(dpy);
-
-  /* Set up XShm for zero-copy high-speed capture from :1 */
-  XShmSegmentInfo shminfo;
-  memset(&shminfo, 0, sizeof(shminfo));
-  XImage *shm_img = XShmCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
-                                    DefaultDepth(dpy, DefaultScreen(dpy)),
-                                    ZPixmap, NULL, &shminfo, x11_w, x11_h);
-  bool use_shm = false;
-  if (shm_img) {
-    shminfo.shmid =
-        shmget(IPC_PRIVATE, (size_t)shm_img->bytes_per_line * shm_img->height,
-               IPC_CREAT | 0777);
-    if (shminfo.shmid >= 0) {
-      shminfo.shmaddr = shm_img->data = shmat(shminfo.shmid, 0, 0);
-      shminfo.readOnly = False;
-      if (shminfo.shmaddr != (void *)-1 && XShmAttach(dpy, &shminfo)) {
-        XSync(dpy, False);
-        shmctl(shminfo.shmid, IPC_RMID, 0);
-        use_shm = true;
-      }
-    }
-  }
-  printf("[exynos_dp_bridge] Connected to X11 :1 (use_shm=%d, DoubleBuffer=2) "
-         "— monitoring DisplayPort...\n",
-         use_shm);
 
   bool dp_active = false;
   uint32_t dp_w = 1920, dp_h = 1080;
   bool force_mode = (argc > 1 && strcmp(argv[1], "--force") == 0);
   uint64_t frame_count = 0;
   int cur_buf = 0;
+  uint64_t loop_tick = 0;
   struct timespec t_fps_start;
   clock_gettime(CLOCK_MONOTONIC, &t_fps_start);
 
@@ -539,6 +866,7 @@ int main(int argc, char **argv) {
   }
 
   while (1) {
+    loop_tick++;
     int hpd = force_mode ? 1 : read_int_file("/sys/class/switch/hdmi/state", 0);
 
     if (hpd <= 0) {
@@ -548,6 +876,8 @@ int main(int argc, char **argv) {
         ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN);
         dp_active = false;
       }
+      if (!x11.dpy && (loop_tick % 20 == 0))
+        x11_try_open(&x11);
       usleep(100000); /* 100ms fast HPD poll */
       continue;
     }
@@ -567,8 +897,8 @@ int main(int argc, char **argv) {
       }
       int blank_ret = ioctl(fb_fd, FBIOBLANK, FB_BLANK_UNBLANK);
       printf("[exynos_dp_bridge] FBIOBLANK(FB_BLANK_UNBLANK) ret=%d — "
-             "streaming :1 (%ux%u -> %ux%u)\n",
-             blank_ret, x11_w, x11_h, dp_w, dp_h);
+             "streaming %s -> %ux%u\n",
+             blank_ret, x11.dpy ? x11.name : "console", dp_w, dp_h);
       pulse_vibrator(150);
       dp_active = true;
       frame_count = 0;
@@ -577,57 +907,69 @@ int main(int argc, char **argv) {
       usleep(30000);
     }
 
+    if (!x11.dpy && (frame_count % 2 == 0))
+      x11_try_open(&x11);
+
     /* Target the back-buffer for tear-free, flicker-free rendering */
     uint32_t *target_buf = ion_bufs[cur_buf];
     int target_dma_fd = dma_fds[cur_buf];
+    bool rendered_x11 = false;
 
-    if (use_shm) {
-      if (XShmGetImage(dpy, root, shm_img, 0, 0, AllPlanes)) {
-        blit_or_scale(target_buf, (const uint32_t *)shm_img->data, dp_w, dp_h,
-                      x11_w, x11_h);
+    if (x11.dpy) {
+      if (x11.use_shm) {
+        if (XShmGetImage(x11.dpy, x11.root, x11.shm_img, 0, 0, AllPlanes)) {
+          blit_or_scale(target_buf, (const uint32_t *)x11.shm_img->data, dp_w, dp_h,
+                        x11.w, x11.h);
+          rendered_x11 = true;
+        }
+      } else {
+        XImage *img =
+            XGetImage(x11.dpy, x11.root, 0, 0, x11.w, x11.h, AllPlanes, ZPixmap);
+        if (img) {
+          blit_or_scale(target_buf, (const uint32_t *)img->data, dp_w, dp_h,
+                        x11.w, x11.h);
+          XDestroyImage(img);
+          rendered_x11 = true;
+        }
       }
-    } else {
-      XImage *img =
-          XGetImage(dpy, root, 0, 0, x11_w, x11_h, AllPlanes, ZPixmap);
-      if (img) {
-        blit_or_scale(target_buf, (const uint32_t *)img->data, dp_w, dp_h,
-                      x11_w, x11_h);
-        XDestroyImage(img);
+
+      if (rendered_x11) {
+        XFixesCursorImage *cur = XFixesGetCursorImage(x11.dpy);
+        if (cur) {
+          int start_x = cur->x - cur->xhot;
+          int start_y = cur->y - cur->yhot;
+          for (int cy = 0; cy < cur->height; cy++) {
+            int py = start_y + cy;
+            if (py < 0 || py >= (int)dp_h) continue;
+            for (int cx = 0; cx < cur->width; cx++) {
+              int px = start_x + cx;
+              if (px < 0 || px >= (int)dp_w) continue;
+              uint32_t cpixel = (uint32_t)cur->pixels[cy * cur->width + cx];
+              uint8_t a = (cpixel >> 24) & 0xff;
+              if (a == 0) continue;
+              if (a == 255) {
+                target_buf[py * dp_w + px] = cpixel | 0xFF000000U;
+              } else {
+                uint8_t *dst_p = (uint8_t *)&target_buf[py * dp_w + px];
+                uint8_t *src_p = (uint8_t *)&cpixel;
+                uint32_t inv_a = 255 - a;
+                dst_p[0] = src_p[0] + (uint8_t)((dst_p[0] * inv_a) >> 8);
+                dst_p[1] = src_p[1] + (uint8_t)((dst_p[1] * inv_a) >> 8);
+                dst_p[2] = src_p[2] + (uint8_t)((dst_p[2] * inv_a) >> 8);
+                dst_p[3] = 0xFF;
+              }
+            }
+          }
+          XFree(cur);
+        }
+      } else {
+        printf("[exynos_dp_bridge] X11 capture failed; reverting to console fallback.\n");
+        x11_close(&x11);
       }
     }
 
-    /* Overlay X11 mouse cursor onto the back-buffer (Porter-Duff Over with
-     * premultiplied alpha) */
-    XFixesCursorImage *cur = XFixesGetCursorImage(dpy);
-    if (cur) {
-      int start_x = cur->x - cur->xhot;
-      int start_y = cur->y - cur->yhot;
-      for (int cy = 0; cy < cur->height; cy++) {
-        int py = start_y + cy;
-        if (py < 0 || py >= (int)dp_h)
-          continue;
-        for (int cx = 0; cx < cur->width; cx++) {
-          int px = start_x + cx;
-          if (px < 0 || px >= (int)dp_w)
-            continue;
-          uint32_t cpixel = (uint32_t)cur->pixels[cy * cur->width + cx];
-          uint8_t a = (cpixel >> 24) & 0xff;
-          if (a == 0)
-            continue;
-          if (a == 255) {
-            target_buf[py * dp_w + px] = cpixel;
-          } else {
-            /* In little-endian, BGRA bytes are byte 0=B, 1=G, 2=R, 3=A */
-            uint8_t *dst_p = (uint8_t *)&target_buf[py * dp_w + px];
-            uint8_t *src_p = (uint8_t *)&cpixel;
-            uint32_t inv_a = 255 - a;
-            dst_p[0] = src_p[0] + (uint8_t)((dst_p[0] * inv_a) >> 8);
-            dst_p[1] = src_p[1] + (uint8_t)((dst_p[1] * inv_a) >> 8);
-            dst_p[2] = src_p[2] + (uint8_t)((dst_p[2] * inv_a) >> 8);
-          }
-        }
-      }
-      XFree(cur);
+    if (!rendered_x11) {
+      render_console_fallback(target_buf, dp_w, dp_h);
     }
 
     /* Atomically present the back-buffer to DECON2 hardware */
@@ -643,34 +985,35 @@ int main(int argc, char **argv) {
       }
     }
 
-    /* Swap ping-pong buffer index */
     cur_buf = 1 - cur_buf;
     frame_count++;
 
-    if (frame_count % 300 == 0 && frame_count > 0) {
-      struct timespec t_now;
-      clock_gettime(CLOCK_MONOTONIC, &t_now);
-      double sec = (t_now.tv_sec - t_fps_start.tv_sec) +
-                   (t_now.tv_nsec - t_fps_start.tv_nsec) * 1e-9;
-      printf("[exynos_dp_bridge] 300 frames rendered in %.2f s (%.1f FPS solid "
-             "60Hz)\n",
-             sec, 300.0 / sec);
-      clock_gettime(CLOCK_MONOTONIC, &t_fps_start);
-    }
-
-    /* Adaptive 60 FPS Pacer: do not call FBIO_WAITFORVSYNC (times out 200ms on
-     * DECON2) */
-    struct timespec t_frame_end;
-    clock_gettime(CLOCK_MONOTONIC, &t_frame_end);
-    long elapsed_us = (t_frame_end.tv_sec - t_frame_start.tv_sec) * 1000000L +
-                      (t_frame_end.tv_nsec - t_frame_start.tv_nsec) / 1000L;
-    long target_frame_us = 16666L; /* 60 FPS */
-    if (elapsed_us < target_frame_us) {
-      usleep(target_frame_us - elapsed_us);
+    if (rendered_x11) {
+      if (frame_count % 300 == 0 && frame_count > 0) {
+        struct timespec t_now;
+        clock_gettime(CLOCK_MONOTONIC, &t_now);
+        double sec = (t_now.tv_sec - t_fps_start.tv_sec) +
+                     (t_now.tv_nsec - t_fps_start.tv_nsec) * 1e-9;
+        printf("[exynos_dp_bridge] 300 frames rendered in %.2f s (%.1f FPS solid "
+               "60Hz)\n",
+               sec, 300.0 / sec);
+        clock_gettime(CLOCK_MONOTONIC, &t_fps_start);
+      }
+      struct timespec t_frame_end;
+      clock_gettime(CLOCK_MONOTONIC, &t_frame_end);
+      long elapsed_us = (t_frame_end.tv_sec - t_frame_start.tv_sec) * 1000000L +
+                        (t_frame_end.tv_nsec - t_frame_start.tv_nsec) / 1000L;
+      long target_frame_us = 16666L; /* 60 FPS */
+      if (elapsed_us < target_frame_us) {
+        usleep(target_frame_us - elapsed_us);
+      } else {
+        usleep(500);
+      }
     } else {
-      usleep(500); /* Yield to prevent CPU starvation */
+      usleep(500000); /* 2 FPS low-power console telemetry refresh */
     }
   }
 
+  x11_close(&x11);
   return 0;
 }

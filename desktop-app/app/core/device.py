@@ -40,12 +40,62 @@ class DeviceManager:
             "temp": "0°C",
             "wifi_ip": "Offline",
             "rndis_ip": "--",
+            "lan_ip": "--",
+            "lan_iface": "",
             "hw_pack_installed": False,
             "hw_pack_version": "",
             "ssh_daemon": "none",
             "dp_monitor": "Disconnected",
             "microsd_status": "Unknown",
         }
+
+        rwp_info = self.adb.rwp_request("/rwp/v1/info", timeout=1.5)
+        if isinstance(rwp_info, dict) and rwp_info.get("protocol") == "rwp-v1":
+            info["connected"] = True
+            info["state"] = "device"
+            info["transport"] = "rwp_usb" if (rwp_info.get("rndis_ip") or self.adb.is_connected()) else "rwp_wifi"
+            info["os"] = rwp_info.get("guest_os") or "AP Base Shell"
+            info["kernel"] = rwp_info.get("kernel") or "--"
+            info["battery"] = f"{rwp_info.get('battery_pct', 0)}%"
+            info["temp"] = f"{rwp_info.get('temp_c', 0)}°C"
+            info["rndis_ip"] = rwp_info.get("rndis_ip") or "--"
+            info["wifi_ip"] = rwp_info.get("wlan_ip") or "Offline"
+            info["lan_ip"] = rwp_info.get("lan_ip") or "--"
+            info["lan_iface"] = rwp_info.get("lan_iface") or ""
+            info["dp_monitor"] = "Connected" if rwp_info.get("dp_connected") else "Disconnected"
+            import base64
+            ext_script = (
+                "HWVER=$(cat /etc/s8-hw-version 2>/dev/null || echo ''); "
+                "C0=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo '0'); "
+                "C4=$(cat /sys/devices/system/cpu/cpu4/cpufreq/scaling_cur_freq 2>/dev/null || echo '0'); "
+                "AVAIL=$(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null || echo '0'); "
+                "SD=$(mountpoint -q /media/sdcard && echo 'Mounted' || ( [ -b /dev/mmcblk0 ] && echo 'Detected' || echo 'Absent')); "
+                "SSHD=$( (pgrep -x sshd >/dev/null && echo 'openssh') || (pgrep -f 'dropbear' >/dev/null && echo 'dropbear') || echo 'active' ); "
+                "BTNS=$(pgrep -f '[s]8_button_daemon' >/dev/null && echo '1' || echo '0'); "
+                "echo \"HWVER=$HWVER|C0=$C0|C4=$C4|AVAIL=$AVAIL|SD=$SD|SSHD=$SSHD|BTNS=$BTNS\""
+            )
+            b64_cmd = base64.b64encode(ext_script.encode("utf-8")).decode("ascii")
+            ext_res = self.adb.rwp_request("/rwp/v1/exec", method="POST", payload={"env": "os", "cmd": f"echo {b64_cmd} | base64 -d | /bin/sh"}, timeout=2.0)
+            if isinstance(ext_res, dict) and ext_res.get("output"):
+                kv = {}
+                for part in str(ext_res.get("output", "")).strip().split("|"):
+                    if "=" in part:
+                        k, v = part.split("=", 1)
+                        kv[k.strip()] = v.strip()
+                hwver = kv.get("HWVER", "")
+                info["hw_pack_installed"] = bool(hwver)
+                info["hw_pack_version"] = hwver
+                c0 = int(kv.get("C0") or 0) // 1000
+                c4 = int(kv.get("C4") or 0) // 1000
+                if c0 or c4:
+                    info["cpu"] = f"A53 {c0}MHz | M2 {c4}MHz"
+                avail_kb = int(kv.get("AVAIL") or 0)
+                if avail_kb:
+                    info["ram_free"] = f"{avail_kb / 1048576:.1f} GB"
+                info["microsd_status"] = kv.get("SD") or "Unknown"
+                info["ssh_daemon"] = kv.get("SSHD") or "active"
+                info["buttons_active"] = kv.get("BTNS") == "1"
+            return info
 
         adb_up = False
         try:

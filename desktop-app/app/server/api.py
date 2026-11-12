@@ -6,6 +6,8 @@ Zero external frameworks required (built on Python standard library http.server)
 import json
 import os
 import socket
+import subprocess
+import sys
 import threading
 import time
 import urllib.parse
@@ -16,10 +18,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.config import (
+    AP_VERSION,
+    APP_VERSION,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_SERIAL,
     DISTROS_DIR,
+    HW_PACK_VERSION,
+    KERNEL_VERSION,
+    REPO_ROOT,
     RNDIS_DEFAULT_IP,
     UI_DIR,
 )
@@ -156,7 +163,24 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
         params = self._query_params()
 
         if path == "/api/status":
-            self._send_json(self.state.get_cached_telemetry())
+            tel = dict(self.state.get_cached_telemetry())
+            tel["app_version"] = APP_VERSION
+            tel["ap_version"] = AP_VERSION
+            tel["repo_hw_pack_version"] = HW_PACK_VERSION
+            tel["repo_kernel_version"] = KERNEL_VERSION
+            self._send_json(tel)
+            return
+
+        if path == "/api/versions":
+            manifest_path = REPO_ROOT / "VERSION_MANIFEST.json"
+            if manifest_path.is_file():
+                try:
+                    self._send_json(json.loads(manifest_path.read_text(encoding="utf-8")))
+                    return
+                except Exception as exc:
+                    self._send_json({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                    return
+            self._send_json({"error": "VERSION_MANIFEST.json not found"}, status=HTTPStatus.NOT_FOUND)
             return
 
         if path == "/api/distros":
@@ -194,6 +218,12 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
                 "clean": clean,
                 "pre_env": pre_env,
             })
+            return
+
+        if path == "/api/rwp/status":
+            rwp_url = self.state.adb.ensure_rwp_url()
+            info = self.state.adb.rwp_request("/rwp/v1/info") if rwp_url else None
+            self._send_json({"available": bool(info), "url": rwp_url or "", "info": info or {}})
             return
 
         if path == "/api/hardware/status":
@@ -275,6 +305,8 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
             hostname = body.get("hostname", "galaxy-s8")
             wifi_ssid = body.get("wifi_ssid", "")
             wifi_password = body.get("wifi_password", "")
+            storage_target = body.get("storage_target") or params.get("storage_target", "internal")
+            install_hw_pack = bool(body.get("install_hw_pack", True))
             res = self._start_flash_job(
                 image_path=image_path,
                 alloc_gb=alloc_gb,
@@ -285,6 +317,8 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
                 hostname=hostname,
                 wifi_ssid=wifi_ssid,
                 wifi_password=wifi_password,
+                storage_target=storage_target,
+                install_hw_pack=install_hw_pack,
             )
             self._send_json(res)
             return
@@ -359,6 +393,27 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
             self._send_json({"haptic": "pulsed", "ms": ms, "success": bool(ok)})
             return
 
+        if path == "/api/versions/rollback":
+            target_type = body.get("target_type") or params.get("target_type", "ap")
+            ver = body.get("version") or params.get("version", "")
+            live = bool(body.get("live", False))
+            if not ver:
+                self._send_json({"success": False, "error": "Version is required"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            flag = "--rollback-ap" if target_type == "ap" else "--rollback-hw"
+            cmd = [sys.executable, str(REPO_ROOT / "scripts" / "version_manager.py"), flag, str(ver)]
+            if live:
+                cmd.append("--live")
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            self._send_json({
+                "success": res.returncode == 0,
+                "target_type": target_type,
+                "version": ver,
+                "live": live,
+                "output": (res.stdout + "\n" + res.stderr).strip(),
+            })
+            return
+
         self._send_json({"error": f"Unknown endpoint: {path}"}, status=HTTPStatus.NOT_FOUND)
 
     def _build_distro_list(self) -> List[Dict[str, Any]]:
@@ -370,6 +425,11 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
                 "id": entry["id"],
                 "name": entry["name"],
                 "vendor": entry["vendor"],
+                "version": entry.get("version", "latest"),
+                "verification_status": entry.get("verification_status", "READY_TO_TEST"),
+                "verified_with_ap": entry.get("verified_with_ap", AP_VERSION),
+                "verified_with_hw_pack": entry.get("verified_with_hw_pack", HW_PACK_VERSION),
+                "verification_notes": entry.get("verification_notes", ""),
                 "filename": entry["filename"],
                 "path": entry["local_path"],
                 "size_mb": round(entry["local_bytes"] / (1024 * 1024), 1),
@@ -421,10 +481,8 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
             out = self.state.adb.exec_rwp(cmd, ip=ip)
         elif transport == "ssh":
             _, out = self.state.adb.exec_ssh(cmd)
-        elif env == "ap":
-            out = self.state.adb.shell(cmd)
         else:
-            out = self.state.adb.exec_os(cmd)
+            out = self.state.adb.exec_env(cmd, env=env)
         self._send_json({"output": out, "transport": transport, "env": env})
 
     def _resolve_screen_url(self) -> str:
@@ -448,6 +506,8 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
         hostname: str,
         wifi_ssid: str,
         wifi_password: str,
+        storage_target: str = "internal",
+        install_hw_pack: bool = True,
     ) -> Dict[str, Any]:
         with self.state.lock:
             if self.state.flash_state["active"]:
@@ -458,7 +518,7 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
                 "progress": 1,
                 "target": os_name,
                 "error": "",
-                "logs": [f"[INIT] Preparing unmodified {os_name} -> {alloc_gb} GB..."],
+                "logs": [f"[INIT] Preparing unmodified {os_name} -> {alloc_gb} GB ({storage_target})..."],
             })
 
         def _worker():
@@ -479,6 +539,8 @@ class S8RequestHandler(SimpleHTTPRequestHandler):
                 hostname=hostname,
                 wifi_ssid=wifi_ssid,
                 wifi_password=wifi_password,
+                storage_target=storage_target,
+                install_hw_pack=install_hw_pack,
                 log_callback=on_log,
                 progress_callback=on_prog,
             )

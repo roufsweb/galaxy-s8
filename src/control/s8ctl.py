@@ -18,6 +18,9 @@ import sys
 import time
 import subprocess
 
+S8CTL_VERSION = "1.0.2"
+
+
 def read_sysfs(path, default="N/A"):
     try:
         with open(path, "r") as f:
@@ -65,8 +68,26 @@ def cpu_boost():
     write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor", "performance")
     print("[+] All 4x M2 cores locked at 2.314 GHz, 4x A53 cores locked at 1.690 GHz!")
 
+def _apply_interactive_tuning():
+    """Apply cool-idle Exynos 8895 interactive governor parameters."""
+    tunables = {
+        "/sys/devices/system/cpu/cpu0/cpufreq/interactive/hispeed_freq": "832000",
+        "/sys/devices/system/cpu/cpu0/cpufreq/interactive/go_hispeed_load": "90",
+        "/sys/devices/system/cpu/cpu0/cpufreq/interactive/target_loads": "75 832000:88 1053000:95 1456000:98",
+        "/sys/devices/system/cpu/cpu0/cpufreq/interactive/above_hispeed_delay": "20000 1053000:40000 1456000:80000",
+        "/sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_rate": "30000",
+        "/sys/devices/system/cpu/cpu4/cpufreq/interactive/hispeed_freq": "1066000",
+        "/sys/devices/system/cpu/cpu4/cpufreq/interactive/go_hispeed_load": "90",
+        "/sys/devices/system/cpu/cpu4/cpufreq/interactive/target_loads": "80 1066000:90 1469000:96 1937000:99",
+        "/sys/devices/system/cpu/cpu4/cpufreq/interactive/above_hispeed_delay": "20000 1469000:50000 1937000:100000",
+        "/sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_rate": "30000",
+    }
+    for path, val in tunables.items():
+        if os.path.exists(path):
+            write_sysfs(path, val)
+
 def cpu_normal():
-    print("[*] Switching CPU to Balanced Dynamic Scaling (Interactive Governor)...")
+    print("[*] Switching CPU to Cool Balanced Dynamic Scaling (Interactive Governor)...")
     for i in range(1, 8):
         write_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1")
     write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", "455000")
@@ -75,16 +96,22 @@ def cpu_normal():
     write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq", "741000")
     write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq", "2314000")
     write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor", "interactive")
-    print("[+] Dynamic frequency scaling active (455MHz - 2.314GHz).")
+    _apply_interactive_tuning()
+    print("[+] Balanced dynamic scaling active (455MHz - 2.314GHz, cool-idle tuned).")
 
 def cpu_powersave():
-    print("[*] Engaging Battery Power-Saver Profile...")
-    # Cap Little to 832 MHz, Big to 741 MHz and park 2 big cores
-    write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "832000")
-    write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq", "741000")
+    print("[*] Engaging Battery Power-Saver / Cool-Idle Profile...")
+    write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "interactive")
+    write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor", "interactive")
+    _apply_interactive_tuning()
+    # Cap Little to 949 MHz, Big to 1066 MHz and park 2 big cores
+    write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", "455000")
+    write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "949000")
+    write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq", "741000")
+    write_sysfs("/sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq", "1066000")
     write_sysfs("/sys/devices/system/cpu/cpu6/online", "0")
     write_sysfs("/sys/devices/system/cpu/cpu7/online", "0")
-    print("[+] Power-saver active: Cores 6-7 parked, frequencies capped.")
+    print("[+] Power-saver active: Cores 6-7 parked, A53<=949MHz, M2<=1.06GHz.")
 
 def gpu_boost():
     write_sysfs("/sys/devices/platform/13900000.mali/dvfs_governor", "Booster")
@@ -278,7 +305,7 @@ def main():
         sub = sys.argv[2].lower() if len(sys.argv) > 2 else "status"
         if sub == "boost":
             cpu_boost()
-        elif sub == "normal":
+        elif sub in ("normal", "balanced", "cool"):
             cpu_normal()
         elif sub == "powersave":
             cpu_powersave()
@@ -341,6 +368,10 @@ def main():
             subprocess.run(["ls", "-lh", "/media/sdcard"])
         else:
             print("[!] MicroSD slot is empty.")
+    elif cmd in ("version", "--version", "-v"):
+        ap_ver = read_sysfs("/etc/s8-ap-version", "2.0.2")
+        kver = os.uname().release
+        print(f"s8ctl v{S8CTL_VERSION} (galaxy-s8-hw v{S8CTL_VERSION}, AP v{ap_ver}, Kernel {kver})")
     else:
         get_status()
 

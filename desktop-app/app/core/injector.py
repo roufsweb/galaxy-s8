@@ -91,7 +91,9 @@ rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev* 2>/dev/null || true
 mkdir -p /sys/kernel/config
 mountpoint -q /sys/kernel/config || mount -t configfs none /sys/kernel/config 2>/dev/null || true
 G=/sys/kernel/config/usb_gadget/g1
-if [ ! -d "$G/functions/rndis.usb0" ] || [ "$(cat "$G/UDC" 2>/dev/null)" != "10c00000.dwc3" ]; then
+if [ -d "$G/functions/ffs.adb" ] && [ -d "$G/functions/rndis.usb0" ] && [ "$(cat "$G/UDC" 2>/dev/null)" = "10c00000.dwc3" ]; then
+    :
+elif [ ! -d "$G/functions/rndis.usb0" ] || [ "$(cat "$G/UDC" 2>/dev/null)" != "10c00000.dwc3" ]; then
     echo 0 > /sys/class/android_usb/android0/enable 2>/dev/null || true
     echo "" > "$G/UDC" 2>/dev/null || true
     mkdir -p "$G/strings/0x409" "$G/configs/c.1/strings/0x409" "$G/functions/rndis.usb0"
@@ -285,6 +287,18 @@ EOF
     mkdir -p "$R/etc/runlevels/default"
     ln -sf /etc/init.d/s8-seed "$R/etc/runlevels/default/s8-seed"
 fi
+
+# 10. OpenWrt procd / rc.local & Home Assistant OS / Universal container permission setup
+if [ -f "$R/etc/openwrt_release" ] || [ -f "$R/etc/rc.local" ]; then
+    touch "$R/etc/rc.local"
+    sed -i '/s8-seed-usb.sh/d; /^exit 0/d' "$R/etc/rc.local" 2>/dev/null || true
+    cat >> "$R/etc/rc.local" <<'EOF'
+/opt/s8-seed/s8-seed-usb.sh >/var/log/s8-seed-usb.log 2>&1 &
+[ -x /opt/s8-seed/s8-seed-ssh.sh ] && /opt/s8-seed/s8-seed-ssh.sh >/var/log/s8-seed-ssh.log 2>&1 &
+exit 0
+EOF
+    chmod 755 "$R/etc/rc.local"
+fi
 echo "[SEED] Minimal connectivity & V4L2 safety seed complete."
 """
 
@@ -333,6 +347,68 @@ echo "[SEED] Minimal connectivity & V4L2 safety seed complete."
             return ("EXIT=0" in out) and ("[SEED]" in out or "complete" in out.lower())
         finally:
             local_tmp.unlink(missing_ok=True)
+
+    def seed_mounted_rwp(
+        self,
+        target_mount: str = "/mnt/s8_stage",
+        username: str = "ubuntu",
+        password: str = "ubuntu",
+        hostname: str = "galaxy-s8",
+        wifi_ssid: str = "",
+        wifi_password: str = "",
+        install_hw_pack: bool = True,
+        log_callback: Optional[Callable[[str], None]] = None,
+    ) -> bool:
+        """Apply connectivity seed & universal galaxy-s8-hw v1.0.2 pack over RWP/SSH."""
+        def log(msg: str):
+            if log_callback:
+                log_callback(msg)
+
+        _, pub_path = self.adb.ensure_ssh_keypair()
+        pub_key = pub_path.read_text(encoding="utf-8").strip() if pub_path and pub_path.is_file() else ""
+
+        dropbear_bin = RESOURCES_BIN_DIR / "s8-dropbear-arm64"
+        has_db = dropbear_bin.is_file()
+        if has_db:
+            self.adb.exec_env(f"mkdir -p {target_mount}/opt/s8-seed && cp -f /run/s8/s8-dropbear-arm64 {target_mount}/opt/s8-seed/s8-dropbear 2>/dev/null && chmod 755 {target_mount}/opt/s8-seed/s8-dropbear 2>/dev/null || true", env="os")
+
+        script = self._build_seed_shell(
+            target_root=target_mount,
+            username=username,
+            password=password,
+            hostname=hostname,
+            pub_key=pub_key,
+            wifi_ssid=wifi_ssid,
+            wifi_password=wifi_password,
+            has_static_dropbear=has_db,
+        )
+        import base64
+        b64 = base64.b64encode(script.replace("\r\n", "\n").encode("utf-8")).decode("ascii")
+        out = self.adb.exec_env(
+            f"echo '{b64}' | base64 -d > /tmp/s8_seed_apply.sh && sh /tmp/s8_seed_apply.sh 2>&1; RC=$?; rm -f /tmp/s8_seed_apply.sh; echo EXIT=$RC",
+            env="os",
+            timeout=90,
+        )
+        log(out or "[SEED] Applied minimal seed over RWP.")
+        ok = ("EXIT=0" in out) and ("[SEED]" in out or "complete" in out.lower())
+
+        if ok and install_hw_pack:
+            from app.config import REPO_ROOT
+            tar_pkg = REPO_ROOT / "packages" / "dist" / "galaxy-s8-hw-universal-arm64.tar.gz"
+            if tar_pkg.is_file():
+                log("[HW-PACK] Pre-installing universal galaxy-s8-hw v1.0.2 into target rootfs...")
+                pushed, _ = self.adb.push_ssh(str(tar_pkg), "/tmp/s8_hw_univ.tar.gz", timeout=60)
+                if pushed:
+                    hw_out = self.adb.exec_env(
+                        f"mkdir -p /tmp/s8_hw_u && tar -xzf /tmp/s8_hw_univ.tar.gz -C /tmp/s8_hw_u && "
+                        f"cp -a /tmp/s8_hw_u/galaxy-s8-hw-*/rootfs/* '{target_mount}/' && "
+                        f"chroot '{target_mount}' /bin/sh /usr/local/libexec/galaxy-s8-hw-setup.sh 2>&1; "
+                        f"rm -rf /tmp/s8_hw_u /tmp/s8_hw_univ.tar.gz; echo HW_DONE",
+                        env="os",
+                        timeout=60,
+                    )
+                    log(hw_out or "[HW-PACK] Universal hardware pack installed.")
+        return ok
 
     def inject(self, target_mount: str = "/mnt/ubuntu", log_callback: Optional[Callable[[str], None]] = None) -> bool:
         """Backward-compatible entry point calling minimal connectivity seed (Rule 27)."""

@@ -200,6 +200,8 @@ class OSFlasher:
         hostname: str = "galaxy-s8",
         wifi_ssid: str = "",
         wifi_password: str = "",
+        storage_target: str = "internal",
+        install_hw_pack: bool = True,
         log_callback: Optional[Callable[[str], None]] = None,
         progress_callback: Optional[Callable[[int], None]] = None,
     ) -> Tuple[bool, str]:
@@ -224,11 +226,34 @@ class OSFlasher:
             return False, f"Image not found: {src_file}"
 
         state = self.adb.get_state()
-        if state != "recovery":
+        rwp_url = getattr(self.adb, "ensure_rwp_url", lambda: None)() if state != "recovery" else None
+        ssh_host = getattr(self.adb, "active_ssh_host", lambda: None)() if state != "recovery" else None
+        if not isinstance(rwp_url, str):
+            rwp_url = None
+        if not isinstance(ssh_host, str):
+            ssh_host = None
+
+        if state != "recovery" and not (rwp_url or ssh_host):
             return (
                 False,
-                f"Device must be in TWRP Recovery for OS rootfs flashing (current state: {state}). "
-                "Reboot phone to Recovery first.",
+                f"Device must be connected via Native Linux RWP (192.168.7.2) or TWRP Recovery (current state: {state}).",
+            )
+
+        if state != "recovery" and (rwp_url or ssh_host):
+            return self._flash_via_rwp(
+                src_file=src_file,
+                alloc_gb=alloc_gb,
+                wipe=wipe,
+                os_name=os_name,
+                username=username,
+                password=password,
+                hostname=hostname,
+                wifi_ssid=wifi_ssid,
+                wifi_password=wifi_password,
+                storage_target=storage_target,
+                install_hw_pack=install_hw_pack,
+                log=log,
+                prog=prog,
             )
 
         log(f"[FLASH] Staging '{os_name}' ({src_file.name}, alloc={alloc_gb} GB)...")
@@ -337,6 +362,140 @@ class OSFlasher:
         finally:
             if temp_extracted and temp_extracted.exists():
                 temp_extracted.unlink(missing_ok=True)
+
+    def _flash_via_rwp(
+        self,
+        src_file: Path,
+        alloc_gb: int,
+        wipe: bool,
+        os_name: str,
+        username: str,
+        password: str,
+        hostname: str,
+        wifi_ssid: str,
+        wifi_password: str,
+        storage_target: str,
+        install_hw_pack: bool,
+        log: Callable[[str], None],
+        prog: Callable[[int], None],
+    ) -> Tuple[bool, str]:
+        """Flash any Linux distro directly over Pure Native Linux RWP/SSH (192.168.7.2) with storage target selection."""
+        lower = src_file.name.lower()
+        is_disk_img = lower.endswith(".img.xz") or lower.endswith(".img") or lower.endswith(".raw")
+
+        # Resolve target path inside running OS and inside initramfs boot_target.conf
+        if storage_target == "sdcard":
+            stage_img = "/media/sdcard/linux/rootfs.img"
+            boot_target = "/media/sdcard/linux/rootfs.img"
+        elif storage_target == "sdcard_part":
+            stage_img = "/dev/mmcblk0p2"
+            boot_target = "/dev/mmcblk0p2"
+        else:
+            stage_img = "/mnt/android_data/linux/rootfs_next.img"
+            boot_target = "/mnt_data/linux/rootfs.img"
+
+        log(f"[FLASH-RWP] Staging '{os_name}' ({src_file.name}, {alloc_gb} GB) -> target={storage_target} ({boot_target})...")
+        prog(5)
+
+        try:
+            self.adb.exec_env(
+                "umount -lf /mnt/s8_stage 2>/dev/null || true; "
+                "mkdir -p /mnt/android_data/linux /media/sdcard/linux /mnt/s8_stage",
+                env="os",
+            )
+            if is_disk_img:
+                prog(10)
+                with tempfile.TemporaryDirectory(prefix="s8_extract_") as tmpd:
+                    out_raw = Path(tmpd) / "rootfs.img"
+                    raw_to_push = extract_ext4_partition(
+                        src_file,
+                        out_raw,
+                        log_callback=log,
+                        cancel_check=self.cancel_event.is_set,
+                    )
+                    raw_bytes = raw_to_push.stat().st_size
+                    prog(40)
+                    log(f"[FLASH-RWP] Streaming ext4 rootfs ({raw_bytes // (1024*1024):,} MB) over USB RNDIS...")
+                    pushed, err = self.adb.push_ssh(str(raw_to_push), stage_img, timeout=1800)
+                    if not pushed or self.cancel_event.is_set():
+                        return False, f"SSH/RWP stream failed: {err}"
+                prog(70)
+                if storage_target != "sdcard_part":
+                    log(f"[FLASH-RWP] Expanding ext4 rootfs to {alloc_gb} GB...")
+                    resize_out = self.adb.exec_env(
+                        f"truncate -s {int(alloc_gb)}G '{stage_img}' && "
+                        f"e2fsck -fy '{stage_img}' 2>&1; resize2fs '{stage_img}' 2>&1; echo RC=$?",
+                        env="os",
+                        timeout=300,
+                    )
+                    log(resize_out or "[FLASH-RWP] ext4 resized.")
+            else:
+                prog(20)
+                if storage_target != "sdcard_part":
+                    log(f"[FLASH-RWP] Creating clean {alloc_gb} GB ext4 container at {stage_img}...")
+                    self.adb.exec_env(
+                        f"rm -f '{stage_img}' && truncate -s {int(alloc_gb)}G '{stage_img}' && "
+                        f"mke2fs -t ext4 -F -L S8_LINUX '{stage_img}'",
+                        env="os",
+                        timeout=180,
+                    )
+                else:
+                    log(f"[FLASH-RWP] Formatting {stage_img} as clean ext4...")
+                    self.adb.exec_env(f"mke2fs -t ext4 -F -L S8_LINUX '{stage_img}'", env="os", timeout=180)
+                prog(35)
+                remote_tar = f"/mnt/android_data/linux/{src_file.name}"
+                log(f"[FLASH-RWP] Streaming archive {src_file.name} over USB RNDIS...")
+                pushed, err = self.adb.push_ssh(str(src_file), remote_tar, timeout=900)
+                if not pushed or self.cancel_event.is_set():
+                    return False, f"Tarball SSH/RWP stream failed: {err}"
+                prog(65)
+                mnt_flag = "" if storage_target == "sdcard_part" else "-o loop"
+                decomp = "-xJf" if lower.endswith(".xz") else "-xzf"
+                log("[FLASH-RWP] Extracting unmodified upstream archive...")
+                ext_out = self.adb.exec_env(
+                    f"mount {mnt_flag} '{stage_img}' /mnt/s8_stage && "
+                    f"tar {decomp} '{remote_tar}' -C /mnt/s8_stage 2>&1; rm -f '{remote_tar}'; echo EXTRACT_DONE",
+                    env="os",
+                    timeout=600,
+                )
+                if "EXTRACT_DONE" not in ext_out:
+                    return False, f"Extraction error: {ext_out}"
+
+            prog(82)
+            mnt_flag = "" if storage_target == "sdcard_part" else "-o loop"
+            self.adb.exec_env(
+                f"mountpoint -q /mnt/s8_stage || mount {mnt_flag} '{stage_img}' /mnt/s8_stage",
+                env="os",
+            )
+            log("[FLASH-RWP] Applying connectivity seed & universal galaxy-s8-hw v1.0.2 permissions...")
+            seed_ok = self.injector.seed_mounted_rwp(
+                target_mount="/mnt/s8_stage",
+                username=username,
+                password=password,
+                hostname=hostname,
+                wifi_ssid=wifi_ssid,
+                wifi_password=wifi_password,
+                install_hw_pack=install_hw_pack,
+                log_callback=log,
+            )
+            if not seed_ok:
+                return False, "Failed to apply connectivity seed to staged rootfs."
+
+            prog(94)
+            # Configure boot_target.conf so initramfs boots the selected target on next reboot
+            if storage_target == "internal":
+                boot_target = "/mnt_data/linux/rootfs_next.img"
+            self.adb.exec_env(
+                f"echo 'TARGET={boot_target}' > /mnt/android_data/linux/boot_target.conf && "
+                f"sync && umount /mnt/s8_stage",
+                env="os",
+                timeout=120,
+            )
+            prog(100)
+            log(f"[FLASH-RWP] Deployment complete! Target configured: {boot_target}. Ready to reboot.")
+            return True, f"OS flashed cleanly to {storage_target} ({boot_target}) with full hardware & container permissions."
+        except Exception as exc:
+            return False, str(exc)
 
 
 # Compatibility alias for existing imports

@@ -141,6 +141,17 @@ class TypeCSupervisor:
         write_file(SYSFS_DP_LINK, "0")
         write_file(SYSFS_DP_TEST, "1,0")
 
+        # 2b. Blank fb2 to prevent Exynos DECON2 timeout panics
+        fb_path = "/dev/graphics/fb2" if os.path.exists("/dev/graphics/fb2") else "/dev/fb2"
+        if os.path.exists(fb_path):
+            try:
+                import fcntl
+                with open(fb_path, "wb") as fb:
+                    # FB_BLANK_POWERDOWN = 4
+                    fcntl.ioctl(fb.fileno(), 0x4611, 4)
+            except Exception:
+                pass
+
         # 3. Restore standard USB data role and dual-role port state
         write_file(SYSFS_PORT_TYPE, "dual")
         write_file(SYSFS_DATA_ROLE, "device")
@@ -190,19 +201,43 @@ class TypeCSupervisor:
             self.ensure_dp_bridge()
 
     def ensure_dp_bridge(self):
-        """Ensure exynos_dp_bridge daemon is active."""
+        """Ensure DECON2 fb2 is unblanked and single exynos_dp_bridge instance is running."""
+        fb_path = "/dev/graphics/fb2" if os.path.exists("/dev/graphics/fb2") else "/dev/fb2"
+        if os.path.exists(fb_path):
+            try:
+                import fcntl
+                with open(fb_path, "wb") as fb:
+                    fcntl.ioctl(fb.fileno(), 0x4611, 0)
+                    print(f"[s8_typec] Unblanked {fb_path} successfully.", flush=True)
+            except Exception as e:
+                print(f"[s8_typec] ioctl unblank {fb_path}: {e}", flush=True)
+
+        if not os.path.exists("/usr/local/bin/exynos_dp_bridge"):
+            return
+
+        # Avoid spawning duplicates when s8-dp-bridge.service already owns exynos_dp_bridge
         try:
-            out = subprocess.check_output(["pgrep", "-f", "exynos_dp_bridge"]).decode().strip()
-            if out:
+            if subprocess.check_output(["pgrep", "-x", "exynos_dp_bridge"]).decode().strip():
                 return
-        except subprocess.CalledProcessError:
+        except Exception:
             pass
 
-        if os.path.exists("/usr/local/bin/exynos_dp_bridge"):
-            print("[s8_typec] Starting /usr/local/bin/exynos_dp_bridge...", flush=True)
-            subprocess.Popen(["/usr/local/bin/exynos_dp_bridge"],
-                             stdout=open("/var/log/exynos_dp_bridge.log", "a"),
-                             stderr=subprocess.STDOUT)
+        if os.path.isdir("/run/systemd/system"):
+            res = subprocess.run(["systemctl", "start", "s8-dp-bridge.service"],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode == 0:
+                print("[s8_typec] Started s8-dp-bridge.service cleanly.", flush=True)
+                return
+
+        print("[s8_typec] Starting exynos_dp_bridge directly...", flush=True)
+        env = dict(os.environ)
+        if os.path.exists("/tmp/.X11-unix/X1"):
+            env["DISPLAY"] = ":1"
+        elif os.path.exists("/tmp/.X11-unix/X0"):
+            env["DISPLAY"] = ":0"
+        subprocess.Popen(["/usr/local/bin/exynos_dp_bridge"], env=env,
+                         stdout=open("/var/log/exynos_dp_bridge.log", "a"),
+                         stderr=subprocess.STDOUT)
 
     def check_usb_storage(self):
         """Auto-mount and unmount USB flash drives / hard drives (/dev/block/sd*)."""
@@ -237,10 +272,20 @@ class TypeCSupervisor:
 
     def run(self):
         print("[s8_typec] Galaxy S8 CC-Aware Type-C & Power Supervisor running.", flush=True)
-        self.ensure_dp_bridge()
+        ap_owns_dp = os.path.exists("/dev/.s8_dp_daemon.lock")
+        if ap_owns_dp:
+            print("[s8_typec] /sbin/s8_dp_daemon owns DisplayPort/fb2 -> operating in USB storage hotplug mode only.", flush=True)
+        else:
+            self.ensure_dp_bridge()
 
         while True:
             try:
+                if not ap_owns_dp:
+                    ap_owns_dp = os.path.exists("/dev/.s8_dp_daemon.lock")
+                if ap_owns_dp:
+                    self.check_usb_storage()
+                    time.sleep(0.5)
+                    continue
                 attached = self.is_partner_attached()
                 hdmi = int(read_file(SYSFS_HDMI_STATE, "0"))
                 p_role = self.get_power_role()

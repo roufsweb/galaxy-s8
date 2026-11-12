@@ -283,6 +283,40 @@ class TestDistroPartitionAndSeedUnit(unittest.TestCase):
         self.assertIn("graphical.target", script)
         self.assertIn("alice", script)
         self.assertIn("s8-box", script)
+        self.assertIn("ffs.adb", script)
+
+    def test_rwp_exec_env_and_telemetry(self):
+        client = AdbClient()
+        with patch.object(client, "rwp_request", return_value={"output": "ap-ok", "exit_code": 0}) as mock_rwp:
+            self.assertEqual(client.exec_env("uname -r", env="ap"), "ap-ok")
+            mock_rwp.assert_called_once()
+
+        with patch.object(client, "rwp_request", return_value=None), \
+             patch.object(client, "shell", return_value="adb-ok") as mock_sh:
+            self.assertEqual(client.exec_env("id", env="ap"), "adb-ok")
+            mock_sh.assert_called_once()
+
+        dm = DeviceManager(client)
+        rwp_payload = {
+            "protocol": "rwp-v1",
+            "kernel": "4.4.111-s8-universal-v2",
+            "temp_c": 41.2,
+            "battery_pct": 88,
+            "dp_connected": True,
+            "rndis_ip": "192.168.7.2",
+            "wlan_ip": "192.168.0.227",
+            "lan_iface": "eth0",
+            "lan_ip": "192.168.1.55",
+            "guest_os": "Alpine Linux 3.20",
+        }
+        with patch.object(client, "rwp_request", return_value=rwp_payload), \
+             patch.object(client, "is_connected", return_value=True):
+            tel = dm.get_telemetry()
+            self.assertTrue(tel["connected"])
+            self.assertEqual(tel["transport"], "rwp_usb")
+            self.assertEqual(tel["kernel"], "4.4.111-s8-universal-v2")
+            self.assertEqual(tel["lan_ip"], "192.168.1.55")
+            self.assertEqual(tel["dp_monitor"], "Connected")
 
 
 if __name__ == "__main__":

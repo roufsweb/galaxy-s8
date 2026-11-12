@@ -54,17 +54,17 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <span class="text-sm font-bold text-white tracking-tight truncate">Galaxy S8 Native Linux</span>
-            <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 shrink-0">v1.0.0 HOLD</span>
+            <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 shrink-0">v3.0.0 ACTIVE</span>
           </div>
-          <p class="text-[11px] font-mono text-appMuted truncate">SM-G950N &bull; Exynos 8895 &bull; Linux 4.4.111</p>
+          <p class="text-[11px] font-mono text-appMuted truncate">SM-G950N &bull; Exynos 8895 &bull; Linux 4.4.111-s8-universal-v3</p>
         </div>
       </a>
 
       <nav class="hidden lg:flex items-center gap-5 text-xs font-medium text-appMuted whitespace-nowrap">
-        <a href="#kernel-infographic" class="hover:text-white transition-colors">Kernel Infographic</a>
+        <a href="#kernel-infographic" class="hover:text-white transition-colors">Kernel v3.0.0</a>
         <a href="#ap-odin" class="hover:text-white transition-colors">Odin &amp; AP Flash</a>
-        <a href="#s8-imager" class="hover:text-white transition-colors">S8 Imager</a>
-        <a href="#post-flash" class="hover:text-white transition-colors">Wi-Fi &amp; Pack</a>
+        <a href="#s8-imager" class="hover:text-white transition-colors">S8 Imager v2.6.0</a>
+        <a href="#post-flash" class="hover:text-white transition-colors">Wi-Fi, Pack &amp; Rollback</a>
         <a href="#controls-pipeline" class="hover:text-white transition-colors">Buttons &amp; Flow</a>
         <a href="#credits-support" class="hover:text-white transition-colors">Credits</a>
       </nav>
@@ -86,12 +86,12 @@
 
   <main id="top" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-14">
 
-    <!-- HERO SECTION + MILESTONE HOLD BANNER -->
+    <!-- HERO SECTION + MILESTONE v3.0.0 BANNER -->
     <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
       <div class="lg:col-span-6 flex flex-col gap-5">
-        <div class="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>PROJECT STATUS: v1.0.0 MILESTONE ON HOLD</span>
+        <div class="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>RELEASE v3.0.0 ACTIVE &bull; 21/21 HARDWARE PASS</span>
         </div>
 
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
@@ -99,12 +99,12 @@
         </h1>
 
         <p class="text-sm sm:text-base text-appMuted leading-relaxed">
-          Boot unmodified upstream Ubuntu 24.04.5 LTS, Debian 12, Kali, Alpine, or Arch Linux directly via <code class="text-sky-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">switch_root</code> with <code class="text-emerald-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">systemd (PID 1)</code> on Exynos 8895 silicon&mdash;including salvaged headless boards without an OLED display.
+          Boot unmodified upstream Ubuntu 24.04.5 LTS, Debian 12, Kali, Alpine, Arch, Home Assistant OS 18.4, or OpenWrt 23.05.5 directly via <code class="text-sky-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">switch_root</code> with <code class="text-emerald-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">systemd (PID 1)</code> on Exynos 8895 silicon&mdash;including salvaged headless boards without an OLED display.
         </p>
 
         <div class="bg-appCard border border-appBorder rounded-2xl p-4 text-xs text-slate-300 leading-relaxed">
-          <strong class="text-white block mb-1">Release Architecture &amp; Hold Note</strong>
-          Active development is currently paused at milestone <code class="text-sky-300 font-mono">v1.0.0</code>. All hardware drivers, Odin AP boot/recovery firmware, <code class="text-sky-300 font-mono">S8 Imager</code> desktop tooling, and the standalone <code class="text-emerald-300 font-mono">galaxy-s8-hw</code> package are verified on live hardware and preserved below for reproducible setups.
+          <strong class="text-white block mb-1">Release Architecture &amp; Version Governance (<code class="font-mono text-emerald-300">v3.0.0</code>)</strong>
+          Milestone <code class="text-sky-300 font-mono">v3.0.0</code> ships <code class="text-sky-300 font-mono">4.4.111-s8-universal-v3</code> (<code class="font-mono">CONFIG_ANDROID_PARANOID_NETWORK=n</code>, <code class="font-mono">CONFIG_USB_UAS=y</code>, <code class="font-mono">panic_on_oops=0</code>), <code class="text-amber-300 font-mono">Galaxy_S8_Linux_AP.tar v3.0.0</code> (<code class="font-mono">61.70 MiB</code>), <code class="text-sky-300 font-mono">S8 Imager v2.6.0</code> with multi-storage target selector &amp; 1-click Version Rollback, and <code class="text-emerald-300 font-mono">galaxy-s8-hw v1.0.2</code>.
         </div>
 
         <div class="flex flex-wrap gap-3 pt-1">
@@ -113,16 +113,16 @@
             <i data-lucide="book-open" class="w-4 h-4"></i>
             <span>Start Flashing Guide</span>
           </a>
-          <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener"
+          <a href="https://github.com/roufsweb/galaxy-s8/releases" target="_blank" rel="noopener"
             class="px-4 py-2.5 rounded-xl bg-appCard hover:bg-appCardAlt border border-appBorder text-white text-xs font-semibold flex items-center gap-2 transition-all">
             <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
-            <span>Download v1.0.0 Releases</span>
+            <span>Download Releases (v3.0.0)</span>
           </a>
         </div>
       </div>
 
       <div class="lg:col-span-6">
-        <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-2xl" onclick="openLightbox('./assets/screenshots/s8_ubuntu_gnome_desktop.png', 'Live Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd on Galaxy S8 Linux 4.4.111')">
+        <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-2xl" onclick="openLightbox('./assets/screenshots/s8_ubuntu_gnome_desktop.png', 'Live Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd on Galaxy S8 Linux 4.4.111-s8-universal-v3')">
           <img src="./assets/screenshots/s8_ubuntu_gnome_desktop.png"
             alt="Live Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd on Galaxy S8"
             class="w-full h-auto rounded-xl object-cover">
@@ -139,10 +139,10 @@
       <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-appBorder pb-3">
         <div>
           <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 01</span>
-          <h2 class="text-2xl font-bold text-white mt-0.5">Kernel 4.4.111 &amp; Hardware Capability Infographic</h2>
-          <p class="text-sm text-appMuted mt-1">Compiled DEFEX-free and EL2 CFP-safe (<code class="font-mono text-xs text-sky-300"># CONFIG_RKP_CFP is not set</code>), paired with an LZMA pure-Linux initramfs (<code class="font-mono text-xs text-amber-300">sda7</code>) and TWRP 3.7.0 (<code class="font-mono text-xs text-sky-300">sda8</code>).</p>
+          <h2 class="text-2xl font-bold text-white mt-0.5">Kernel 4.4.111-s8-universal-v3 &amp; 21-Point Hardware Capability Infographic</h2>
+          <p class="text-sm text-appMuted mt-1">Compiled DEFEX-free, PARANOID_NETWORK-free, and EL2 CFP-safe (<code class="font-mono text-xs text-sky-300"># CONFIG_RKP_CFP is not set</code>), paired with our Universal Pure-Linux Initramfs (<code class="font-mono text-xs text-amber-300">sda7</code> &amp; <code class="font-mono text-xs text-sky-300">sda8</code>).</p>
         </div>
-        <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full self-start">Vector SVG &bull; Zero AI Images</span>
+        <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full self-start">21/21 Hardware Checks Pass</span>
       </div>
 
       <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-3 shadow-2xl overflow-hidden" onclick="openLightbox('./assets/kernel_infographic.svg', 'Samsung Galaxy S8 Exynos 8895 Native Linux 4.4.111 Kernel & System Architecture')">
@@ -172,24 +172,24 @@
               <td class="py-2.5 px-4">4 GB LPDDR4x (~3.6 GB usable) + 2 GB LZ4 ZRAM swap + H.264/HEVC MFC (<code class="font-mono">/dev/video6..9</code>)</td>
             </tr>
             <tr>
-              <td class="py-2.5 px-4 font-semibold text-white">Security &amp; glibc</td>
-              <td class="py-2.5 px-4 font-mono text-[11px] text-emerald-300">SECURITY_DEFEX=n, RKP_CFP=n</td>
-              <td class="py-2.5 px-4">Runs Ubuntu 24.04.5+ / Debian 12 (<code class="font-mono">glibc 2.39</code>) natively without binary termination or EL2 cold-boot lockups</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Native Permissions &amp; glibc</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-emerald-300">SECURITY_DEFEX=n, RKP_CFP=n, ANDROID_PARANOID_NETWORK=n</td>
+              <td class="py-2.5 px-4">Runs Ubuntu 24.04.5+ / Debian 12 (<code class="font-mono">glibc 2.39</code>) AND grants unprivileged TCP/UDP sockets to any UID (<code class="font-mono">nobody</code>, Alpine, OpenWrt, Home Assistant OS, Docker) with zero patches</td>
             </tr>
             <tr>
               <td class="py-2.5 px-4 font-semibold text-white">Containers &amp; Net</td>
-              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">NAMESPACES, CGROUPS, OVERLAY_FS, VETH, BRIDGE, TUN, NETFILTER</td>
-              <td class="py-2.5 px-4">Full Docker / LXC / WireGuard / iptables; <code class="font-mono">galaxy-s8-hw</code> registers <code class="font-mono">aid_inet(3003)</code>, <code class="font-mono">aid_net_raw(3004)</code>, <code class="font-mono">aid_net_admin(3005)</code></td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">NAMESPACES, CGROUPS, OVERLAY_FS, VETH, BRIDGE, BRIDGE_NF_EBTABLES, TUN</td>
+              <td class="py-2.5 px-4">Full Docker Engine, Home Assistant OS Supervisor, OpenWrt routing/firewall, LXC, WireGuard, iptables/ebtables</td>
             </tr>
             <tr>
-              <td class="py-2.5 px-4 font-semibold text-white">Storage &amp; FS</td>
-              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">EXT4, F2FS, FUSE, VFAT, MMC_DW</td>
-              <td class="py-2.5 px-4">64 GB UFS 2.1 (<code class="font-mono">sda24</code> <code class="font-mono">^extents</code>) + <code class="font-mono">mmcblk0</code> MicroSD (<code class="font-mono">/media/sdcard</code>). Note: <code class="font-mono">NTFS_FS</code> disabled</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Storage &amp; USB 3.1 UASP</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">EXT4, F2FS, FUSE, VFAT, MMC_DW, USB_UAS=y</td>
+              <td class="py-2.5 px-4">64 GB UFS 2.1 (<code class="font-mono">sda24</code>) + <code class="font-mono">mmcblk0</code> MicroSD (<code class="font-mono">/media/sdcard</code>) + USB 3.1 SuperSpeed UASP SSDs (<code class="font-mono">/sys/bus/usb/drivers/uas</code>)</td>
             </tr>
             <tr>
-              <td class="py-2.5 px-4 font-semibold text-white">Display &amp; Camera Guard</td>
-              <td class="py-2.5 px-4 font-mono text-[11px] text-amber-300">DECON2 (/dev/graphics/fb2), VT=n, 99-s8-no-fimc.rules</td>
-              <td class="py-2.5 px-4">1080p60 USB-C DisplayPort via <code class="font-mono">exynos_dp_bridge</code>; removes uninitialized <code class="font-mono">/dev/video100+</code> to prevent FIMC-IS2 NULL panic</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Display, Cursor &amp; Disconnect Guard</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-amber-300">DECON2 (/dev/graphics/fb2), panic_on_oops=0, fimc_is NULL guard</td>
+              <td class="py-2.5 px-4">1080p60 USB-C DisplayPort via <code class="font-mono">exynos_dp_bridge</code> (synthetic cursor + <code class="font-mono">s8_dp_input_bridge</code> USB mouse/kbd); hot-unplugging hubs or cameras never panics kernel</td>
             </tr>
             <tr>
               <td class="py-2.5 px-4 font-semibold text-white">PMIC Power &amp; Audio</td>
@@ -197,9 +197,9 @@
               <td class="py-2.5 px-4">Unlocks 1,500 mA fast charge + 4.3V UVLO; Calliope 9-firmware DSP + MAX98506 Speaker (<code class="font-mono">hw:0,0</code>) + CS47L92 Mic (<code class="font-mono">hw:0,9</code>)</td>
             </tr>
             <tr>
-              <td class="py-2.5 px-4 font-semibold text-white">Radio &amp; USB</td>
-              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">BCM4361 dhd, BT_BCM=y, CONFIGFS_RNDIS=y, USB_HID=y</td>
-              <td class="py-2.5 px-4">Dual-band 2.4/5 GHz Wi-Fi, Bluetooth 5.0, USB RNDIS (<code class="font-mono">192.168.7.2</code>), USB3 Gigabit Ethernet, Shannon 359 LTE (<code class="font-mono">rmnet0..7</code>)</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Radio, USB &amp; Sensors</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">BCM4361 dhd, RTL8152, AX88179, CDC_NCM, IIO=y</td>
+              <td class="py-2.5 px-4">Dual-band 2.4/5 GHz Wi-Fi + AP mode, BT 5.0, USB RNDIS (<code class="font-mono">192.168.7.2:7860</code>), USB3 Gigabit dongles, Shannon LTE, 8x IIO sensors</td>
             </tr>
           </tbody>
         </table>
@@ -210,8 +210,8 @@
     <section id="ap-odin" class="flex flex-col gap-6 scroll-mt-20">
       <div class="border-b border-appBorder pb-3">
         <span class="text-[11px] font-mono text-amber-400 uppercase tracking-widest font-bold">Section 02</span>
-        <h2 class="text-2xl font-bold text-white mt-0.5">Used-Phone Prep, OEM Unlock, Button Combos &amp; Odin AP Flash</h2>
-        <p class="text-sm text-appMuted mt-1">One-time preparation to install <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar</code> (<code class="font-mono text-xs">boot.img</code> on <code class="font-mono text-xs">sda7</code> + TWRP <code class="font-mono text-xs">recovery.img</code> on <code class="font-mono text-xs">sda8</code>) without wiping <code class="font-mono text-xs">sda24</code>.</p>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Used-Phone Prep, OEM Unlock, Button Combos &amp; Odin AP v3.0.0 Flash</h2>
+        <p class="text-sm text-appMuted mt-1">One-time preparation to install <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar v3.0.0</code> (<code class="font-mono text-xs">boot.img</code> on <code class="font-mono text-xs">sda7</code> + <code class="font-mono text-xs">recovery.img</code> on <code class="font-mono text-xs">sda8</code>) without wiping <code class="font-mono text-xs">sda24</code>.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -228,7 +228,7 @@
             <li><strong class="text-white">Remove Prior Accounts (FRP):</strong> On a used phone, remove previous Google/Samsung accounts in <em>Settings &rarr; Accounts</em> or reset clean so Download Mode reads <code class="font-mono text-xs text-emerald-300">FRP LOCK: OFF</code>.</li>
             <li><strong class="text-white">Enable Developer Options &amp; OEM Unlocking:</strong> Go to <em>Settings &rarr; About phone &rarr; Software information</em>, tap <strong class="text-white">Build number</strong> 7 times, then open <em>Developer options</em> and enable <strong class="text-amber-300">OEM unlocking</strong> and <strong class="text-white">USB debugging</strong>.</li>
             <li><strong class="text-white">Missing Toggle (RMM/KG Prenormal):</strong> If a freshly wiped phone hides <em>OEM unlocking</em>, connect Android to Wi-Fi, run <em>Software update &rarr; Download and install</em> check once, then reboot back into Developer options to reveal it. <em>(Headless boards running stock Android with ADB can use <code class="font-mono text-xs">scrcpy</code> to toggle it visually.)</em></li>
-            <li><strong class="text-white">Host PC Tools:</strong> Install <strong class="text-white">Samsung Android USB Drivers</strong>, <strong class="text-white">Odin3 v3.14.1/v3.14.4</strong>, and download <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar</code> (<code class="font-mono text-xs">79,472,640 B</code>) from <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener" class="text-sky-400 hover:underline">Releases v1.0.0</a>.</li>
+            <li><strong class="text-white">Host PC Tools:</strong> Install <strong class="text-white">Samsung Android USB Drivers</strong>, <strong class="text-white">Odin3 v3.14.1/v3.14.4</strong>, and download <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar</code> (<code class="font-mono text-xs">v3.0.0</code>, <code class="font-mono text-xs">64,696,320 B</code>) from <a href="https://github.com/roufsweb/galaxy-s8/releases" target="_blank" rel="noopener" class="text-sky-400 hover:underline">Releases</a>.</li>
           </ol>
         </div>
 
@@ -300,40 +300,40 @@
     <section id="s8-imager" class="flex flex-col gap-6 scroll-mt-20">
       <div class="border-b border-appBorder pb-3">
         <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 03</span>
-        <h2 class="text-2xl font-bold text-white mt-0.5">Flashing Unmodified Distros via <code class="font-mono text-xl text-sky-300">S8 Imager</code></h2>
-        <p class="text-sm text-appMuted mt-1">Genuine upstream Canonical/Debian/Kali/Alpine/Arch images flashed onto <code class="font-mono text-xs text-sky-300">/dev/block/sda24</code> with zero pre-baked bloat.</p>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Flashing Unmodified Distros via <code class="font-mono text-xl text-sky-300">S8 Imager v2.6.0</code></h2>
+        <p class="text-sm text-appMuted mt-1">Genuine upstream Canonical/Debian/Kali/Alpine/Arch/Home Assistant OS/OpenWrt images flashed onto UFS Loopback, Direct UFS Partition (<code class="font-mono text-xs text-sky-300">sda24</code>), MicroSD (<code class="font-mono text-xs text-sky-300">mmcblk0</code>), or USB 3.1 SuperSpeed SSD (<code class="font-mono text-xs text-sky-300">sdb</code>).</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-5 flex flex-col gap-3.5 text-xs sm:text-sm text-slate-300">
           <div class="bg-appCard border border-appBorder rounded-2xl p-4">
-            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 1 &mdash; Launch S8 Imager in TWRP Mode</span>
-            <p>With your Galaxy S8 in <strong class="text-white">TWRP Recovery (<code class="font-mono text-xs">sda8</code>)</strong> over USB, run <code class="font-mono text-xs text-sky-300">Launch_S8_Imager.bat</code> (or <code class="font-mono text-xs">python desktop-app\main.py</code>). Verify the top-right status pill shows green <strong class="text-emerald-400">Connected</strong>.</p>
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 1 &mdash; Launch S8 Imager v2.6.0</span>
+            <p>With your Galaxy S8 connected over USB RNDIS (<code class="font-mono text-xs">192.168.7.2:7860</code>) or TWRP Recovery (<code class="font-mono text-xs">sda8</code>), run <code class="font-mono text-xs text-sky-300">Launch_S8_Imager.bat</code> (or <code class="font-mono text-xs">python desktop-app\main.py</code>). Verify the top-right status pill shows green <strong class="text-emerald-400">Connected</strong>.</p>
           </div>
           <div class="bg-appCard border border-appBorder rounded-2xl p-4">
             <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 2 &mdash; Select or Download Official Upstream OS</span>
-            <p>Click <strong class="text-sky-300">Official OS Catalog</strong> to <strong class="text-white">FETCH</strong> &amp; <strong class="text-emerald-300">VERIFY</strong> (SHA-256) Ubuntu 24.04.5 Desktop/Server/Base, Debian 12, Kali Minimal, Alpine 3.20, or Arch Linux ARM&mdash;or click <strong class="text-white">Select Image File...</strong> for local <code class="font-mono text-xs">.img.xz / .img / .tar.xz / .tar.gz</code> files.</p>
+            <p>Click <strong class="text-sky-300">Official OS Catalog</strong> to <strong class="text-white">FETCH</strong> &amp; <strong class="text-emerald-300">VERIFY</strong> (SHA-256) Ubuntu 24.04.5 Desktop/Server/Base, Debian 12, Kali Minimal, Alpine 3.20, Arch Linux ARM, Home Assistant OS 18.4, or OpenWrt 23.05.5&mdash;or click <strong class="text-white">Select Image File...</strong> for local <code class="font-mono text-xs">.img.xz / .img / .tar.xz / .tar.gz</code> files.</p>
           </div>
           <div class="bg-appCard border border-appBorder rounded-2xl p-4">
-            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 3 &mdash; Storage Allocation &amp; First-Boot Seed</span>
-            <p>Drag the <strong class="text-white">Storage Allocation</strong> slider (<code class="font-mono text-xs">4&ndash;48 GB</code> loopback ext4 on <code class="font-mono text-xs">sda24</code>). Fill <strong class="text-white">First-Boot Seed</strong> (Username, Password, Hostname, optional Wi-Fi). Under the hood, <code class="font-mono text-xs text-sky-300">injector.py</code> seeds only RNDIS <code class="font-mono text-xs">192.168.7.2</code>, SSH, V4L2 <code class="font-mono text-xs">/dev/video100+</code> rule, and <code class="font-mono text-xs">aid_*</code> groups.</p>
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 3 &mdash; Storage Target, Allocation &amp; First-Boot Seed</span>
+            <p>Choose your <strong class="text-white">Storage Target</strong> (Loopback, Native <code class="font-mono text-xs">sda24</code>, MicroSD <code class="font-mono text-xs">mmcblk0</code>, or USB <code class="font-mono text-xs">sdb</code>) and drag the <strong class="text-white">Storage Allocation</strong> slider (<code class="font-mono text-xs">4&ndash;52 GB</code>). Fill <strong class="text-white">First-Boot Seed</strong> (Username, Password, Hostname, optional Wi-Fi).</p>
           </div>
           <div class="bg-appCard border border-appBorder rounded-2xl p-4">
             <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 4 &mdash; Flash Image &amp; Reboot</span>
-            <p>Click <strong class="text-sky-400">Flash Image</strong> and wait for log progress to hit <code class="font-mono text-xs text-emerald-300">100%</code> (<code class="font-mono text-xs">e2fsck -fy</code> verified). Reboot from <strong class="text-white">Dashboard &rarr; Reboot Device</strong> (or <code class="font-mono text-xs">adb reboot</code>) without holding Volume Up so <code class="font-mono text-xs">sda7</code> executes <code class="font-mono text-xs">switch_root</code>.</p>
+            <p>Click <strong class="text-sky-400">Flash Image</strong> and wait for log progress to hit <code class="font-mono text-xs text-emerald-300">100%</code> (<code class="font-mono text-xs">e2fsck -fy</code> verified). Reboot from <strong class="text-white">Dashboard &rarr; Reboot Device</strong> so <code class="font-mono text-xs">sda7</code> executes <code class="font-mono text-xs">switch_root</code>.</p>
           </div>
         </div>
 
         <div class="lg:col-span-7 flex flex-col gap-4">
-          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_flash_os.png', 'S8 Imager Flash OS Workspace: Target Image, UFS Storage Allocation, First-Boot Seed, and Telemetry Log')">
+          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_flash_os.png', 'S8 Imager v2.6.0 Flash OS Workspace: Target Image, Storage Target Selector, Allocation, First-Boot Seed, and Telemetry Log')">
             <img src="./assets/screenshots/s8_imager_flash_os.png" alt="S8 Imager Flash OS screen screenshot" class="w-full h-auto rounded-xl">
             <div class="px-2 pt-2 text-[11px] font-mono text-appMuted flex justify-between">
-              <span>In-App Screenshot: Flash OS View</span>
+              <span>In-App Screenshot: Flash OS View (v2.6.0)</span>
               <span class="text-sky-400">Click to zoom</span>
             </div>
           </div>
 
-          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_os_catalog.png', 'Official Upstream ARM64 OS Catalog modal with SHA-256 verification')">
+          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_os_catalog.png', 'Official Upstream ARM64 OS Catalog modal with SHA-256 verification, Home Assistant OS 18.4, and OpenWrt 23.05.5')">
             <img src="./assets/screenshots/s8_imager_os_catalog.png" alt="S8 Imager Official Upstream ARM64 OS Catalog modal" class="w-full h-auto rounded-xl">
             <div class="px-2 pt-2 text-[11px] font-mono text-appMuted flex justify-between">
               <span>In-App Screenshot: Official Upstream OS Catalog Modal</span>
@@ -348,8 +348,8 @@
     <section id="post-flash" class="flex flex-col gap-6 scroll-mt-20">
       <div class="border-b border-appBorder pb-3">
         <span class="text-[11px] font-mono text-emerald-400 uppercase tracking-widest font-bold">Section 04</span>
-        <h2 class="text-2xl font-bold text-white mt-0.5">Post-Flash Access, Wi-Fi Onboarding &amp; Installing <code class="font-mono text-xl text-emerald-300">galaxy-s8-hw</code></h2>
-        <p class="text-sm text-appMuted mt-1">Every post-flash instruction aligns strictly with USB RNDIS (<code class="font-mono text-xs">192.168.7.2</code>), Roufsweb Protocol (RWP SSH), and <code class="font-mono text-xs">galaxy-s8-hw v1.0.0</code>.</p>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Post-Flash Access, Wi-Fi, <code class="font-mono text-xl text-emerald-300">galaxy-s8-hw v1.0.2</code> &amp; Version Rollback</h2>
+        <p class="text-sm text-appMuted mt-1">Zero-config USB RNDIS (<code class="font-mono text-xs">192.168.7.2:7860</code> RWP v1.0 + <code class="font-mono text-xs">s8_dhcpd.py</code>), SSH (<code class="font-mono text-xs">:22</code>), <code class="font-mono text-xs">galaxy-s8-hw v1.0.2</code>, and 1-click Version &amp; Rollback Governance.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -357,7 +357,7 @@
         <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
           <div>
             <h3 class="text-base font-bold text-white">1. First Access Over USB RNDIS &amp; Terminal</h3>
-            <p class="text-xs text-appMuted mt-1">After booting Linux (20&ndash;35s first boot), the seed activates a virtual USB Ethernet gadget at <code class="font-mono text-sky-300">192.168.7.2</code> with SSH port <code class="font-mono text-sky-300">22</code>.</p>
+            <p class="text-xs text-appMuted mt-1">After booting Linux (14&ndash;20s), the phone activates a virtual USB Ethernet gadget at <code class="font-mono text-sky-300">192.168.7.2</code> with RWP agent port <code class="font-mono text-sky-300">7860</code> and SSH port <code class="font-mono text-sky-300">22</code>.</p>
           </div>
           <div class="code-wrap p-3 text-xs font-mono text-slate-200 overflow-x-auto relative">
             <button onclick="copyText('ssh ubuntu@192.168.7.2', this)" class="absolute top-2 right-2 px-2 py-0.5 rounded bg-appCardAlt border border-appBorder text-[10px] text-appMuted hover:text-white">Copy</button>
@@ -372,15 +372,15 @@
         <!-- Config & Wi-Fi -->
         <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
           <div>
-            <h3 class="text-base font-bold text-white">2. Wi-Fi (BCM4361), Hostname, SSH Key &amp; Pack UI</h3>
-            <p class="text-xs text-appMuted mt-1">Use <strong class="text-white">S8 Imager &rarr; Config</strong>: click <strong class="text-sky-300">SCAN</strong>, select 2.4/5 GHz SSID, enter password, and click <strong class="text-emerald-300">APPLY &amp; CONNECT WI-FI</strong>. Once Wi-Fi connects, RWP lets you unplug USB and work wirelessly.</p>
+            <h3 class="text-base font-bold text-white">2. Wi-Fi (BCM4361), Hardware Pack v1.0.2 &amp; Rollback UI</h3>
+            <p class="text-xs text-appMuted mt-1">Use <strong class="text-white">S8 Imager &rarr; Config</strong>: scan &amp; connect 2.4/5 GHz Wi-Fi, install <code class="font-mono text-emerald-300">galaxy-s8-hw v1.0.2</code>, or roll back AP/Hardware versions in 1 click under <strong class="text-white">Version &amp; Rollback Governance</strong>.</p>
           </div>
           <div class="code-wrap p-3 text-xs font-mono text-slate-200 overflow-x-auto relative">
             <button onclick="copyText('sudo s8_wifi.py scan && sudo s8_wifi.py connect \"SSID\" \"PASS\"', this)" class="absolute top-2 right-2 px-2 py-0.5 rounded bg-appCardAlt border border-appBorder text-[10px] text-appMuted hover:text-white">Copy</button>
             <div>sudo s8_wifi.py scan</div>
             <div>sudo s8_wifi.py connect &quot;YourSSID&quot; &quot;YourPassword&quot;</div>
           </div>
-          <div class="shot-frame bg-appCardAlt/40 border border-appBorder rounded-xl p-1.5" onclick="openLightbox('./assets/screenshots/s8_imager_config_wifi_hw.png', 'S8 Imager Config tab showing live BCM4361 Wi-Fi scan and S8 Hardware Pack Installed')">
+          <div class="shot-frame bg-appCardAlt/40 border border-appBorder rounded-xl p-1.5" onclick="openLightbox('./assets/screenshots/s8_imager_config_wifi_hw.png', 'S8 Imager Config tab showing live BCM4361 Wi-Fi scan, S8 Hardware Pack v1.0.2, and Version & Rollback Governance')">
             <img src="./assets/screenshots/s8_imager_config_wifi_hw.png" alt="S8 Imager Config Wi-Fi and Hardware Pack screenshot" class="w-full h-auto rounded-lg">
           </div>
         </div>
@@ -390,33 +390,33 @@
       <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 class="text-base font-bold text-white">3. Installing Device Hardware Pack (<code class="font-mono text-sm text-emerald-300">galaxy-s8-hw v1.0.0</code>)</h3>
-            <p class="text-xs text-appMuted mt-0.5">Adds MAX77865 1500mA+4.3V UVLO, <code class="font-mono">s8_button_daemon</code>, Calliope ABOX ALSA audio, BCM4361 Wi-Fi/BT, <code class="font-mono">2 GB</code> LZ4 ZRAM, <code class="font-mono">aid_inet</code> groups, DisplayPort <code class="font-mono">exynos_dp_bridge</code>, and <code class="font-mono">s8ctl</code>.</p>
+            <h3 class="text-base font-bold text-white">3. Installing Device Hardware Pack (<code class="font-mono text-sm text-emerald-300">galaxy-s8-hw v1.0.2</code>)</h3>
+            <p class="text-xs text-appMuted mt-0.5">Adds MAX77865 1500mA+4.3V UVLO, <code class="font-mono">s8_button_daemon</code>, Calliope ABOX ALSA audio, BCM4361 Wi-Fi/BT, <code class="font-mono">2 GB</code> LZ4 ZRAM, DisplayPort <code class="font-mono">exynos_dp_bridge</code> + <code class="font-mono">s8_dp_input_bridge</code>, and <code class="font-mono">s8ctl</code> across <code class="font-mono">systemd</code>, <code class="font-mono">OpenRC</code>, and <code class="font-mono">procd</code>.</p>
           </div>
-          <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener"
-            class="text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1.5 rounded-xl shrink-0 hover:bg-emerald-500/20">Get .deb / .tar.gz</a>
+          <a href="https://github.com/roufsweb/galaxy-s8/releases" target="_blank" rel="noopener"
+            class="text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1.5 rounded-xl shrink-0 hover:bg-emerald-500/20">Get v1.0.2 .deb / .tar.gz</a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div class="bg-appCardAlt/60 border border-emerald-500/30 rounded-xl p-4 flex flex-col gap-2">
             <span class="font-mono text-emerald-400 font-bold">METHOD A &mdash; 1-CLICK S8 IMAGER</span>
-            <p class="text-slate-300 leading-relaxed">In <strong>S8 Imager &rarr; Config</strong>, optionally tick <em>&ldquo;Also install VNC / noVNC / OpenSSH packages when online&rdquo;</em>, then click <strong>INSTALL S8 PACK</strong>. Pushes the right package automatically over SSH and marks badge <code class="font-mono text-emerald-300">INSTALLED v1.0.0</code>.</p>
+            <p class="text-slate-300 leading-relaxed">In <strong>S8 Imager &rarr; Config</strong>, optionally tick <em>&ldquo;Also install VNC / noVNC / OpenSSH packages when online&rdquo;</em>, then click <strong>INSTALL S8 PACK</strong>. Pushes the right package automatically over RWP/SSH and marks badge <code class="font-mono text-emerald-300">INSTALLED v1.0.2</code>.</p>
           </div>
 
           <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-4 flex flex-col gap-2">
             <span class="font-mono text-sky-400 font-bold">METHOD B &mdash; MANUAL .DEB (UBUNTU / DEBIAN / KALI)</span>
             <div class="code-wrap p-2.5 font-mono text-[11px] text-slate-200 overflow-x-auto">
-              scp galaxy-s8-hw_1.0.0_arm64.deb root@192.168.7.2:/tmp/<br>
-              ssh root@192.168.7.2 &quot;dpkg -i /tmp/galaxy-s8-hw_1.0.0_arm64.deb&quot;<br>
+              scp galaxy-s8-hw_1.0.2_arm64.deb root@192.168.7.2:/tmp/<br>
+              ssh root@192.168.7.2 &quot;dpkg -i /tmp/galaxy-s8-hw_1.0.2_arm64.deb&quot;<br>
               <span class="text-appDim"># Verify:</span> s8ctl status
             </div>
           </div>
 
           <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-4 flex flex-col gap-2">
-            <span class="font-mono text-amber-400 font-bold">METHOD C &mdash; UNIVERSAL .TAR.GZ (ARCH / ALPINE / ANY)</span>
+            <span class="font-mono text-amber-400 font-bold">METHOD C &mdash; UNIVERSAL .TAR.GZ (ARCH / ALPINE / OPENWRT / HAOS)</span>
             <div class="code-wrap p-2.5 font-mono text-[11px] text-slate-200 overflow-x-auto">
-              scp galaxy-s8-hw-1.0.0-arm64.tar.gz root@192.168.7.2:/tmp/<br>
-              ssh root@192.168.7.2 &quot;tar -xzf /tmp/galaxy-s8-hw-1.0.0-arm64.tar.gz -C /tmp &amp;&amp; cd /tmp/galaxy-s8-hw-1.0.0-arm64 &amp;&amp; ./install.sh&quot;
+              scp galaxy-s8-hw-1.0.2-arm64.tar.gz root@192.168.7.2:/tmp/<br>
+              ssh root@192.168.7.2 &quot;tar -xzf /tmp/galaxy-s8-hw-1.0.2-arm64.tar.gz -C /tmp &amp;&amp; cd /tmp/galaxy-s8-hw-1.0.2-arm64 &amp;&amp; ./install.sh&quot;
             </div>
           </div>
         </div>
@@ -494,18 +494,18 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div id="flow-host" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
             <div class="font-mono text-[10px] text-sky-400 font-bold mb-1">HOST PC &amp; UI</div>
-            <div class="font-bold text-white">Odin3 + S8 Imager</div>
-            <p class="text-appMuted mt-1"><code class="font-mono">desktop-app/ui/index.html</code>, <code class="font-mono">api.py</code>, <code class="font-mono">flasher.py</code>, <code class="font-mono">injector.py</code>, <code class="font-mono">adb.py</code>.</p>
+            <div class="font-bold text-white">Odin3 + S8 Imager v2.6.0</div>
+            <p class="text-appMuted mt-1"><code class="font-mono">desktop-app/ui/index.html</code>, <code class="font-mono">api.py</code>, <code class="font-mono">flasher.py</code>, <code class="font-mono">injector.py</code>, <code class="font-mono">version_manager.py</code>.</p>
           </div>
           <div id="flow-twrp" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
-            <div class="font-mono text-[10px] text-amber-400 font-bold mb-1">AP &amp; RECOVERY (sda7 / sda8)</div>
-            <div class="font-bold text-white">Kernel 4.4.111 + TWRP 3.7.0</div>
-            <p class="text-appMuted mt-1">DEFEX-free kernel, Calliope 9 DSP blobs, pure-Linux LZMA initramfs (<code class="font-mono">switch_root</code>), TWRP root ADB.</p>
+            <div class="font-mono text-[10px] text-amber-400 font-bold mb-1">UNIVERSAL AP v3.0.0 (sda7 / sda8)</div>
+            <div class="font-bold text-white">Kernel 4.4.111-s8-universal-v3</div>
+            <p class="text-appMuted mt-1">DEFEX-free, PARANOID_NETWORK-free, USB UAS, Calliope 9 DSP blobs, <code class="font-mono">s8_usb_agentd :7860</code>, <code class="font-mono">switch_root</code>.</p>
           </div>
           <div id="flow-os" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
-            <div class="font-mono text-[10px] text-emerald-400 font-bold mb-1">USERDATA (sda24 rootfs.img)</div>
-            <div class="font-bold text-white">Unmodified Distro + galaxy-s8-hw</div>
-            <p class="text-appMuted mt-1"><code class="font-mono">/sbin/init</code> (systemd PID 1), RNDIS <code class="font-mono">192.168.7.2</code>, 10 HW services, <code class="font-mono">s8ctl</code>, <code class="font-mono">s8_button_daemon</code>.</p>
+            <div class="font-mono text-[10px] text-emerald-400 font-bold mb-1">USERDATA / SD / USB ROOTFS</div>
+            <div class="font-bold text-white">Unmodified Distro + galaxy-s8-hw v1.0.2</div>
+            <p class="text-appMuted mt-1"><code class="font-mono">/sbin/init</code> (systemd/OpenRC/procd PID 1), RNDIS <code class="font-mono">192.168.7.2</code>, 11 HW services, <code class="font-mono">s8ctl</code>.</p>
           </div>
           <div id="flow-hw" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
             <div class="font-mono text-[10px] text-rose-400 font-bold mb-1">EXYNOS 8895 SILICON</div>
@@ -593,7 +593,7 @@
       <span>Samsung Galaxy S8 Native Linux Project &bull; Built by Abdur Rouf (roufsweb)</span>
       <div class="flex items-center gap-4">
         <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener" class="hover:text-white">Repository</a>
-        <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener" class="hover:text-white">Releases v1.0.0</a>
+        <a href="https://github.com/roufsweb/galaxy-s8/blob/main/VERSIONS.md" target="_blank" rel="noopener" class="hover:text-white">VERSIONS.md (v3.0.0)</a>
         <a href="https://github.com/roufsweb/galaxy-s8/blob/main/README.md" target="_blank" rel="noopener" class="hover:text-white">README.md</a>
       </div>
     </div>
