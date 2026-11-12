@@ -1193,8 +1193,8 @@ otification-area and bind launcher paths under instance-config/.
   32-bit Odin cannot allocate multi-gigabyte memory buffers for uncompressed sparse userdata images (>3 GB). Furthermore, Samsung S-Boot validates incoming image block counts against the exact PIT partition geometry; non-matching sparse block counts cause immediate `Write operation failed`.
 * **Resolution:**
   Adopt a 2-stage autonomous architecture:
-  - Stage 1: Ultra-compact Odin package (`83.6 MB`) containing `boot.img` + `recovery.img`.
-  - Stage 2: Full OS image (`ubuntu-24.04-arm64.img.gz`, 2.6 GB) transferred directly via USB MTP and self-extracted by the phone.
+  - Stage 1: Ultra-compact Odin package (`80.5 MB`) containing `boot.img` + `recovery.img` (`Galaxy_S8_Linux_AP.tar`).
+  - Stage 2: Full OS image (`galaxy-s8-linux-arm64.img.gz`, 2.8 GB, or any distribution image) transferred directly via USB MTP and self-extracted by the phone.
 
 ---
 
@@ -1218,9 +1218,9 @@ otification-area and bind launcher paths under instance-config/.
 * **Severity:** Architectural Innovation / Core Deliverable
 * **Discovery Date:** 2026-11-06
 * **Operational Flow:**
-  1. **Stage 1 (Odin Flash):** User flashes `releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (83.6 MB) via Odin AP slot (flashes in 8 seconds).
+  1. **Stage 1 (Odin Flash):** User flashes `releases/Galaxy_S8_Linux_AP.tar` (80.5 MB) via Odin AP slot (flashes in 8 seconds).
   2. **Ready Haptic Telemetry:** Phone powers on, self-heals `/data` (auto-formatting ext4 if encrypted or corrupted), arms MTP, and pulses haptics twice (`2x 150ms`) = "Drive Ready on PC".
-  3. **Drag and Drop:** User opens "Galaxy S8 -> Internal Storage" in Windows File Explorer and drops `ubuntu-24.04-arm64.img.gz`.
+  3. **Drag and Drop:** User opens "Galaxy S8 -> Internal Storage" in Windows File Explorer and drops `galaxy-s8-linux-arm64.img.gz` (or any stock `.img`, `.img.gz`, `.tar.gz`).
   4. **Autonomous Transfer Detection:** Phone monitors file size stability (no size change for 5 seconds and size > 50 MB).
   5. **Flashing Haptic Telemetry:** Phone vibrates long (`500ms`) = "Flashing started".
   6. **Parallel Decompression:** Octa-core Exynos 8895 (`/sbin/pigz`) decompresses image directly into `/data/linux/rootfs.img` in ~40 seconds.
@@ -1252,3 +1252,537 @@ otification-area and bind launcher paths under instance-config/.
   2. Embedded Dependencies: Bundled `adb.exe`, `AdbWinApi.dll`, and `AdbWinUsbApi.dll` directly inside the executable payload (`sys._MEIPASS`).
   3. Zero Setup Mandate: Requires **zero Python installation**, **zero Android SDK**, and **zero external dependencies**. Runs portably on any Windows 10/11 system.
   4. Automatic Hardware Handshake: Automatically probes and connects to the Galaxy S8 (`ce10171ab3e9620804 recovery`), streams images at 36.2 MB/s with live progress bar, runs 8-core hardware pigz decompression on the phone, and verifies filesystem integrity with e2fsck.
+
+---
+
+## Finding 93 — CustomTkinter 2-Column Bento UI & Raspberry Pi Imager Style Pre-Flash Customization
+* **Severity:** Release Engineering / User Experience
+* **Discovery Date:** 2026-11-06
+* **Implementation Details:**
+  1. Rebuilt the 1-click Windows flasher using CustomTkinter with a 3:2 2-column Bento grid following the `pi-imager-ctk-ui` standard.
+  2. Integrated Raspberry Pi Imager style pre-configuration:
+     - Wi-Fi SSID and Password fields generating `/data/linux/wpa_ubuntu.conf` automatically on flash.
+     - Custom hostname injection (`Galaxy-S8-Ubuntu`) into `/etc/hostname` and `/etc/hosts`.
+     - User account credentials (`ubuntu` / `root`) provisioning.
+     - Feature switches for Clean Install (Wipe Userdata), OpenSSH Server (:22), noVNC Web Desktop (:6080), and 1,500 mA Fast Charging.
+  3. Bundled into standalone portable binary `releases/GalaxyS8_OS_Flasher.exe` (34.0 MB).
+
+---
+
+## Finding 94 — Android Kernel IPv4 Forwarding Block on Docker / CasaOS Container Traffic
+* **Severity:** Networking / Container Routing
+* **Discovery Date:** 2026-11-06
+* **Root Cause:**
+  In Android kernels, `/proc/sys/net/ipv4/ip_forward` defaults to `0`. While the CasaOS host web dashboard (:8080) binds to all interfaces and was accessible, Docker containers deployed inside CasaOS reside on the `docker0` bridge (`172.17.0.x`). The kernel dropped all incoming packets arriving on `wlan0:<container_port>` because cross-interface forwarding was disabled.
+* **Resolution:**
+  Permanently added `echo 1 > /proc/sys/net/ipv4/ip_forward` to `/data/linux/start_all.sh` and the flasher supervisor deployment pipeline. All container ports now route seamlessly over Wi-Fi.
+
+---
+
+## Finding 95 — Windows Child Process Console Window Flashing Prevention
+* **Severity:** GUI / User Experience Bug
+* **Discovery Date:** 2026-11-06
+* **Root Cause:**
+  On Windows, executing subprocesses without `creationflags=subprocess.CREATE_NO_WINDOW` (`0x08000000`) triggers the OS console subsystem to momentarily allocate and destroy a `cmd.exe` console window. When polling `adb devices` every 1.5 seconds, black boxes flashed repeatedly on the screen.
+* **Resolution:**
+  Applied `NO_WINDOW_FLAG = 0x08000000` across all `subprocess.run` and `subprocess.Popen` calls. Concurrently decoupled ADB polling into a dedicated background daemon thread (`DevicePoller`), eliminating Tkinter main-thread stutter and delivering 60+ FPS UI responsiveness.
+
+---
+
+## Finding 96 — Automated Knox FBE Encryption Self-Healing & Supervisor Script Deployment
+* **Severity:** Bootloader / Fresh Stock Migration
+* **Discovery Date:** 2026-11-06
+* **Analysis:**
+  On a fresh stock Samsung Android installation, `/dev/block/sda24` (`USERDATA`) is formatted with Knox File-Based Encryption, preventing standard ext4 mounting. Furthermore, `/data/linux/` does not exist on a fresh stock device.
+* **Resolution:**
+  Integrated automatic Knox self-healing into the flasher. When flashing with 'Clean Install' enabled, the flasher unmounts and executes `mke2fs -F -t ext4 /dev/block/platform/11120000.ufs/by-name/USERDATA`, creating a pristine ext4 filesystem within 2 seconds. It then autonomously deploys the embedded supervisor suite (`start_all.sh`, `connect_wifi.sh`, `init_audio.sh`, `s8ctl.py`, `asound.conf`), guaranteeing that fresh stock devices boot seamlessly into Ubuntu without manual shell commands.
+
+---
+
+## Finding 97 — Battery Disconnect & Standalone Power Auto-Boot Diagnosis (CRLF Trap, Universal Boot Trigger & Dual-Partition Golden Recovery)
+* **Severity:** Critical (Hardware Power Resiliency & Standalone Boot)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  After an abrupt battery disconnect without graceful shutdown, the phone failed to boot into native Ubuntu when powered by battery alone (single vibration, never vibrated again, remained stuck). Connecting to PC showed ADB online in recovery mode.
+* **Root Cause Analysis:**
+  1. *Windows CRLF Line Endings:* Editing `start_all.sh` on Windows introduced `\r\n` line endings. In busybox `/bin/sh`, this caused an immediate syntax error at line 36 (`syntax error: unexpected 'do'`), aborting the supervisor before Wi-Fi or GNOME could start.
+  2. *PC-Dependent Init Trigger:* In `init.rc`, `start ubuntu_boot` was gated on `on property:sys.usb.ffs.ready=1`. This property is asserted by `adbd` only when an active USB host controller (PC) enumerates the USB gadget endpoints. On standalone battery power, `sys.usb.ffs.ready` is NEVER set to `1`, leaving Ubuntu dormant.
+  3. *Samsung SBoot Crash Divert (`reset_reason=9`):* An ungraceful power loss or dirty shutdown flags SBoot with `reset_reason=9`, causing SBoot to divert execution to `sda8` (`RECOVERY`) instead of `sda7` (`BOOT`). If `recovery.img` contains stock recovery or TWRP, it halts.
+* **Permanent Fix & Solution:**
+  1. Sanitized all supervisor scripts to strict UNIX LF (`\n`) using automated binary replacement.
+  2. Repacked the ramdisk `init.rc` with universal `on boot` trigger (`on boot -> start ubuntu_boot`) and embedded automated filesystem repair (`exec /sbin/e2fsck -p /dev/block/sda24`).
+  3. Flashed the verified golden image (`boot_golden.img`) to **both** `/dev/block/sda7` (`BOOT`) and `/dev/block/sda8` (`RECOVERY`), and packaged both into `releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar`. Even if SBoot diverts to recovery after a hard crash, it auto-boots native Linux!
+
+---
+
+## Finding 98 — USB-C Multi-Function Hub Alt-Mode & DWC3 Host Controller Arbitration Mechanics
+* **Severity:** High (USB Keyboard/Mouse & DisplayPort Intermittent Connectivity)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  Connecting a third-party USB-C multiport hub (HDMI + USB ports for keyboard/mouse + optional PD charger) resulted in intermittent or random failures: keyboard and mouse did not work, and external monitor had no signal.
+* **Kernel & Hardware Evidence:**
+  1. `/sys/class/sec/ccic/state` defaults to UFP (Device/Sink) when an externally powered hub provides VBUS (`power_role = source [sink]`, `data_role = host [device]`).
+  2. `/sys/class/host_notify/usb_otg/mode` remains `PERIPHERAL`, keeping DWC3 in USB Gadget mode (`dwc3_gadget_init`). The Linux XHCI host controller (`dwc->xhci`) is never instantiated, so USB keyboard and mouse are never enumerated.
+  3. DisplayPort Alt Mode: Third-party multiport hubs standard VESA pin assignment is Pin Assignment D (2 DP lanes @ 2.7 Gbps + 1 SuperSpeed USB 3.0 lane). Because third-party hubs lack Samsung proprietary DeX UVDM handshake, the SBU analog switch (`dp_sbu_sw_sel`) is left open (`gpio_sw_oe = 1`) and AUX channel read fails (`link_status_read fail`), causing the kernel driver to abort with `HPD_FAIL` (`/sys/class/switch/hdmi/state = 0`).
+* **Permanent Fix & Solution:**
+  1. *Force USB Host Mode on DWC3:* Write `echo host > /sys/class/typec/port0/data_role`, `echo HOST > /sys/class/host_notify/usb_otg/mode`, and `echo 1 > /sys/class/sec/ccic/role_swap`. This instantiates `dwc->xhci`, enumerating keyboards, mice, and USB hubs into `/dev/input/` where `s8_input_bridge` hooks them.
+  2. *Autonomous SBU Alignment & 2-Lane Link Training:* Proactively write `echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel` (normal) or `echo "1 0"` (flipped) to connect AUX and power `VDD_DP_3P3`, then trigger `echo 22 > /sys/class/dp_sec/link` (2 lanes @ 2.7 Gbps) to establish the DisplayPort link and flip `/sys/class/switch/hdmi/state` to 1.
+
+---
+
+## Finding 99 — Autonomous Ramdisk Self-Healing & Data Partition Sanitization Architecture
+* **Severity:** Critical (Bootloop Prevention & Zero-Touch Deployment)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  Flashing an Odin AP package containing only `boot.img` and `recovery.img` onto a device with previously dirty or broken scripts on `/data` (`sda24`) caused the phone to boot, vibrate once (SBoot), vibrate twice (reaching end of `start_all.sh`), and immediately trigger a watchdog reboot loop because broken userland binaries on `/data` (`exynos_dp_bridge` forcing blind link training) executed and froze DECON2.
+* **Root Cause Analysis:**
+  Standard Odin AP kernel packages only overwrite `sda7` (`BOOT`) and `sda8` (`RECOVERY`); they do not touch `/data` (`sda24`). Any broken or panic-inducing binary previously compiled or written to `/data/linux` remains intact and executes immediately upon boot, trapping the phone in a reboot loop before ADB on Windows can attach.
+* **Permanent Fix & Solution:**
+  1. *Embedded Self-Healing Boot Supervisor (`/sbin/boot_supervisor.sh`):* Embedded directly into the CPIO ramdisk alongside all 9 Calliope DSP audio firmwares.
+  2. *Auto-Sanitization on Boot:* Before userland scripts run, `/sbin/boot_supervisor.sh` wipes any broken `exynos_dp_bridge*` binaries and copies the known-good, crash-free `start_all.sh` (embedded in `/sbin/embedded_start_all.sh`) directly to `/data/linux/start_all.sh`.
+  3. *Fresh Storage Rescue Mode:* If `/data/linux/rootfs.img` is not present (e.g. after a clean wipe or fresh stock Android flash), the supervisor does not crash or loop; it emits 3 haptic pulses (50ms each) and holds the phone in stable root ADB installer mode, waiting for the flasher app.
+  4. *Dual-Partition Redundancy:* Both `boot.img` and `recovery.img` in [`releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar) are updated to this identical self-healing image (38,973,456 B <= 41,943,040 B limit).
+
+---
+
+## Finding 100 — Standalone 1-Click Odin Full Storage Wipe (`userdata.img.lz4`)
+* **Severity:** High (Clean Multi-ROM Deployment)
+* **Discovery Date:** 2026-11-06
+* **Architecture:**
+  For users transitioning from stock Samsung Android who desire a 100% clean installation in a single Odin flash, [`releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar) (3.53 GB) bundles `boot.img` (`sda7`), `recovery.img` (`sda8`), and `userdata.img.lz4` (`sda24`).
+* **Mechanism:**
+  Odin writes `userdata.img.lz4` directly to the raw block device `/dev/block/sda24`, completely wiping all stock Android partitions, caches, encryption keys, and dirty userland files at the block level. When Odin passes, the phone boots immediately into native Ubuntu 24.04 LTS + GNOME 46 macOS Sonoma Desktop with zero manual ADB intervention required.
+
+---
+
+## Finding 101 — Non-Interactive `adb push` TTY Buffering Trap & UFS Block Polling Telemetry
+* **Severity:** Medium (UX Visual Progress Freeze)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  When flashing a multi-gigabyte OS image via `GalaxyS8_OS_Flasher.exe`, the UI progress bar visually stalled at 25% for several minutes while the phone vibrated once. Even though the transfer and decompression finished and the app eventually displayed "Installed Successfully", the user had zero feedback during the operation.
+* **Root Cause Analysis:**
+  When `adb.exe push` stdout is redirected to a Python pipe (`subprocess.PIPE`), Windows `adb.exe` detects that stdout is not an interactive terminal (`isatty() == False`). To suppress terminal spam in scripts, `adb.exe` completely strips carriage returns (`\r`) and percentage markers (`%`), emitting only a single completion line after all 2.8 GB are written.
+* **Resolution:**
+  Replaced pipe stdout parsing with hardware UFS block polling. The flasher runs `adb push` in the background and queries the destination file size directly from device storage (`ls -l /data/{filename}`) every 0.5s. This produces smooth, real-time transfer telemetry (MB/s speed and percentage from 25% to 75%), followed by live gigabyte extraction tracking from 75% to 90% during octa-core `pigz` decompression.
+
+---
+
+## Finding 102 — Post-Flash Automated Network Bridging & Turnkey Web Desktop Handoff
+* **Severity:** High (User Experience & Headless Hardware Accessibility)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  After flashing completed, users on the headless Galaxy S8 (`lcdtype=-1`, no internal screen) were left unsure of what to do next. The flasher app reverted its button to "WRITE OS", requiring manual terminal commands to configure ADB port forwarding.
+* **Resolution:**
+  Implemented automated post-flash bridging in `s8_flasher.py`. Upon flash completion, the app automatically executes `adb forward` for ports `6080` (noVNC), `5901` (TigerVNC), and `2222` (SSH), transforms the action button into an emerald green "OPEN DESKTOP" button, and launches the default web browser to `http://localhost:6080/vnc.html?autoconnect=true&resize=scale` after 1.5 seconds. Re-opening the flasher with an already-installed device detects `/data/linux/.installed` and presents the green "OPEN DESKTOP" button immediately.
+
+---
+
+## Finding 103 — Chroot Process & Loop Device Lock on `/data` and Autonomous Clean-Wipe Engine
+* **Severity:** Critical (Storage Formatting Failure & `device in use` Deadlock)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  Clicking "WRITE OS" with 'Clean Install' enabled failed with error code 1: `/dev/block/sda24 is apparently in use by the system; will not make a filesystem here!`.
+* **Root Cause Analysis:**
+  When the device boots, `/data/linux/rootfs.img` is mounted to `/mnt/ubuntu` via loop device `/dev/block/loop0`. Background processes spawned by `start_all.sh` (`wpa_supplicant`, `s8_input_bridge`, `s8_button_daemon`, `sshd`, `nginx`) hold open file descriptors inside `/mnt/ubuntu`. Calling `umount -l /data` or `mke2fs /dev/block/sda24` directly fails because the kernel detects active open handles on the loop-mounted file on `/data`.
+* **Resolution:**
+  Hardened Step 1 storage preparation in `s8_flasher.py`:
+  1. Kills specific userland daemons (`Xtigervnc`, `sshd`, `nginx`, `dbus-daemon`, `metacity`, `gnome-panel`, `wpa_supplicant`, `dhclient`, `bluetoothd`, `s8_input_bridge`, `s8_button_daemon`, `casaos`).
+  2. Unmounts `/mnt/ubuntu` and detaches all loop devices (`losetup -D`).
+  3. If `/data` is already mounted, purges old files recursively (`rm -rf /data/linux /data/docker /data/*`) in under 1.5 seconds without unmounting, avoiding block device locks entirely.
+  4. If `/data` is unmounted or corrupt, formats ext4 via `/dev/block/sda24` and mounts cleanly.
+
+---
+
+## Finding 104 — Universal Multi-Distro ARM64 Hardware Adaptation Engine (Any ARM64 Linux on S8)
+* **Severity:** Architectural Feature (Universal Linux Support)
+* **Discovery Date:** 2026-11-06
+* **Architecture:**
+  A unified hardware adaptation pipeline enabling any generic ARM64 Linux distribution (Ubuntu, Debian, Arch Linux ARM, Alpine, Kali, Fedora) to run with full hardware acceleration on the screenless Galaxy S8 (`SM-G950N`).
+* **Automated Injection Pipeline:**
+  1. *Storage Provisioning:* Flasher EXE cleans and sizes `/data/linux/rootfs.img` on UFS 2.1 storage (`sda24`).
+  2. *Driver & Firmware Shims:* Dynamically injects Calliope DSP audio firmwares into `/etc/firmware/`, compiles `exynos_dp_bridge` for USB-C DisplayPort output, and starts `s8_button_daemon` and `s8_input_bridge`.
+  3. *Power & Stability Guards:* PMIC MAX77865 fast-charging unlock (1,500 mA) + Exynos V4L2 ISP kernel panic guard (`rm -f /dev/video[1-9][0-9]*`).
+  4. *Network & Identity:* Injects pre-flash Wi-Fi credentials (`wpa_supplicant.conf`), custom hostname, and user passwords into the foreign rootfs before boot.
+  5. *Display Output:* Provides instant headless access via TigerVNC + noVNC Web Desktop (`:6080`) and true external display via USB-C DisplayPort at 1080p 60Hz.
+
+
+---
+
+## Finding 107 — Cold Power-Loss & Ramdisk mke2fs Destruction Trap vs Self-Healing Journal Replay (e2fsck -y)
+* **Severity:** Critical (Eliminates catastrophic OS erasure on cold power cycles)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  After flashing Ubuntu and verifying live display output over USB-C, disconnecting the battery to test a cold power cycle caused the phone to boot back into recovery/installer mode with /data completely wiped (51.8 MB used out of 53.7 GB).
+* **Root Cause Analysis:**
+  The baseline boot ramdisk supervisor (/sbin/boot_supervisor.sh) contained a destructive fallback:
+  if [ ! -f /data/linux/.installed ]; then mke2fs -t ext4 -F ... fi.
+  When the battery was physically unplugged during operation, the ext4 filesystem on /dev/block/sda24 was left in a dirty journal state. On the subsequent boot, because /init.rc lacked a domain transition for /sbin/e2fsck, /data was not yet mounted when ubuntu_boot triggered. The supervisor failed to find .installed and immediately executed mke2fs -F, wiping the entire 10 GB rootfs image.
+* **Verified Resolution:**
+  1. Completely eradicated all mke2fs destructive formatting commands from the boot ramdisk supervisor.
+  2. Implemented non-destructive self-healing mount sequence: checks mountpoint -q /data, runs non-destructive /sbin/e2fsck -y on /dev/block/sda24 to replay the journal safely after power loss, and mounts cleanly.
+  3. Replaced fragile single-marker check with multi-indicator boot trigger:
+     if [ -f /data/linux/rootfs.img ] || [ -f /data/linux/start_all.sh ] || [ -f /data/linux/.installed ]; then ... exec start_all.sh; fi.
+  4. Flashed the hardened boot image directly to /dev/block/sda7 over root ADB and repacked Ubuntu_24.04_GalaxyS8_Full_Odin.tar.
+  5. Subsequent battery disconnects and power cuts preserve /data/linux/rootfs.img with 100% data integrity.
+
+---
+
+## Finding 110 — Type-C CC Pin Dynamic Power Arbitration, Fast Disconnect Watchdog & Safe 5V Fast Charging
+* **Severity:** High (Eliminates USB-C/PC port conflicts, enables smart display power, and protects PMIC)
+* **Discovery Date:** 2026-11-06
+* **Observed Symptom:**
+  Switching the USB Type-C cable between an external DisplayPort monitor and a PC was intermittent. S8 would sometimes fail to enumerate over ADB or cause Windows XHCI controllers to suspend the USB port (Code 43 / Port Reset Failed).
+* **Root Cause Analysis:**
+  1. *Unconditional 5V Booster Trap:* When entering display mode, `s8_typec_daemon.py` unconditionally enabled the MAX77865 5V VBUS booster (`SYSFS_OTG_BOOSTER = ON`) without evaluating whether the display was self-powered or unpowered.
+  2. *Latch on Detach:* When the cable was unplugged from the monitor and plugged into the PC, the phone kept the 5V booster latched `ON`. Both the PC motherboard and the phone drove 5V onto VBUS simultaneously, triggering the PC's overcurrent/backfeed protection circuit. Furthermore, both asserted Host pull-up resistors (Rp-Rp deadlock).
+* **Verified Resolution & Architecture:**
+  1. *Dynamic CC Pin Arbitration:* Evaluates `/sys/class/typec/port0/power_role` (`[source]` vs `[sink]`):
+     - Unpowered portable monitors (Rd detected, `source`): Phone enables 5V VBUS booster to power the screen.
+     - Self-powered monitors / powered docks / PC (Rp detected, `sink`): Phone keeps 5V booster strictly `OFF` and draws charging power as a Sink while streaming DisplayPort video.
+  2. *Fast Disconnect Watchdog:* On cable detach (`hdmi/state == 0` and `port0-partner` removed), the daemon immediately kills the 5V booster, resets DisplayPort links (`dp_sec/link = 0`), restores the SBU analog switch, and resets data role to `device` / `dual`. Re-plugging into PC results in instant, flawless ADB enumeration.
+  3. *Safe 5V High-Current Fast Charging:* Avoids dangerous 9V/12V AFC/PD high-voltage switching on headless boards with cold battery profiles (`Tbat = -200`, `Health: Cold`). Directly unlocks MAX77865 PMIC registers (`0xBD 0x6C`, `0xC3 0x61`, `0xC0 0x3C`, `0xB9 0x9E`, `0xB7 0x05`) to provide rock-solid 1,500 mA fast charging strictly at 5.0V with zero risk of overvoltage damage. Verified live drawing 1,200 mA at 4.1V.
+
+---
+
+## Finding 111 — True Native Linux Kernel Foundation vs Android Paranoid Workarounds
+* **Severity:** High (Permanently solves standard Linux non-root networking, IPC, and container isolation)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:**
+  Stock Android vendor kernels restrict networking (`CONFIG_ANDROID_PARANOID_NETWORK=y`), disabling socket creation for any process without GID 3003 (`aid_inet`). Additionally, `CONFIG_SYSVIPC=n` prevented standard X11 MIT-SHM, PostgreSQL, and Chromium shared memory operations, and stripped namespaces broke Docker.
+* **Verified Resolution & Live Verification:**
+  Compiled and flashed custom Linux 4.4.111 (`galaxy-s8-kvm-kernel`) using Samsung GCC 4.9 CFP compiler with Korean Rev 11 Device Tree:
+  1. Disabled `CONFIG_ANDROID_PARANOID_NETWORK`: Verified user `nobody` (UID 65534, 0 supplementary groups) connects to internet UDP/TCP sockets cleanly with zero permission errors.
+  2. Enabled `CONFIG_SYSVIPC=y` & `CONFIG_POSIX_MQUEUE=y`: Verified allocation/deallocation of System V shared memory segments (`shmget`/`shmctl`) and `/dev/shm`.
+  3. Enabled full container namespaces (`mnt`, `net`, `pid`, `user`, `uts`) & `CONFIG_CGROUP_PIDS=y` for native Docker and systemd multi-tenancy.
+  4. Enabled `CONFIG_DEVTMPFS=y` & `CONFIG_DEVTMPFS_MOUNT=y` for kernel-level `/dev` auto-population.
+  5. Enabled `CONFIG_BT_HCIUART=y` & `CONFIG_BT_HCIUART_BCM=y`: Ubuntu 24.04 native `bluetoothctl` immediately detects Broadcom `hci0` over `/dev/ttySAC1` in BlueZ 5.72.
+
+---
+
+## Finding 112 — Complete Kernel-Level Eradication of V4L2 Camera ISP NULL-Pointer Panic
+* **Severity:** Critical (Eliminates desktop crashes on GStreamer/Nautilus/WebKit V4L2 probe)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:**
+  Any userland process probing video devices via `VIDIOC_QUERYCAP` caused a fatal NULL-pointer dereference kernel panic in `fimc_is_ixs_video_querycap+0x24/0x68` on uninitialized camera ISP nodes (`/dev/video100`–`220`).
+* **Root Cause & Resolution:**
+  The Exynos 8895 camera ISP driver (`fimc-is2`) accounted for 41 MB of compiled code on a headless phone with no cameras attached. Disabling `CONFIG_VIDEO_EXYNOS_FIMC_IS2=n` completely eliminates the 120 uninitialized camera nodes while preserving Exynos MFC hardware H.264/HEVC video codecs (`/dev/video6..9`). Patched `leds-s2mpb02.c` with an independent `camera_class` fallback so the rear flash torch functions without the camera driver. Verified on live device: zero camera crash nodes created, zero userland deletion scripts required.
+
+---
+
+## Finding 113 — MAX77865 PMIC Hardware Watchdog Disarm & 1500mA Fast-Charging Floor in Kernel
+* **Severity:** High (Eliminates 30-second hardware watchdog reboots and battery starvation)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:**
+  S-Boot armed a 30-second charger watchdog, and the Samsung battery driver defaulted standard USB connections to 450–500 mA, requiring userland sysfs scripts to prevent power loss and watchdog panics.
+* **Kernel Fix & Live Verification:**
+  1. In `drivers/battery_v2/max77865_charger.c`: Disabled watchdog at driver init (`MAX77865_WDTEN = 0`), unlocked `CHGPROT`, and configured default fast charge current to 1,500 mA (`0xDE` with OTG) and input limit to 1,500 mA (`0x3C`).
+  2. In `drivers/battery_v2/sec_battery.c`: Enforced a 1,500 mA floor across wired cable profiles in `sec_battery_probe`.
+  3. Live verified from sysfs: register `0xb7 = 0x05` (watchdog completely OFF), register `0xb9 = 0x9e` (1,500 mA fast charge), and `batt_tune_input_charge_current = 1500`.
+
+---
+
+## Finding 114 — Broadcom BCM4361 Wi-Fi Driver Default Paths & USB ConfigFS Mass Storage
+* **Severity:** Medium (Enables autonomous zero-script Wi-Fi boot & PC mass storage capability)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:**
+  Broadcom `bcmdhd4361` driver previously waited for userland to echo firmware paths to `/sys/module/dhd/parameters/firmware_path`.
+* **Kernel Fix & Live Verification:**
+  1. In `drivers/net/wireless/bcmdhd4361/dhd_linux.c`: Initialized `firmware_path`, `nvram_path`, and `clm_path` to `/vendor/etc/wifi/` defaults at compile time. On boot, Wi-Fi automatically enumerates and connects to `192.168.0.227` without any userland parameters required.
+  2. In kernel config: Enabled `CONFIG_USB_CONFIGFS_MASS_STORAGE=y` and `CONFIG_USB_F_MASS_STORAGE=y`, allowing Galaxy S8 storage or MicroSD to be exposed directly to host PCs as a USB flash drive.
+
+
+
+## 28. Finding: Multi-Distro Partition Table Offset Trap on Direct Image Decompression
+* **Severity:** Critical (Multi-OS Boot & Filesystem Mounting)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:** Directly decompressing official preinstalled desktop or cloud disk images (e.g., 
+aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz) to /data/linux/rootfs.img causes mount -t ext4 /data/linux/rootfs.img /mnt/ubuntu to fail with Invalid argument and e2fsck to fail with Bad magic number in super-block.
+* **Kernel & Hardware Evidence:**
+  `	ext
+  mount: mounting /dev/block/loop0 on /mnt/ubuntu failed: Invalid argument
+  e2fsck 1.43.3: Bad magic number in super-block while trying to open /data/linux/rootfs.img
+  `
+  Inspecting sectors via binary parser:
+  `	ext
+  MBR signature: 0xaa55
+  Part 1: type=0x0c, lba_start=2048 (offset=1048576), sectors=1048576 (512.0 MB FAT32)
+  Part 2: type=0x83, lba_start=1050624 (offset=537919488), sectors=18645616 (9104.3 MB ext4)
+  `
+* **Root Cause Analysis:** Official distribution disk images are partitioned MBR/GPT disk images, not bare single-partition filesystems. Sector 0 contains the MBR/GPT partition table, Partition 1 (FAT32 EFI/boot) spans sectors 2048..1050624 (512 MB), and Partition 2 (Linux ext4 rootfs) begins at sector 1,050,624 (Ubuntu) or 1,056,768 (Raspberry Pi OS). Attempting to mount offset 0 as ext4 fails because the ext4 superblock is located at sector 1,050,624 + 1024 bytes.
+* **Permanent Fix & Solution:** Integrated detect_image_structure() into s8_flasher.py that parses the first 64 KB of the compressed or raw image in milliseconds, extracts lba_start and sectors, and streams /sbin/unxz -c <img.xz> | /sbin/dd bs=512 skip=<lba_start> count=<sectors> of=/data/linux/rootfs.img. This extracts the root filesystem directly into /data/linux/rootfs.img starting at block 0, bypassing the boot partition with zero intermediate uncompressed disk storage overhead, followed by /sbin/resize2fs to fill the container.
+* **Future Prevention Rule:** Always inspect image headers with detect_image_structure() before writing; never assume a disk image is a raw filesystem.
+
+## 29. Finding: Multi-Device ADB Port Forwarding Ambiguity
+* **Severity:** Medium (Developer Tooling & UI Port Forwarding)
+* **Discovery Date:** 2026-11-07
+* **Observed Symptom:** When multiple ADB devices are plugged into the host PC (e.g. ce10171ab3e9620804 and KDSBB22525212120), commands like db forward tcp:6080 tcp:6080 fail with error: more than one device/emulator.
+* **Kernel & Hardware Evidence:**
+  `	ext
+  adb: error: more than one device/emulator
+  `
+* **Root Cause Analysis:** Omitting -s <serial> in automated scripts defaults to targeting a single device, throwing an error when any secondary phone or development board is connected to the host PC.
+* **Permanent Fix & Solution:** Explicitly inject target serial ce10171ab3e9620804 into all db forward and db shell calls in DevicePoller, FlasherWorker, and GalaxyS8FlasherUI.
+* **Future Prevention Rule:** Every adb command must pass -s <serial> unconditionally across all tooling and scripts.
+
+
+---
+
+## Finding 115 — GCC 13.3.0 Early Boot Halt Under Samsung EL2 CFP / uH Micro-Hypervisor vs. Proven GCC 4.9 Baseline & Power Telemetry
+* **Severity:** Critical (Architecture, Toolchain Compatibility & Cold-Boot Recovery)
+* **Discovery Date:** 2026-11-11
+* **Observed Symptom:**
+  Following a complete battery drain to 0% and subsequent charging, the phone was completely unresponsive to the power button, showed zero haptic vibration, and ADB did not connect. USB power meter revealed distinct states:
+  - Plugged into normal charger / failed boot: `4.0V @ 0.43A – 0.47A` (`430–470 mA`).
+  - Odin Download Mode (`Vol Down + Bixby + Power` for 11–13s): `4.0V @ 0.23A` (`230 mA`).
+  - Flashing freshly compiled Kernel #9 (WSL2 GCC 13.3.0) via Odin reproduced the exact same `0.43A` quiescent state without booting.
+* **Forensic Diagnosis & Root Cause Analysis:**
+  1. **Why It Ran Before (Warm Reboot vs. Cold Boot):** Before the battery drained to 0%, the phone had been operating with the previously verified kernel resident in physical DRAM. When the battery fully depleted, DRAM lost power and cleared all state. On subsequent cold boot, S-Boot was forced to load the newly compiled Kernel #9 from physical UFS storage (`sda7`).
+  2. **The EL2 TrustZone CFP Abort:** Samsung Exynos 8895 implements Samsung's proprietary **uH (micro-Hypervisor)** and **CFP (Control Flow Protection / JOPP)** executing at **Exception Level 2 (EL2)** in TrustZone. Samsung CFP was calibrated in 2016 specifically around GCC 4.9 CFP branch instruction sequences (`scripts/rkp_cfp/instrument.py`). Modern GCC 13.3.0 emits branch instruction formats, PAC/BTI hints, and register allocations that do not conform to Samsung's EL2 monitor signatures.
+  3. **Early CPU Trap in `head.S`:** As soon as S-Boot handed control over to `head.S`, the EL2 monitor trapped execution, freezing the octa-core CPU at instruction 0 before `start_kernel`, the vibrator, or the PMIC driver could run.
+  4. **Power Telemetry Correlation:**
+     - In Odin Mode (`0.23A`): S-Boot runs its own bootloader code from SRAM/ROM with the main CPU cores clock-gated.
+     - On failed boot (`0.43A`): The MAX77865 PMIC defaults to a 450 mA USB input limit until software writes `0x3C` (`1500mA`). The 0.43A draw confirms the CPU halted at early boot without initializing the kernel.
+* **Permanent Fix & Solution:**
+  1. Extracted the 100% verified baseline TWRP 4.4.111 kernel (`29,382,520` bytes, compiled with official Samsung GCC 4.9 CFP `gcc version 4.9.x 20150123 (prerelease) (GCC)`).
+  2. Embedded all 9 Calliope DSP audio firmwares, root-enforcing `adbd`, `boot_supervisor.sh`, `s8_typec_daemon.py`, and the auto-boot `ubuntu_boot` hook on `sys.usb.ffs.ready=1`.
+  3. Packaged into both [`releases/Galaxy_S8_Linux_AP.tar`](file:///e:/rouf/galaxy-s8/releases/Galaxy_S8_Linux_AP.tar) and [`releases/Galaxy_S8_Linux_AP_Proven.tar`](file:///e:/rouf/galaxy-s8/releases/Galaxy_S8_Linux_AP_Proven.tar) (`74,577,920` bytes).
+  4. Flashed to device: Device booted immediately, double-vibrated (`2x 150ms`), unlocked 1500 mA fast charging, and brought Kali Linux and ADB online at 100% battery (`4.343V @ 419mA`).
+* **Cold Reset & Power-Loss Recovery Testing Rules:**
+  - **Physical Battery Disconnect Warning:** While the firmware survives hard power cuts (via `e2fsck -p -y` journal replay and PMIC register re-initialization), physically disconnecting the battery connector repeatedly wears out the delicate motherboard FPC socket and risks bending microscopic gold pins.
+  - **Safe Software Cold Reset Protocols:**
+    1. *PMIC Power-Latch Drop (30-Second Button Combo):* Hold **Volume Down + Bixby + Power** for **30 seconds** continuously. The MAX77865 PMIC drops the `EN_BUCK` latch, cutting all power rails to the SoC and DRAM, forcing a true cold hardware reboot through S-Boot and EL2.
+    2. *SysRq Hard Reset:* Run `adb shell "echo b > /proc/sysrq-trigger"` to trigger an immediate hardware kernel reboot without unmounting filesystems, verifying self-healing journal replay.
+    3. *Download Mode Cold Reset:* Enter Download Mode (12s), then hold **Volume Down + Power** for 7 seconds to force a cold reset from S-Boot.
+* **Future Prevention Rule:**
+  Never compile custom Exynos 8895 production kernels with modern uncalibrated toolchains (e.g. GCC 13+) with `CONFIG_RKP_CFP=y`. Custom kernels must either use the official Samsung CFP toolchain (`aarch64-linux-android-4.9-cfp`) or compile with `CONFIG_RKP_CFP=n` and `CONFIG_RKP_CFP_JOPP=n`. Always maintain the verified baseline AP package as the gold-standard recovery archive.
+
+
+---
+
+## Finding 116 — Android Kernel `CONFIG_VT=n` Virtual Terminal Void & Universal Dual-Display CLI Console Architecture
+* **Severity:** Architectural & User Experience (Enables zero-GUI direct monitor output)
+* **Discovery Date:** 2026-11-11
+* **Observed Symptom:**
+  Plugging an external display (USB-C DisplayPort/HDMI) into a headless Galaxy S8 running a CLI server (e.g. minimal Kali, Alpine, OpenWrt, or Ubuntu Server) results in a black screen unless a heavy X11/TigerVNC desktop GUI is actively running. Attempts to use `con2fbmap` fail with `No such device` or `ioctl(FBIOPUT_CON2FBMAP) failed`.
+* **Forensic Diagnosis & Root Cause Analysis:**
+  1. **The Three Exynos Display Controllers:** Exynos 8895 isolates display outputs across three distinct hardware blocks:
+     - `DECON0` (`/dev/graphics/fb0`): Hardwired to the internal mobile OLED panel.
+     - `DECON1` (`/dev/graphics/fb1`): Dedicated to writeback/overlay.
+     - `DECON2` (`/dev/graphics/fb2`): Dedicated to external USB-C DisplayPort/HDMI.
+  2. **The Android `CONFIG_VT=n` Trap:** In stock Android vendor kernels and TWRP recovery kernels, `CONFIG_VT` (Virtual Terminals `/dev/tty1`..`/dev/tty63`), `CONFIG_VT_CONSOLE`, and `CONFIG_FRAMEBUFFER_CONSOLE` (`fbcon`) are explicitly disabled (`# CONFIG_VT is not set`). Android relies on `SurfaceFlinger` and deliberately excludes in-kernel text consoles. Consequently, standard in-kernel virtual consoles do not exist on stock/vendor kernels.
+  3. **DECON2 Hardware Power Gating:** `DECON2` remains in `FB_BLANK_POWERDOWN` until SBU analog switches (`echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel`), Type-C DFP role (`echo source > /sys/class/typec/port0/port_type`), and `FBIOBLANK(FB_BLANK_UNBLANK)` are executed.
+* **Universal Architectural Solution:**
+  1. **Tier 1 (Universal Userland Console for All Kernels):** Deploy a lightweight framebuffer terminal engine (`fbterm` or direct `mmap()` framebuffer console) that draws text glyphs directly to `/dev/graphics/fb2` without requiring in-kernel `fbcon` or X11. Consumes <5 MB RAM, starts in <50ms, and provides a full-screen interactive `login:` prompt and bash shell on any external monitor.
+  2. **Tier 2 (In-Kernel Native Console for Custom Kernels):** Enable `CONFIG_VT=y`, `CONFIG_VT_CONSOLE=y`, `CONFIG_HW_CONSOLE=y`, and `CONFIG_FRAMEBUFFER_CONSOLE=y` in custom kernel defconfigs, compiled with the verified Samsung GCC 4.9 CFP toolchain.
+  3. **Dynamic Hotplug Supervisor:** An autonomous daemon that polls `/sys/class/switch/hdmi/state`. When plugged (`state == 1`), it closes SBU switches, unblanks `fb2`, and dynamically renders either the desktop GUI (if running) or the interactive CLI terminal (if headless/server mode). When unplugged, it blanks `fb2` to prevent Exynos `DISP_ERR_DECON_TIMEOUT` kernel panics.
+* **Anti-Hallucination Prevention Rule:**
+  Never assume `/dev/fb0` connects to an external display on Exynos 8895 (it is the internal OLED). External display is strictly `/dev/graphics/fb2`. Never call `con2fbmap` without verifying `CONFIG_VT` support.
+
+
+---
+
+## Finding 117 — Kernel #10 Early Boot Freeze & 15-Second Watchdog Boot Loop vs. Proven Baseline AP Package Binary Forensics & USB Enumeration
+* **Severity:** Critical (Architecture, Kernel Release Gating & USB Driver Binding)
+* **Discovery Date:** 2026-11-11
+* **Observed Symptom:**
+  Following the flash of the experimental Kernel #10 AP archive (Galaxy_S8_Linux_AP.tar), the phone entered an infinite reboot cycle every 13–15 seconds, vibrating once (100ms) on each restart. Subsequent hardware reset into Download Mode and flashing releases/Galaxy_S8_Linux_AP_Proven.tar broke the loop immediately, bringing the device up into native Linux (Linux version 4.4.111 #1 SMP PREEMPT Mon Mar 8 06:13:25 UTC 2021). In Windows Device Manager, the phone enumerated under Universal Serial Bus devices as Galaxy S8 (USB\\VID_18D1&PID_4EE7\\CE10171AB3E9620804).
+* **Forensic Diagnosis & Root Cause Analysis:**
+  1. **The 15-Second Watchdog Hardware Mechanism:** Extracted a 2.1 MB raw memory dump from /proc/last_kmsg (scratch/last_kmsg_raw.bin). At second 0.985, S-Boot explicitly started the hardware watchdog timer ([0: 0.985] set_charger_watchdog: state(1), reg_data(0x14)). At second 2.465, S-Boot printed Starting kernel... and transferred control to head.S.
+  2. **The Early Freeze:** After second 2.465, zero Linux printk buffer output was generated. The custom-compiled Kernel #10 (33,123,920 bytes, +3.57 MB larger than baseline) crashed in head.S before early printk initialization, caused either by Samsung Knox TrustZone EL2 uH rejecting branch table layouts or CONFIG_FRAMEBUFFER_CONSOLE=y (fbcon) triggering an early null-pointer dereference against the absent internal OLED panel (lcdtype=-1).
+  3. **The Reboot Cycle:** Because the kernel halted before taking over the watchdog, the s3c2410_wdt timer expired at second 15, asserting a hardware SoC reset. On reboot, init.rc executed on early-init -> write /sys/class/timed_output/vibrator/enable 100 (producing the 1 vibration), stalled, and reset again at 15 seconds.
+  4. **Side-by-Side Binary Comparison of AP Packages:**
+     - Failed Kernel #10 Boot Image: 39,800,848 bytes | Kernel: 33,123,920 bytes.
+     - Proven Baseline Boot Image: 37,287,936 bytes | Kernel: 29,382,520 bytes.
+     - Ramdisk & DTB Audit: Uncompressed CPIO size (34,576,384 bytes), init.rc (4,642 bytes), and DTB (231,424 bytes) were 100% byte-for-byte identical.
+     - **Conclusion:** The failure was exclusively confined to the kernel binary (Image).
+  5. **Windows Device Manager 18D1:4EE7 Enumeration:** The TWRP recovery ramdisk exposes Google USB vendor ID (VID_18D1&PID_4EE7). Windows pre-installed Samsung drivers (ssudbus.inf / ssudadb.inf) are keyed to VID_04E8. When the phone presents VID_18D1, Windows matches its generic built-in Microsoft USBDevice driver rather than the ADB driver.
+* **Permanent Prevention Strategy & Architectural Rules:**
+  1. **Golden Baseline Kernel Pinning:** Standardize all release AP archives (releases/Galaxy_S8_Linux_AP.tar) strictly on the verified baseline kernel (29,382,520 bytes, compiled with official Samsung GCC 4.9 CFP jenkins@5939e3d4fe44).
+  2. **Userland Universal Display (Zero Kernel Panic Risk):** Never compile in-kernel fbcon (CONFIG_FRAMEBUFFER_CONSOLE=y) for headless Exynos 8895 devices. Direct monitor output must be driven strictly via userland framebuffer tools (fbterm on /dev/graphics/fb2) where display crashes cannot bring down the operating system.
+  3. **USB Vendor ID Auto-Binding:** Align ramdisk USB configuration to 04E8:6860 so Windows automatically associates the pre-installed Samsung ADB driver.
+
+
+---
+
+## Finding 118 — Physical Chassis Button Non-Responsiveness: Missing Rootfs Daemon (`s8_button_daemon`) & Unclosed Quote Bash Syntax Error in `bixby.sh`
+* **Severity:** High (Chassis button hardware feedback & headless user control)
+* **Discovery Date:** 2026-11-11
+* **Observed Symptom:**
+  Following the successful boot of the proven Linux AP package, pressing physical chassis buttons (Volume Up, Volume Down, Power, Bixby double click) produced no haptic vibration or flashlight response.
+* **Forensic Diagnosis & Root Cause Analysis:**
+  1. **Kernel Driver Was Healthy:** `/proc/bus/input/devices` and `dmesg` confirmed `gpio_keys` was fully operational on `/dev/input/event3`.
+  2. **Missing Binary in Userland:** `/mnt/ubuntu/usr/local/bin/s8_button_daemon` did not exist in the rootfs filesystem image. While `/data/linux/start_all.sh` included the supervisor loop `if [ -x /usr/local/bin/s8_button_daemon ]`, the check silently failed because the binary was missing.
+  3. **Unclosed Quote Syntax Error in `bixby.sh`:** Line 21 of `/mnt/ubuntu/usr/local/bin/bixby.sh` contained an unclosed quote (`)\" 2>/dev/null`), causing bash to abort on parse with `unexpected EOF while looking for matching '"'`, breaking all Bixby actions.
+  4. **X11 Development Header Coupling:** The original C source coupled input event handling directly to X11 client libraries (`<X11/Xlib.h>`), preventing standalone compilation without an X11 development sysroot.
+* **Permanent Fix & Solution:**
+  1. Refactored `scratch/s8_button_daemon.c` into a self-contained, zero-dependency C binary that controls `/sys/class/timed_output/vibrator/enable` and `/sys/class/leds/torch-sec1/brightness` directly, while invoking ALSA and system utilities asynchronously.
+  2. Cross-compiled with `aarch64-linux-gnu-gcc -O2 -static` into a 776 KB static ELF binary (`scratch/s8_button_daemon_static`) that executes anywhere with zero dynamic library dependencies.
+  3. Fixed the unclosed quote in `bixby.sh`, added explicit `export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`, and enforced Rule 22 (zero emojis).
+  4. Deployed binary to `/mnt/ubuntu/usr/local/bin/s8_button_daemon` and `/data/linux/s8_button_daemon` (`chmod 755`), and started supervisor in background.
+  5. Live-verified on the physical hardware:
+     - Volume Up/Down: 35ms haptic click + ALSA Master volume adjustments.
+     - Bixby Double Click: Instant rear torch toggle (`0 <-> 3`) + double 60ms haptic confirmation.
+     - Power Short: 80ms haptic.
+     - Power Long (>3s): 300ms haptic + graceful reboot.
+     - Bixby Single Click: 100ms haptic + terminal launch.
+     - Bixby Long: 200ms haptic + Telegram notification.
+
+
+---
+
+## Finding 119 — Hardware Status LED Architecture: MAX77865 PMIC 4-Channel RGB Driver, Subtle Calm Green Normal Operation & Autonomous Color Sync Supervisor
+* **Severity:** User Experience, Hardware Telemetry & Headless System Diagnostics
+* **Discovery Date:** 2026-11-11
+* **Context & Hardware Wiring:**
+  On the headless Samsung Galaxy S8 (SM-G950N, Exynos 8895), the internal OLED display is physically absent (`lcdtype=-1`). The front multi-color RGB status LED is driven directly by the Maxim MAX77865 PMIC via I2C (`kernel/drivers/leds/leds-max77865-rgb.c`).
+* **Kernel Sysfs Interface (`/sys/class/sec/led/`):**
+  1. `/sys/class/sec/led/led_pattern`:
+     - `1` = Charging (Solid Red)
+     - `2` = Error (Blinking Red 500ms/500ms)
+     - `3` = Notification (Blinking Blue 500ms/5000ms)
+     - `5` = Fully Charged / Healthy (Subtle Calm Solid Green @ 7mA current)
+     - `6` = Powering (Ramping Blue + Blinking Green)
+     - `0` = All Off
+  2. `/sys/class/sec/led/led_blink`: Accepts `0xRRGGBB delay_on_ms delay_off_ms` for custom hardware-timed color pulsing and solid fills without CPU load.
+* **Autonomous Hardware LED Supervisor (`s8_led_supervisor.py`):**
+  Engineered and deployed a lightweight autonomous supervisor daemon (`/usr/local/bin/s8_led_supervisor.py`) running in userland. Continuously monitors SoC temperature, battery percentage, charging state, and DisplayPort hotplug every 3 seconds:
+  - **Subtle Calm Green (`HEALTHY_GREEN`):** System running smoothly, battery > 20%, SoC temp < 65°C.
+  - **Pulsing Blue (`BOOTING_BLUE`):** Early boot / mounting filesystems.
+  - **Soft Amber (`CHARGING_AMBER`):** 1,500 mA fast charging active (< 95%).
+  - **Calm Cyan (`DISPLAYPORT_CYAN`):** External USB-C DisplayPort/HDMI monitor connected.
+  - **Blinking Red (`LOW_BATTERY_RED`):** Battery capacity <= 15%.
+  - **Rapid Strobe Red (`THERMAL_ALERT_RED`):** SoC temperature > 70°C or watchdog warning.
+* **Operational Verification:**
+  Verified on live hardware: Daemon active under PID `3941`. Subtle calm green hue engaged. Automatic fallback to alert modes integrated into master boot supervisor (`/data/linux/start_all.sh`).
+
+
+---
+
+## Finding 120 — Zero-Byte AP Status Signaling: Embedding Early Boot RGB Telemetry, Watchdog Panic Guards & Fallback Red Alerts into Master Boot Image (`boot_ubuntu_autoboot.img` <= 41.9 MB Limit)
+* **Severity:** User Experience, Hardware Telemetry & Headless System Diagnostics
+* **Discovery Date:** 2026-11-11
+* **Context & Partition Size Constraints:**
+  1. On the headless Samsung Galaxy S8 (`SM-G950N`, Exynos 8895), `BOOT` (`/dev/block/sda7`) and `RECOVERY` (`sda8`) have an unalterable hardware ceiling of **41,943,040 bytes (40.00 MB)**.
+  2. If an image exceeds 41,943,040 bytes by even a single byte, Odin rejects the package (`FAIL! (Size)`), or boot loops occur due to partition boundary corruption.
+  3. Previously, users flashing a fresh AP package or recovering from disk corruption had zero visual feedback before userland started, creating uncertainty during early boot.
+* **Architectural Implementation in Ramdisk CPIO:**
+  1. **Early Ramdisk Init (`t = 0.5s` in `init.rc`):**
+     - Emits a 100ms haptic buzz on hardware power-on.
+     - Engages Pulsing Blue LED (`write /sys/class/sec/led/led_blink "0x0000FF 300 300"`) confirming the ramdisk and kernel are executing.
+  2. **Storage Inspection & Journal Replay (`t = 1.0s - 2.5s` in `boot_supervisor.sh`):**
+     - Transitions to Soft Amber Blink (`0x442200 200 200`) while `e2fsck` inspects the dirty journal on `/dev/block/sda24` (`USERDATA`) and `/data/linux/rootfs.img`.
+  3. **Boot Success Phase (`t = 3.0s`):**
+     - Once `/data` is mounted and `/data/linux/rootfs.img` is verified, sets Subtle Calm Green Hue (`echo 5 > /sys/class/sec/led/led_pattern`).
+     - Emits dual 100ms haptic pulses (`2x 100ms`) to physically confirm boot success.
+     - Auto-provisions `s8_button_daemon`, `s8_led_supervisor.py`, and `s8_typec_daemon.py` to `/data/linux/` if missing.
+  4. **Emergency Storage Error / Missing OS Fallback (Safe Installer Mode):**
+     - If mounting fails or rootfs is absent, avoids kernel panics or infinite bootloops.
+     - Transitions immediately to Blinking Red Alert (`echo "0xFF0000 300 300" > /sys/class/sec/led/led_blink`).
+     - Emits triple warning haptic pulses (`3x 80ms`).
+     - Launches standalone `sbin/s8_button_daemon` in background so physical keys (Torch, Power) work even without an OS installed.
+     - Keeps root telnetd (:2323) and adbd online for zero-brick USB recovery.
+* **Storage Footprint & Verification:**
+  - Added ASCII footprint: ~250 bytes of uncompressed script text (~50 bytes compressed in LZMA).
+  - Embedded static `s8_button_daemon` (71 KB) and `s8_led_supervisor.py` (5.5 KB).
+  - Total `boot.img` size: **36,067,344 bytes** (5,875,696 bytes / **5.60 MB safety margin** below the 41.9 MB limit!).
+  - Verified 100% PASS on `pre_flash_validator.py` (6/6 Gates) and `run_full_kernel_suite.py` (5/5 Layers).
+
+
+---
+
+## Finding 121 — Direct In-System AP Flashing via Root Block Devices (`sda7` & `sda8`), Zero-Button Cold Reboot & Host Disconnect Watchdog
+* **Severity:** Operational Automation, Rapid Deployment & Host Diagnostics
+* **Discovery Date:** 2026-11-11
+* **Context & In-System Block Flashing:**
+  1. On Exynos 8895 with permissive SELinux and root ADB access, the host PC does not need to reboot the phone into Odin Download Mode to update the kernel or recovery image.
+  2. The hardware block partitions `/dev/block/sda7` (`BOOT`) and `/dev/block/sda8` (`RECOVERY`) can be written directly using `dd if=... of=/dev/block/sda7 bs=4096`.
+  3. Execution time: **2.1 seconds** (vs. ~15 seconds in Odin), requiring **0 button presses** and zero physical intervention.
+* **Cold Reboot Verification & Early Telemetry:**
+  - Successfully executed `scripts/flash_ap_adb.py` to deploy `boot_ubuntu_autoboot.img` (34.40 MB, 36,067,344 bytes).
+  - Phone rebooted cold, executing the full multi-stage telemetry:
+    * `t = 0.5s`: 100ms haptic pulse + pulsing blue LED (`0x0000FF 300 300`).
+    * `t = 1.0s`: Soft amber blink during journal replay.
+    * `t = 3.0s`: Subtle calm green hue (`Pattern 5`, `7mA`) + dual 100ms haptic pulses.
+    * Userland services (`sshd` :22, `s8_button_daemon` PID 3380, `s8_led_supervisor.py` PID 3495) launched automatically.
+* **"Cat Lenox" / Kali GNU/Linux Rolling 2026.3 Userland Audit:**
+  - The loopback root filesystem mounted at `/mnt/ubuntu` (`rootfs.img`) verified as **Kali GNU/Linux Rolling 2026.3** with native `Python 3.14.7`.
+  - Kernel execution 100% stable (`Linux localhost 4.4.111 #1 SMP PREEMPT`).
+* **Continuous USB Disconnect & Reconnect Watchdog (`device_disconnect_notifier.py`):**
+  - Developed and launched `scripts/device_disconnect_notifier.py` as a detached Windows process.
+  - Monitors `adb devices` and Windows USB PnP device entries every 1.5 seconds.
+  - Automatically dispatches zero-token Telegram alerts whenever the device disconnects or re-enumerates.
+
+
+---
+
+## Finding 122 — Device Identity & Custom System Telemetry: "Hi, I am Kali the Society" Welcome Architecture, MOTD & Voice Greeting Asset Pipeline
+* **Severity:** User Identity, Terminal Experience & System Branding
+* **Discovery Date:** 2026-11-11
+* **Context & Implementation:**
+  1. Configured custom system branding across the operating system so that whenever the device starts up, an SSH session connects, or a terminal opens, it explicitly identifies itself:
+     ```text
+     ======================================================================
+                         Hi, I am Kali the Society
+     ======================================================================
+     ```
+  2. **Terminal Welcome Banner (`/etc/motd` & `/etc/issue`):** Replaced generic Debian license boilerplate with clean stylized ASCII art banner displaying OS version (Kali GNU/Linux Rolling 2026.3), kernel, hardware, and live status.
+  3. **Shell Environment (`/etc/profile.d/00_welcome.sh`):** Configured automated banner rendering on interactive terminal entry.
+  4. **System Hostname:** Updated `/etc/hostname` and `/etc/hosts` to `Kali-Society`.
+  5. **Audio Speech Synthesis Asset:** Generated high-quality speech WAV (`kali_society_greeting.wav`, 132,308 bytes) stating *"Hi, I am Kali the Society"* and deployed to `/data/linux/` and `/mnt/ubuntu/usr/local/share/`.
+  6. **Startup Handoff:** Integrated banner into master boot supervisor (`/data/linux/start_all.sh`) and synchronized into the release AP archive (`releases/Galaxy_S8_Linux_AP.tar`).
+
+
+---
+
+## Finding 123 -- Partition-Split Native Linux (`systemd` 255.4 PID 1) + Standalone TWRP (`BOOT` `sda7` / `RECOVERY` `sda8`)
+* **Severity:** Core System Architecture & Boot Isolation Milestone
+* **Discovery Date:** 2026-11-12
+* **Architecture:**
+  1. **`BOOT` (`/dev/block/sda7`, `31,227,920` B <= `41,943,040` B limit):** Custom `4.4.111-s8-native-linux #15` kernel paired with pure static GNU CPIO `lzma -9` initramfs (`BusyBox` 1.36.1.1 + `e2fsck.static` 1.47.4 + 9 Calliope DSP firmwares). Runs `e2fsck -p` on `sda24` (`USERDATA`) and `/mnt_data/linux/rootfs.img`, mounts `rootfs.img` at `/newroot`, moves virtual filesystems (`/dev`, `/proc`, `/sys`, `/mnt_data -> /newroot/mnt/android_data`), enforces early V4L2 FIMC-IS2 node strip (`/dev/video[1-9][0-9]*`, `/dev/v4l-subdev*`), and executes `switch_root -c /dev/null /newroot /sbin/init` straight into Ubuntu 24.04.5 LTS `systemd` (`255.4-1ubuntu8.18`) as PID 1.
+  2. **`RECOVERY` (`/dev/block/sda8`, `48,234,496` B):** Isolated, untouched standalone TWRP + Root ADB (`scratch/recovery_standalone_twrp.img`, SHA-256 `a0db11153d9136648358f51e205943578263d0672932d22c8bd40e829fcbfe68`), reachable via `Vol Down + Power -> Vol Up + Power + Bixby` regardless of `BOOT` state.
+* **Kernel #15 Capabilities Verified Live:**
+  - Full `systemd` 255.4 legacy cgroup v1 support (`systemd.unified_cgroup_hierarchy=0`, `systemd.legacy_systemd_cgroup_controller=1`), `CONFIG_FHANDLE=y`, namespaces, seccomp, BPF, `CONFIG_DEVTMPFS=y`, `CONFIG_BLK_DEV_LOOP=y`, `CONFIG_PSTORE_RAM=y`.
+  - Native non-root Linux sockets without `aid_inet` group verified (`su -s /bin/sh nobody` connected outbound TCP socket via `192.168.0.227`).
+  - Docker `29.1.3` (`overlay2`, `cgroupfs`, `iptables-legacy`) pulling and running `alpine:latest` with outbound NAT HTTP verified.
+  - All critical subsystems active under `systemd`: `NetworkManager` (`wlan0` `192.168.0.227`), `s8-usb-gadget.service` (`rndis0` `192.168.7.2`, ConfigFS `10c00000.dwc3`), `ssh.service`, `s8-vnc.service` (`:5901`), `nginx` + `s8-novnc-ws.service` (`:6080` HTTP 200 / WS `101 Switching Protocols`), `s8-desktop.service` (`KillMode=process`, GNOME 46 + Plank), `s8-dp-bridge.service`, `s8-buttons.service`, `s8-led.service`, `s8-typec.service`, `s8-bluetooth.service`, Calliope ALSA playback (`hw:0,0`) & DMIC1 capture (`hw:0,9`), `zram0` (`1.5 GiB` lz4 swap), and MicroSD (`/media/sdcard`).
+
+
+---
+
+## Finding 124 -- Initramfs `exec` Redirection Ordering Bug Causing 11.7 ms PID 1 `exitcode=0x00000100`
+* **Severity:** Critical Boot Panic / Root-Caused via `/proc/last_kmsg`
+* **Discovery Date:** 2026-11-12
+* **Root Cause:**
+  1. Initial `INIT_SCRIPT` ran `mkdir -p /run/initramfs` BEFORE `mount -t tmpfs tmpfs /run`, hiding `/run/initramfs` beneath the newly mounted empty `tmpfs`.
+  2. Immediately afterward, `exec >/run/initramfs/init.log 2>&1` failed with `ENOENT` (`can't create /run/initramfs/init.log: nonexistent directory`).
+  3. In POSIX / BusyBox `ash`, a redirection failure on the `exec` special built-in terminates the non-interactive shell immediately with exit status `1`, triggering `Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000100` at `3.808130s` (11.7 ms after `Freeing unused kernel memory: 6016K`), before any logging or rescue shell ran.
+  4. In addition, `console=ram` on Exynos 8895 prints `Warning: unable to open an initial console.` on both TWRP and pure Linux boots, leaving initial fd 0/1/2 unbound unless explicitly reopened.
+* **Fix Applied & Verified:**
+  - Added `exec </dev/null >/dev/null 2>&1` at entry (relying on `dev/null` packed in CPIO before `devtmpfs`), moved `mkdir -p /run/initramfs` strictly *after* `mount -t tmpfs tmpfs /run`, guarded `exec >/run/initramfs/init.log 2>&1` with `[ -d /run/initramfs ]`, and used `switch_root -c /dev/null /newroot /sbin/init`.
+  - Validated script syntax directly against the initramfs static BusyBox binary (`busybox ash -n`) before flashing `sda7`.
+
+
+---
+
+## Finding 125 -- Autonomous SNTP/HTTP Clock Sync & Stale Swap Unit Cleanup (`systemd` `running` State)
+* **Severity:** System Health & TLS Reliability Fix
+* **Discovery Date:** 2026-11-12
+* **Issues Found & Fixed:**
+  1. Exynos hardware RTC reads `2017-01-02` on boot and minimal Ubuntu rootfs lacked `systemd-timesyncd`, defaulting system clock to `2026-10-12`, which caused TLS `x509` validation failures during `docker pull alpine:latest` (`current time 2026-10-12 is before 2026-11-03`). Implemented `/usr/local/bin/s8-time-sync.py` + `s8-time-sync.service` (SNTP via `time.google.com` / `pool.ntp.org` / `time.cloudflare.com` with HTTP `Date` fallback and `/etc/s8_saved_epoch` monotonic guard).
+  2. Removed stale `/mnt/android_data/swapfile` entry from `/etc/fstab` (1.5 GiB `/dev/zram0` LZ4 swap is active) and changed `KillMode=none` to `KillMode=process` on `s8-desktop.service`, achieving `systemctl is-system-running == running` (0 failed units) cleanly across cold/warm reboots.
+  3. On stripped hardware test rigs where the wireless coil thermistor reads `-20.0 C` (`Cold` / `Not charging` on `MAX77865`), PMIC hardware charger fault blinking on the front red LED is a hardware thermistor readout rather than a Linux boot fault.
+
+
+---
+
+## Finding 126 -- Dynamic `gpio_keys` Discovery & `systemd-logind` Power Key Arbitration
+* **Severity:** High Usability Fix (Prevented Instant Shutdown on Short Power Click)
+* **Discovery Date:** 2026-11-12
+* **Root Cause:**
+  1. With `systemd` 255.4 running as PID 1 on Ubuntu 24.04.5 LTS, default `/etc/systemd/logind.conf` leaves `HandlePowerKey=poweroff` active, causing `systemd-logind` to power off the phone immediately on any short physical `KEY_POWER` press.
+  2. Kernel input device probing on `4.4.111-s8-native-linux #15` assigns `gpio_keys` dynamically across boots (`/dev/input/event2` on one boot vs `/dev/input/event3` on the next), causing the previously hardcoded `/dev/input/event3` path in `s8_button_daemon` to miss button events whenever probe order shifted.
+* **Fix Applied & Verified:**
+  - Added `/etc/systemd/logind.conf.d/99-s8-power.conf` setting `HandlePowerKey=ignore` and `HandlePowerKeyLongPress=ignore` so `systemd-logind` ignores physical `KEY_POWER`.
+  - Updated `src/drivers/s8_button_daemon.c` (`find_gpio_keys_device()`, static ARM64 binary `/usr/local/bin/s8_button_daemon`, SHA-256 `3aa07e6077b0bcbcd9d20deb3234bd741aecfe673af943b25b82c64ed31b4c42`) to discover `gpio_keys` via sysfs/`EVIOCGNAME` and map Power (`KEY_POWER`): short press (`<2500ms`) = 80ms haptic + DPMS wake, double click (`<450ms`) = 3-pulse haptic + `systemctl reboot`, long press (`>=2500ms`) = 350ms haptic + `systemctl poweroff`.
+  - Verified `/dev/uinput` state transitions (`E2E_UINPUT_BUTTON_TESTS_PASSED`), `systemd-logind` no-op on injected `KEY_POWER`, and dynamic discovery across `systemctl reboot` (`event2` pre-reboot -> `event3` post-reboot). Backported into `scripts/build/customize_s8_ubuntu.sh`, `scratch/s8_latest_bins/s8_button_daemon`, and WSL2 `/root/s8_ubuntu_native.img`.
+

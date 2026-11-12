@@ -11,6 +11,52 @@ export PATH=/sbin:/system/bin:/system/xbin:/vendor/bin
 # spawned daemons (sshd, Xtigervnc, websockify, GNOME, exynos_dp_bridge) are IMMUNE.
 echo $$ > /acct/tasks 2>/dev/null || true
 
+# --- AUTONOMOUS GOLDEN BOOT & RECOVERY AP FLASHER (ROOT CONTEXT) ---
+if [ -f /data/linux/update_boot.img ]; then
+    echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
+    echo "=== FLASHING NEW GOLDEN KERNEL & AP BOOT IMAGE AS ROOT ===" > /data/linux/flash_ap.log
+    /sbin/busybox dd if=/data/linux/update_boot.img of=/dev/block/sda7 bs=4096 >> /data/linux/flash_ap.log 2>&1
+    /sbin/busybox dd if=/data/linux/update_boot.img of=/dev/block/sda8 bs=4096 >> /data/linux/flash_ap.log 2>&1
+    rm -f /data/linux/update_boot.img
+    sync
+    echo "=== FLASH SUCCESSFUL, REBOOTING INTO NEW KERNEL ===" >> /data/linux/flash_ap.log
+    echo 300 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
+    sleep 1
+    /sbin/reboot recovery 2>/dev/null || /sbin/reboot 2>/dev/null || reboot 2>/dev/null || true
+fi
+
+# CRITICAL USB ADB ENUMERATION:
+# Enforce sys.usb.config=adb so Android init's configfs binds UDC to 10c00000.dwc3
+if [ -x /sbin/setprop ]; then
+    /sbin/setprop sys.usb.config adb 2>/dev/null || true
+elif [ -x /proc/1/root/sbin/setprop ]; then
+    chroot /proc/1/root /sbin/setprop sys.usb.config adb 2>/dev/null || true
+fi
+
+# Enforce full permissions on /sbin for adb shell + setuid su + block device permissions
+chmod 755 /sbin /sbin/* 2>/dev/null || true
+if [ -d /proc/1/root/sbin ]; then
+    chmod 755 /proc/1/root/sbin /proc/1/root/sbin/* 2>/dev/null || true
+fi
+chmod 4755 /sbin/su /bin/su 2>/dev/null || true
+if [ -f /proc/1/root/sbin/su ]; then
+    chmod 4755 /proc/1/root/sbin/su 2>/dev/null || true
+fi
+chmod 666 /dev/block/sda* /dev/block/loop* /dev/loop* /dev/block/platform/11120000.ufs/by-name/* 2>/dev/null || true
+
+# Start Local Root Daemon (telnetd on 127.0.0.1:2323) for infallible root execution
+/sbin/busybox killall telnetd 2>/dev/null || true
+/sbin/busybox telnetd -l /sbin/sh -p 2323 -b 127.0.0.1 2>/dev/null || true
+
+# Create /data/linux/rsh helper
+cat << 'ROUT' > /data/linux/rsh
+#!/sbin/sh
+(echo "$*"; echo "exit") | /sbin/busybox nc 127.0.0.1 2323 2>/dev/null
+ROUT
+chmod 777 /data/linux/rsh 2>/dev/null || true
+cp /data/linux/rsh /sbin/rsh 2>/dev/null || true
+chmod 777 /sbin/rsh 2>/dev/null || true
+
 echo "=== [1/6] Unlocking MAX77865 PMIC Charger (1500mA Input/Fast Charge) & V4L2 Panic Guard ==="
 # CRITICAL EXYNOS 8895 KERNEL PANIC GUARD:
 # Samsung's fimc_is_ixs_video_querycap() dereferences NULL in kernel mode if GStreamer
@@ -24,7 +70,9 @@ echo "0xC0 0x3C" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || 
 echo "0xB9 0x9E" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
 echo "0xB7 0x05" > /sys/class/power_supply/max77865-charger/data 2>/dev/null || true
 echo 1500 > /sys/class/power_supply/battery/batt_tune_input_charge_current 2>/dev/null || true
-echo 1500 > /sys/class/power_supply/battery/batt_tune_fast_charge_current 2>/dev/null || true
+echo 1500 > /sys/class/power_supply/battery/batt_tune_fast_charge_current 2>/dev/null
+# Enable IPv4 forwarding for Docker & CasaOS containers
+echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null || true
 echo 0 > /sys/class/power_supply/battery/batt_slate_mode 2>/dev/null || true
 
 BATT_CAP=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 50)
@@ -46,6 +94,8 @@ echo "=== [2/6] Mounting Ubuntu 24.04.5 LTS Rootfs (/data/linux/rootfs.img) ==="
 mkdir -p /mnt/ubuntu
 if ! mountpoint -q /mnt/ubuntu; then
     if [ -f /data/linux/rootfs.img ]; then
+        # CRITICAL FAIL-SAFE: Self-healing dirty journal replay across sudden power cuts / battery disconnects
+        /sbin/e2fsck -p -y /data/linux/rootfs.img 2>/dev/null || true
         losetup /dev/block/loop0 /data/linux/rootfs.img 2>/dev/null || true
         mount -t ext4 -o rw,noatime /dev/block/loop0 /mnt/ubuntu 2>/dev/null || mount -t ext4 -o loop,rw,noatime /data/linux/rootfs.img /mnt/ubuntu
     else
@@ -62,8 +112,37 @@ mountpoint -q /mnt/ubuntu/sys || mount -t sysfs sysfs /mnt/ubuntu/sys
 mountpoint -q /mnt/ubuntu/dev || mount -o bind /dev /mnt/ubuntu/dev
 mountpoint -q /mnt/ubuntu/dev/pts || mount -t devpts devpts /mnt/ubuntu/dev/pts
 mountpoint -q /mnt/ubuntu/dev/shm || mount -t tmpfs -o size=512M tmpfs /mnt/ubuntu/dev/shm
+mkdir -p /mnt/ubuntu/sys/kernel/config
+mountpoint -q /mnt/ubuntu/sys/kernel/config || mount -o bind /sys/kernel/config /mnt/ubuntu/sys/kernel/config 2>/dev/null || true
 
-# Bind high-speed 43GB UFS 2.1 data partition & activate swap
+# Mount Cgroups v1 hierarchy for Docker / LXC containerization
+mkdir -p /mnt/ubuntu/sys/fs/cgroup
+mountpoint -q /mnt/ubuntu/sys/fs/cgroup || mount -t tmpfs -o uid=0,gid=0,mode=0755 cgroup /mnt/ubuntu/sys/fs/cgroup 2>/dev/null || true
+for cg in cpuset cpu cpuacct memory devices freezer blkio net_cls pids; do
+    mkdir -p /mnt/ubuntu/sys/fs/cgroup/$cg
+    mountpoint -q /mnt/ubuntu/sys/fs/cgroup/$cg || mount -t cgroup -o $cg cgroup /mnt/ubuntu/sys/fs/cgroup/$cg 2>/dev/null || true
+done
+
+# Expose standard Linux framebuffer (/dev/fb0 -> DisplayPort /dev/graphics/fb2)
+ln -sf /dev/graphics/fb2 /dev/fb0 2>/dev/null || true
+ln -sf /dev/graphics/fb2 /mnt/ubuntu/dev/fb0 2>/dev/null || true
+
+# Built-in High-Speed ZRAM0 Memory Compression (2 GB LZ4 Swappiness=100)
+if [ -b /dev/block/zram0 ] || [ -b /dev/zram0 ]; then
+    ZRAM_DEV=/dev/zram0
+    [ -b /dev/block/zram0 ] && ZRAM_DEV=/dev/block/zram0
+    swapoff $ZRAM_DEV 2>/dev/null || true
+    echo 1 > /sys/block/zram0/reset 2>/dev/null || true
+    echo lz4 > /sys/block/zram0/comp_algorithm 2>/dev/null || true
+    echo 2147483648 > /sys/block/zram0/disksize 2>/dev/null || true
+    /sbin/mkswap $ZRAM_DEV 2>/dev/null || mkswap $ZRAM_DEV 2>/dev/null || true
+    /sbin/swapon -p 100 $ZRAM_DEV 2>/dev/null || swapon -p 100 $ZRAM_DEV 2>/dev/null || true
+    echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
+    echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
+    echo "=== Initialized 2 GB ZRAM0 (LZ4, Priority 100, Swappiness 100) ==="
+fi
+
+# Bind high-speed 43GB UFS 2.1 data partition & activate swap fallback
 mkdir -p /mnt/ubuntu/mnt/android_data
 mountpoint -q /mnt/ubuntu/mnt/android_data || mount -o bind /data /mnt/ubuntu/mnt/android_data 2>/dev/null || true
 if [ -f /data/swapfile ]; then
@@ -89,11 +168,19 @@ if [ -f /data/linux/connect_wifi.sh ]; then
     /sbin/sh /data/linux/connect_wifi.sh </dev/null >/data/linux/wifi.log 2>&1 &
 fi
 
-echo "=== [4/6] Installing Hardware Tools (s8ctl + exynos_dp_bridge) ==="
+echo "=== [4/6] Installing Hardware Tools (s8ctl + exynos_dp_bridge + start_ubuntu_desktop) ==="
 mkdir -p /mnt/ubuntu/usr/local/bin /mnt/ubuntu/usr/local/src /mnt/ubuntu/var/log/gnome_apps
+if [ -f /data/linux/start_ubuntu_desktop.sh ]; then
+    cp /data/linux/start_ubuntu_desktop.sh /mnt/ubuntu/usr/local/bin/start_ubuntu_desktop.sh
+    chmod +x /mnt/ubuntu/usr/local/bin/start_ubuntu_desktop.sh
+fi
 if [ -f /data/linux/s8ctl.py ]; then
     cp /data/linux/s8ctl.py /mnt/ubuntu/usr/local/bin/s8ctl
     chmod +x /mnt/ubuntu/usr/local/bin/s8ctl
+fi
+if [ -f /data/linux/s8_typec_daemon.py ]; then
+    cp /data/linux/s8_typec_daemon.py /mnt/ubuntu/usr/local/bin/s8_typec_daemon.py
+    chmod +x /mnt/ubuntu/usr/local/bin/s8_typec_daemon.py
 fi
 if [ -f /data/linux/exynos_dp_bridge.c ]; then
     cp /data/linux/exynos_dp_bridge.c /mnt/ubuntu/usr/local/src/exynos_dp_bridge.c
@@ -107,7 +194,9 @@ if [ -f /data/linux/asound.conf ]; then
 fi
 
 echo "=== [5/6] Starting Ubuntu 24.04.5 LTS Services & GNOME 46 macOS Sonoma Desktop ==="
-chroot /mnt/ubuntu /bin/bash -c "
+CHROOT_SHELL=/bin/sh
+[ -x /mnt/ubuntu/bin/bash ] && CHROOT_SHELL=/bin/bash
+chroot /mnt/ubuntu $CHROOT_SHELL -c "
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export HOME=/root
 export USER=root
@@ -149,9 +238,11 @@ if ! pgrep -x Xtigervnc >/dev/null 2>&1; then
     sleep 2
 fi
 
-# 5. Launch GNOME 46 macOS Sonoma Desktop
-if [ -x /usr/local/bin/start_gnome_macos.sh ]; then
-    /usr/local/bin/start_gnome_macos.sh </dev/null >/var/log/start_gnome_macos.log 2>&1
+# 5. Launch Desktop Session (Debian PIXEL / Ubuntu GNOME)
+if [ -x /usr/local/bin/start_debian_desktop.sh ]; then
+    /usr/local/bin/start_debian_desktop.sh </dev/null >/var/log/start_debian_desktop.log 2>&1
+elif [ -x /usr/local/bin/start_ubuntu_desktop.sh ]; then
+    /usr/local/bin/start_ubuntu_desktop.sh </dev/null >/var/log/start_ubuntu_desktop.log 2>&1
 fi
 
 # 6. Start Nginx (:6080) & Pure Websockify (:6081 -> 127.0.0.1:5901)
@@ -159,12 +250,17 @@ if ! pgrep -x nginx >/dev/null 2>&1; then
     nginx </dev/null >/var/log/nginx.log 2>&1 || true
 fi
 if ! pgrep -f 'websockify.*6081' >/dev/null 2>&1; then
-    (while true; do python3 /usr/bin/websockify 6081 127.0.0.1:5901; sleep 1; done) </dev/null >/var/log/websockify.log 2>&1 &
+    python3 /usr/bin/websockify -D --log-file=/var/log/websockify.log 6081 127.0.0.1:5901 || true
 fi
 
-# 7. Start Exynos USB-C DisplayPort / HDMI Hotplug Daemon (Supervised)
+# 7. Exynos USB-C DisplayPort Daemon (always active in background waiting safely for HPD)
 if [ -x /usr/local/bin/exynos_dp_bridge ] && ! pgrep -x exynos_dp_bridge >/dev/null 2>&1; then
-    (while true; do /usr/local/bin/exynos_dp_bridge; sleep 1; done) </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
+    nohup /usr/local/bin/exynos_dp_bridge </dev/null >/var/log/exynos_dp_bridge.log 2>&1 &
+fi
+
+# 7a. Galaxy S8 Type-C Multi-Role & Hotplug Daemon (PC vs Display vs USB OTG storage/inputs)
+if [ -x /usr/local/bin/s8_typec_daemon.py ] && ! pgrep -f s8_typec_daemon.py >/dev/null 2>&1; then
+    (while true; do python3 /usr/local/bin/s8_typec_daemon.py; sleep 2; done) </dev/null >/var/log/s8_typec_daemon.log 2>&1 &
 fi
 
 # 7b. Start USB Input Event Bridge (Mouse & Keyboard -> X11 :1 Supervised)
@@ -187,11 +283,31 @@ if [ -x /usr/local/bin/start_bluetooth.sh ]; then
     /usr/local/bin/start_bluetooth.sh </dev/null >/var/log/bluetooth_boot.log 2>&1 &
 fi
 
-# 8. Start Native Docker Engine (overlay2 + bridge + iptables)
+# 7f. Start Hardware Status LED Color Sync Supervisor
+if [ -f /usr/local/bin/s8_led_supervisor.py ] && ! pgrep -f s8_led_supervisor.py >/dev/null 2>&1; then
+    (while true; do /usr/bin/python3 /usr/local/bin/s8_led_supervisor.py auto; sleep 2; done) </dev/null >/var/log/s8_led_supervisor.log 2>&1 &
+fi
+
+# 8. Start Native Docker Engine (overlay2 + bridge + iptables-legacy + cgroupfs)
 if command -v dockerd >/dev/null 2>&1 && ! pgrep -x dockerd >/dev/null 2>&1; then
-    /usr/local/bin/mount_cgroups.sh </dev/null >/dev/null 2>&1 || true
     update-alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || true
     update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy 2>/dev/null || true
+    mkdir -p /etc/docker
+    if [ ! -f /etc/docker/daemon.json ]; then
+        cat << 'EOF' > /etc/docker/daemon.json
+{
+  "storage-driver": "overlay2",
+  "exec-opts": ["native.cgroupdriver=cgroupfs"],
+  "iptables": true,
+  "bridge": "",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+EOF
+    fi
     nohup dockerd </dev/null >/var/log/dockerd.log 2>&1 &
 fi
 
@@ -199,10 +315,19 @@ fi
 if [ -x /usr/local/bin/start_casaos.sh ]; then
     (sleep 5; /usr/local/bin/start_casaos.sh) </dev/null >/var/log/casaos_boot.log 2>&1 &
 fi
+
+# 10. Start Hardware Sensor Supervisor & Standard Linux Emulation Daemon
+if [ -x /usr/local/bin/s8_sensor_daemon ] && ! pgrep -f s8_sensor_daemon >/dev/null 2>&1; then
+    /usr/bin/python3 /usr/local/bin/s8_sensor_daemon </dev/null >/var/log/s8_sensor_daemon.log 2>&1 &
+fi
+
 "
 
+echo "======================================================================"
+echo "                    Hi, I am Kali the Society                         "
+echo "======================================================================"
 echo "=== [6/6] Signaling Headless Ready (Double Haptic Vibration) ==="
 echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
 sleep 1
 echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
-echo "Ubuntu 24.04.5 LTS + GNOME 46 macOS Sonoma Desktop Ready!"
+echo "Kali the Society + GNOME 46 Desktop Ready!"

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s8-imager"
+version = "2.4.0"
+description = "Universal Linux OS Flasher & Hardware Manager for Samsung Galaxy S8 (SM-G950N)"
+readme = "README.md"
+authors = [{ name = "Abdur Rouf", email = "web.rouf@gmail.com" }]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: System :: Hardware",
+]
+dependencies = []
+
+[project.scripts]
+s8-imager = "app.main:main"
+

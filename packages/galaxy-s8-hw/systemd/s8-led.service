@@ -1,0 +1,14 @@
+[Unit]
+Description=Galaxy S8 RGB Status LED Supervisor
+After=s8-hardware.service
+ConditionPathExists=/usr/bin/python3
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/s8_led_supervisor.py auto
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

@@ -8,9 +8,7 @@ echo "=== [Wi-Fi Subsystem] Initializing Broadcom BCM4361 ==="
 # 1. Mount firmware dependencies
 mountpoint -q /system_root || mount -o ro /dev/block/sda17 /system_root 2>/dev/null
 mountpoint -q /efs || mount -o ro /dev/block/sda3 /efs 2>/dev/null
-rm -rf /system /vendor
-ln -s /system_root /system 2>/dev/null || true
-ln -s /system_root/vendor /vendor 2>/dev/null || true
+[ -e /vendor ] || ln -sf /system_root/vendor /vendor 2>/dev/null || true
 
 # 2. Bring up loopback interface
 ip addr add 127.0.0.1/8 dev lo 2>/dev/null || true

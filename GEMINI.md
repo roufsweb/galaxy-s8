@@ -8,8 +8,9 @@
 
 ## 0. Current Live State & Completed Milestones (`2026-11-04`)
 
-1. **Auto-Booting Native Ubuntu 24.04.5 LTS (`Noble Numbat`, `glibc 2.39`) Installed on `BOOT` (`/dev/block/sda7`):**
-   * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`40,521,744` B `<= 41,943,040` B `sda7` limit) is **already flashed to `/dev/block/sda7`** and packaged into `e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`88,760,320` B).
+1. **Auto-Booting Native Ubuntu 24.04.5 LTS (`Noble Numbat`, `glibc 2.39`) Installed on `BOOT` (`/dev/block/sda7`) & `RECOVERY` (`sda8`):**
+   * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`38,977,552` B `<= 41,943,040` B `sda7` limit) is **already flashed to `/dev/block/sda7` and `/dev/block/sda8`** and packaged into `e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`77,967,360` B).
+   * Embeds all 9 Calliope DSP audio firmwares in CPIO ramdisk, self-healing dirty journal replay via `e2fsck -p`, `s8_typec_daemon.py` CC-aware Type-C power supervisor, and auto-boot `ubuntu_boot` triggered on `sys.usb.ffs.ready=1`.
    * Its `init.rc` contains:
      ```rc
      on property:sys.usb.ffs.ready=1
@@ -54,10 +55,10 @@
 
 ---
 
-## 1. Twelve Strict Anti-Hallucination Rules for Gemini 3.8 High
+## 1. Strict Anti-Hallucination & Architecture Rules for Gemini 3.8 High
 
 > [!CAUTION]
-> **NEVER VIOLATE THESE 12 EMPIRICALLY VERIFIED HARDWARE RULES:**
+> **NEVER VIOLATE THESE EMPIRICALLY VERIFIED HARDWARE & ARCHITECTURE RULES:**
 
 1. **NO INTERNAL SCREEN OR FRONT LED EXISTS (`lcdtype=-1`):**
    * Both the internal OLED screen and the front RGB status LED assembly are **physically removed**.
@@ -122,6 +123,62 @@
     * **Ramdisk Firmware Integrity:** All 9 Calliope audio firmwares (`calliope_sram.bin`, `calliope_dram.bin`, `calliope_iva.bin`, `dsm.bin`, `AP_AUDIO_SLSI.bin`, `APBargeIn_AUDIO_SLSI.bin`, `SoundBoosterParam.bin`, `APBiBF_AUDIO_SLSI.bin`, `dsm_tune.bin`) MUST reside natively in `etc/firmware/` and `vendor/firmware/` in the CPIO ramdisk.
     * **Trigger Auto-Boot on `sys.usb.ffs.ready=1`:** Android `init.rc` MUST trigger `start ubuntu_boot` ONLY when `sys.usb.ffs.ready=1`. This guarantees `adbd` is fully initialized and operational as root before userland scripts run, preventing boot lockouts.
     * **Pre-Flash Automated Validator:** Never instruct a flash or ship an Odin tar without running `python scratch/build_rocksolid_boot.py` or automated verification confirming size `<= 41,943,040 B`, zero shadowing, zero rogue loops, and valid SVR4 CPIO alignment.
+18. **AP SYNCHRONIZATION MANDATE (KERNEL / RAMDISK / AP ARCHIVE AUDIT):**
+    * Any modification, hardware workaround, kernel parameter, boot script tweak, or driver injection tested or proven on the running OS/ROM (`/data/linux/`, chroot, ramdisk) MUST be immediately audited and backported into the Golden AP builders (`scratch/build_rocksolid_boot.py`, `arch/arm64/boot/Image`, `arch/arm64/boot/dts/exynos/exynos8895-dreamlte_kor_rev11.dtb`) and packaged into the release Odin tar archives (`Galaxy_S8_Linux_AP.tar`).
+    * The AP tarball and kernel image remain the single source of truth for all users. Never leave tested fixes isolated in temporary filesystem files on the test bench.
+19. **VANILLA STOCK OS FLASHING & POST-BOOT MODULAR PROVISIONING:**
+    * Base operating system images flashed to userdata/system partitions must remain 100% vanilla, clean stock distributions downloaded directly from upstream mirrors (Ubuntu Rootfs, Debian Minimal, Alpine Linux, Arch Linux ARM, Kali Linux) without proprietary vendor blobs or OS rootfs modifications baked in.
+    * All phone-exclusive hardware integrations that standard Single Board Computers (SBCs) lack (MAX77865 PMIC 1500mA fast charge & UVLO unlock, Broadcom BCM4361 Wi-Fi onboarding, Calliope ABOX audio routing, thermal governor, battery supervisor, rear torch, haptics, Type-C DisplayPort negotiation) MUST be modularly configured and provisioned *after* the stock OS boots, managed transparently via `/data/linux/start_all.sh`, `s8ctl`, and the S8 Imager desktop application.
+20. **3-STEP VERIFICATION GATE & ROUFSWEB PROTOCOL (RWP) TRANSPORT CONTRACT:**
+    * All development, CI/CD validation, and release builds must pass a strict 3-step verification architecture:
+      1. **Layer 1: Backend Logic & REST APIs** (`DeviceManager`, ADB subprocess execution, HTTP endpoints `/api/status`, `/api/flash`, `/api/exec`, `/api/screen`).
+      2. **Layer 2: Frontend UI & DOM Interactions** (Bento grid layout, restrained UX, state-driven CTA buttons, zero text bloat, no prompt echoes).
+      3. **Layer 3: Device Connection & RWP Transport Contract** (Deterministic transport abstraction supporting Wired USB ADB and Wi-Fi RWP over SSH/WebSocket; automatic fallback, live shell streaming, and offline simulation safety).
+21. **MANDATORY TELEGRAM NOTIFICATION & VISUAL VERIFICATION UPDATES:**
+    * Antigravity MUST dispatch real-time asynchronous updates to the user's Telegram (`@roufsantigravitybot` -> chat ID configured in `.env`) whenever major milestones, CI/CD gates, build tasks, and verification runs finish.
+    * **Visual Verification Mandate:** Every single verification process MUST generate and dispatch visual verification updates (screenshots/photos) directly to Telegram via `python scripts/send_telegram.py --photo <path> "<caption>"`.
+    * In direct conversational responses, Antigravity MUST provide clickable markdown visual file links (`[Label](file:///...)`) to the verified visual screenshot artifacts so the user can visually inspect UI screens, terminal buffers, and system telemetry both in their browser/artifact viewer and on Telegram.
+    * Never complete a verification cycle or deployment silently without dispatching visual proof to Telegram.
+22. **STRICT BAN ON EMOJIS (CODE, COMMITS, LOGS, TELEGRAM, UI & DOCS):**
+    * Emojis are strictly prohibited throughout the entire project. Never output, commit, or log emojis anywhere.
+    * In Telegram updates (`@roufsantigravitybot`), replace emojis with clean bracketed ASCII status indicators: `[STAGE]`, `[INFO]`, `[OK]`, `[PASS]`, `[FAIL]`, `[ALERT]`, `[VISUAL PROOF]`.
+    * In UI copy, buttons, and badges, use clean typography and Lucide SVG icons only. Never insert unicode emojis.
+    * In commit messages, logs, terminal outputs, and documentation, maintain restrained, production-grade engineering prose.
+
+23. **TOOLCHAIN CFP COMPATIBILITY & COLD POWER-CYCLE VERIFICATION (FINDING 115):**
+    * **EL2 TrustZone CFP Incompatibility:** Never compile production kernels using modern generic cross-compilers (GCC 11, 12, 13) with `CONFIG_RKP_CFP=y`. Samsung Exynos 8895 EL2 micro-Hypervisor (uH) aborts modern branch relocations during cold boot in early `head.S`, freezing the SoC at instruction 0 (drawing 0.43A quiescent current with no haptics or ADB). Always use the official Samsung CFP toolchain (`aarch64-linux-android-4.9-cfp`) or compile with `CONFIG_RKP_CFP=n` and `CONFIG_RKP_CFP_JOPP=n`.
+    * **Safe Cold-Reset Testing Protocol:** Never repeatedly disconnect the physical battery connector to test power loss (wears down delicate FPC motherboard socket pins). Use the 3 safe software cold-reset protocols: (a) hold **Volume Down + Bixby + Power for 30 seconds** (forces MAX77865 PMIC to drop power latch and reboot cold), (b) `adb shell "echo b > /proc/sysrq-trigger"` (forces ungraceful hardware kernel reboot to test journal replay), or (c) Download Mode reboot (`Vol Down + Power` 7s).
+
+24. **UNIVERSAL DISPLAY OUTPUT & PURE CLI CONSOLE ARCHITECTURE (FINDING 116):**
+    * **DECON Framebuffer Assignment:** Never assume `/dev/fb0` maps to an external monitor. On Exynos 8895, `fb0` is hardwired to the internal mobile OLED (`DECON0`). The external USB-C DisplayPort/HDMI output is strictly `/dev/graphics/fb2` (or `/dev/fb2`) on `DECON2`.
+    * **Vendor Kernel `CONFIG_VT` Guardrail:** Stock and TWRP vendor kernels explicitly disable `CONFIG_VT` and `CONFIG_FRAMEBUFFER_CONSOLE` (`fbcon`). Never call `con2fbmap` or attempt to attach to `/dev/tty1` on vendor kernels without verifying `CONFIG_VT` support.
+    * **Universal Dual Output & Terminal Display:** When an external display is connected (`/sys/class/switch/hdmi/state == 1`):
+      1. Always negotiate SBU switch (`echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel`) and DFP role (`echo source > /sys/class/typec/port0/port_type`), then unblank `fb2` (`FBIOBLANK(FB_BLANK_UNBLANK)`).
+      2. If a desktop GUI (X11 / Wayland) is running, stream desktop frames to `fb2`.
+      3. If running in pure headless CLI/server mode (Debian, Kali, Alpine, Proxmox, OpenWrt), launch the userland framebuffer terminal engine (`fbterm` or direct `mmap` console) bound to root shell, giving an instant full-screen text terminal on the monitor.
+      4. When disconnected, immediately issue `FBIOBLANK(FB_BLANK_POWERDOWN)` to prevent `DISP_ERR_DECON_TIMEOUT` kernel panics.
+
+25. **AUTOMATED PRE-FLASH INTEGRITY VALIDATION & IMMUTABLE BASELINE AP PINNING (FINDING 117):**
+    * **Mandatory Pre-Flash Validation Gate:** Never recommend flashing or build a release AP tarball without executing `python scripts/pre_flash_validator.py <path>`. All 6 quality gates must pass:
+      1. Size ceiling: `boot.img` and `recovery.img` strictly `<= 41,943,040` bytes (`sda7`/`sda8` hardware limit).
+      2. Kernel TrustZone EL2 CFP Compliance: Must match verified Samsung GCC 4.9 CFP production baseline (`29,382,520` bytes).
+      3. Headless Display Safety: Strictly prohibits in-kernel `CONFIG_FRAMEBUFFER_CONSOLE=y` on boards with physically absent internal displays (`lcdtype=-1`). Direct monitor CLI console is driven exclusively via userland (`fbterm` on `/dev/graphics/fb2`).
+      4. Calliope DSP Audio Suite: All 9 audio firmwares embedded in ramdisk CPIO without shadowing.
+      5. Watchdog Timing & Non-Blocking `init.rc`: Prohibits synchronous blocking calls (e.g. `exec ... e2fsck` on large partitions) in `init.rc` that risk tripping the 15-second `s3c2410_wdt` hardware watchdog.
+      6. USB Gadget Infallibility: Ramdisks must present Samsung vendor ID `04e8:6860` so Windows automatically associates pre-installed Samsung ADB drivers.
+    * **Golden Baseline Kernel Immutability:** The verified Samsung GCC 4.9 CFP production kernel (`29,382,520` bytes) in `scratch/boot_proven_autoboot.img` is the single source of truth for release AP packages. Custom kernels must remain in non-release experimental slots until cold-boot verified.
+
+26. **SINGLE-OS EXCLUSIVE DEPLOYMENT & TESTING MANDATE (ONE OS AT A TIME):**
+    * **Strictly One Active & Installed OS Throughout the System:** Whenever installing, deploying, or testing an OS on the Galaxy S8 (Ubuntu, Kali, SteamOS, Debian, Alpine, Arch, etc.), **only ONE OS** may be installed and running throughout the entire device at a time.
+    * **Zero Dual Desktops or Parallel Chroot Stacks:** Never run or stack two OS desktops/VNC displays (`:1` + `:2`) or dual noVNC ports (`:6080` + `:6090`) simultaneously. Always serve the single active OS on the canonical endpoints (Display `:1`, VNC `:5901`, noVNC `:6080`).
+    * **Clean Replacement Lifecycle Before Switching OS:** Before installing or testing a new OS:
+      1. Stop all processes, X11/VNC/noVNC servers, and D-Bus daemons of the previous OS and cleanly unmount its loop & virtual mounts (`/proc`, `/sys`, `/dev`, `/dev/pts`, `/dev/shm`, `/run`).
+      2. Remove/replace the outgoing OS rootfs image in `/data/linux/` so only the single active target OS remains installed and booted cleanly throughout the whole system.
+27. **ZERO-FORK UPSTREAM DISTRO MANDATE & STANDALONE HARDWARE PACKAGE ARCHITECTURE (`galaxy-s8-hw`):**
+    * **Never Build or Ship Modified/Forked Distro Images:** Base operating system images stored in `distros/`, selected in `S8 Imager`, or flashed onto `/data/linux/rootfs.img` MUST be **100% unmodified official upstream ARM64 releases** downloaded directly from vendor mirrors (`cdimage.ubuntu.com`, `cloud.debian.org`, `kali.org`, `dl-cdn.alpinelinux.org`, `os.archlinuxarm.org`, etc.) and verified by upstream SHA-256 checksums. Custom-baked distro rootfs archives (e.g., customized chroot builds, baked desktop themes, or hardcoded personal credentials) MUST NOT be shipped or flashed as default OS images.
+    * **Minimal First-Boot Connectivity Seed Only During Flash:** Because the headless Galaxy S8 (`lcdtype=-1`) has no physical screen or keyboard on first boot, `S8 Imager` extracts the unmodified upstream rootfs cleanly (including GPT/MBR Linux partition extraction for `.img.xz`/`.raw`) and applies **only** the minimal connectivity/safety seed required for first-boot reachability: USB ConfigFS RNDIS (`192.168.7.2` + DHCP), OpenSSH server / first-boot credentials configured by the user in `S8 Imager`, V4L2 camera ISP `/dev/video100+` udev panic guard, and disabling non-existent board `fstab` boot partitions (such as `+raspi` `LABEL=system-boot`).
+    * **All Hardware Integration Lives in `galaxy-s8-hw` (`packages/galaxy-s8-hw/`):** Phone-specific daemons and drivers (`s8_button_daemon` + `99-s8-power.conf`, `exynos_dp_bridge`, `s8ctl`, MAX77865 `1500mA` fast charge + UVLO, Broadcom BCM4361 Wi-Fi helper, Calliope ALSA routing, `s8-time-sync`, Type-C DisplayPort supervisor, Android socket GIDs) MUST be packaged cleanly into `galaxy-s8-hw_<ver>_arm64.deb` and universal `galaxy-s8-hw-<ver>-arm64.tar.gz` (`install.sh`), installable post-boot in one click from `S8 Imager` (or manually via `dpkg -i` / `./install.sh`) with zero AI agent involvement.
+    * **Real-Human Zero-AI Parity:** Every user workflow — official OS download + SHA-256 check, flashing in `S8 Imager`, first-boot USB RNDIS SSH setup, 1-click `galaxy-s8-hw` package installation, Wi-Fi scan/connect, noVNC/DisplayPort usage, and long-press/button control — MUST work end-to-end inside `S8 Imager` and be documented in plain-English user instructions without requiring any AI agent or ad-hoc manual patching.
 
 ---
 
@@ -129,10 +186,10 @@
 
 | File Path | Role |
 | :--- | :--- |
-| [`releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Standalone_Odin.tar) | **1-Click Standalone Odin Package** (`boot.img` + `recovery.img` + `userdata.img.lz4` complete OS, `3,533,455,360` B / `3.37` GB). |
-| [`releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar`](file:///e:/rouf/galaxy-s8/releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar) | **Kernel-Only Odin Package** (`boot.img` with auto-boot `init.rc` + `recovery.img`, `88,412,160` B / `88.4` MB). |
-| [`e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img`](file:///e:/rouf/galaxy-s8/scratch/boot_ubuntu_autoboot.img) | Auto-booting `BOOT` partition image (`40,521,744` B), already flashed to `/dev/block/sda7`. |
-| [`e:\rouf\galaxy-s8\scratch\build_autoboot_and_odin.py`](file:///e:/rouf/galaxy-s8/scratch/build_autoboot_and_odin.py) | Python builder that unpacks `boot.img` LZMA ramdisk, patches `init.rc` CPIO (`newc`), and builds `Ubuntu_24.04_GalaxyS8_Full_Odin.tar`. |
+| [`releases/Galaxy_S8_Linux_AP.tar`](file:///e:/rouf/galaxy-s8/releases/Galaxy_S8_Linux_AP.tar) | **Universal Galaxy S8 Linux AP Kernel Odin Package** (`boot.img` with auto-boot `init.rc` + `recovery.img`, `80,527,360` B / `80.5` MB). |
+| [`releases/galaxy-s8-linux-arm64.img.gz`](file:///e:/rouf/galaxy-s8/releases/galaxy-s8-linux-arm64.img.gz) | **Universal Galaxy S8 ARM64 Rootfs OS Image** (`2.8` GB gzip compressed root filesystem). |
+| [`e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img`](file:///e:/rouf/galaxy-s8/scratch/boot_ubuntu_autoboot.img) | Auto-booting `BOOT` partition image (`38,977,552` B), already flashed to `/dev/block/sda7` and `sda8`. |
+| [`e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py`](file:///e:/rouf/galaxy-s8/scratch/build_rocksolid_boot.py) | Python builder that unpacks `boot.img` LZMA ramdisk, embeds 9 Calliope firmwares, self-healing supervisor, `s8_typec_daemon.py`, and builds `Ubuntu_24.04_GalaxyS8_Full_Odin.tar`. |
 | [`e:\rouf\galaxy-s8\scratch\start_all.sh`](file:///e:/rouf/galaxy-s8/scratch/start_all.sh) | Deployed at `/data/linux/start_all.sh` — master boot supervisor (V4L2 guard, `1500mA` MAX77865 unlock, Wi-Fi, Ubuntu mount, GNOME 46 macOS GUI, VNC/noVNC, `exynos_dp_bridge`, Docker). |
 | [`e:\rouf\galaxy-s8\scratch\polish_gnome_macos.sh`](file:///e:/rouf/galaxy-s8/scratch/polish_gnome_macos.sh) | Configures `/usr/local/bin/start_gnome_macos.sh`, left-side red/yellow/green traffic lights, `gsd-xsettings`, `ClockApplet`, and `libnautilus_root.so`. |
 | [`e:\rouf\galaxy-s8\scratch\exynos_dp_bridge.c`](file:///e:/rouf/galaxy-s8/scratch/exynos_dp_bridge.c) | Native Exynos 8895 DECON2 USB-C DisplayPort / HDMI hotplug & `/dev/ion` `S3CFB_WIN_CONFIG` streaming daemon. |
@@ -148,4 +205,4 @@
 2. **Audio Routing (`CS47L92` Speaker/Headphone + `pcmC0D22p` HDMI Audio) & Bluetooth (`BCM4361` `hciattach`):**
    * Configure `/etc/asound.conf` and `tinymix` paths for `Exynos8895-Madera` (`card 0`) and test `hciattach /dev/ttySAC1 bcm43xx 3000000 flow` with `/vendor/firmware/bcm4361*.hcd`.
 3. **Full Kernel Rebuild with `CONFIG_PID_NS=y` / `CONFIG_CGROUP_DEVICE=y` & Bixby Key Daemon (`Phase 3`):**
-   * Compile `galaxy-s8-kvm-kernel` with full container namespaces (`CONFIG_PID_NS=y`, `CONFIG_IPC_NS=y`, `CONFIG_UTS_NS=y`, `CONFIG_CGROUP_DEVICE=y`) so `systemd` PID 1 container and standard Docker containers run without flags.
+   * Compile `kernel` with full container namespaces (`CONFIG_PID_NS=y`, `CONFIG_IPC_NS=y`, `CONFIG_UTS_NS=y`, `CONFIG_CGROUP_DEVICE=y`) so `systemd` PID 1 container and standard Docker containers run without flags.

@@ -1,522 +1,732 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server | Exynos 8895 Linux Platform</title>
-  
-  <!-- SEO Meta Tags -->
-  <meta name="description" content="Engineering runbook and 1-click Odin release turning Samsung Galaxy S8 (Exynos 8895) into a high-performance 24/7 Linux server running native Ubuntu 24.04.5 LTS, Docker 26, CasaOS, Ollama LLM, and USB-C DisplayPort 1080p60.">
-  <meta name="keywords" content="Galaxy S8 Linux server, Samsung Galaxy S8 Docker, CasaOS on Android, Ollama on Android phone, Exynos 8895 Ubuntu 24.04, SM-G950F Linux, SM-G950N Linux, SM-G950FD Linux, USB-C DisplayPort Linux driver, MAX77865 PMIC fast charge bypass, Android phone homelab, Galaxy S8 headless server, Noble Numbat glibc 2.39">
-  <meta name="author" content="roufsweb">
-  <meta name="robots" content="index, follow">
-  
-  <!-- OpenGraph Metadata -->
-  <meta property="og:title" content="Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server">
-  <meta property="og:description" content="Bare-metal Linux environment for Samsung Galaxy S8: 8 cores, 4GB RAM, Docker 26, CasaOS, Ollama LLM, USB-C DisplayPort 1080p60, and MAX77865 1500mA power bypass.">
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="en_US">
-  
-  <!-- Twitter Card Metadata -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server">
-  <meta name="twitter:description" content="Turn decommissioned Galaxy S8 phones into enterprise-grade Linux servers. 1-Click Odin installer, Docker, CasaOS, Ollama LLM, and native DisplayPort Alt Mode.">
-  
-  <!-- Schema.org JSON-LD Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Galaxy S8 Native Ubuntu 24.04 LTS Server",
-    "applicationCategory": "OperatingSystem",
-    "operatingSystem": "Linux / Ubuntu 24.04.5 LTS",
-    "softwareVersion": "24.04.5",
-    "description": "Production Linux server platform for Samsung Galaxy S8 (Exynos 8895). Features auto-booting kernel, Docker, CasaOS, Ollama LLM, and USB-C DisplayPort 1080p60.",
-    "processorRequirements": "Samsung Exynos 8895 Octa-Core",
-    "memoryRequirements": "4GB LPDDR4x",
-    "storageRequirements": "64GB UFS 2.1 + MicroSD",
-    "offers": {
-      "@type": "Offer",
-      "price": "0.00",
-      "priceCurrency": "USD"
+  <title>Galaxy S8 (SM-G950N) Native ARM64 Linux Platform — Docs, Flashing Guide &amp; Kernel Architecture</title>
+  <meta name="description" content="Convert a Samsung Galaxy S8 (SM-G950N Exynos 8895) into a native ARM64 Linux desktop or server with pure-Linux switch_root AP firmware, S8 Imager, and galaxy-s8-hw.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#090B10',
+            appCard: '#11151F',
+            appCardAlt: '#181E2C',
+            appBorder: '#232B3E',
+            appBlue: '#38BDF8',
+            appEmerald: '#10B981',
+            appAmber: '#F59E0B',
+            appRose: '#F43F5E',
+            appMuted: '#94A3B8',
+            appDim: '#64748B'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
+          }
+        }
+      }
     }
-  }
   </script>
-
-  <link rel="stylesheet" href="css/style.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    html, body { background-color: #090B10; color: #F8FAFC; max-width: 100%; overflow-x: hidden; }
+    section, main, header, footer { max-width: 100%; }
+    .shot-frame { cursor: zoom-in; transition: transform 0.2s ease, border-color 0.2s ease; }
+    .shot-frame:hover { transform: translateY(-2px); border-color: rgba(56, 189, 248, 0.55); }
+    .flow-node { transition: all 0.25s ease; }
+    .flow-active { border-color: #38BDF8 !important; box-shadow: 0 0 22px rgba(56, 189, 248, 0.35) !important; transform: translateY(-2px); }
+    .code-wrap { background-color: #06080D; border: 1px solid #1E293B; border-radius: 0.75rem; max-width: 100%; overflow-x: auto; }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col font-sans antialiased text-slate-100">
 
-  <!-- Site Header -->
-  <header class="site-header">
-    <div class="header-container">
-      <div class="logo-badge">EXYNOS-8895 // LINUX-SERVER [roufsweb]</div>
-      <nav class="main-nav">
-        <a href="#overview">Overview</a>
-        <a href="#specifications">Specs</a>
-        <a href="#benchmarks">Benchmarks</a>
-        <a href="#installation">Flashing</a>
-        <a href="#services">Services</a>
-        <a href="#subsystems">Subsystems</a>
-        <a href="#cli">s8ctl CLI</a>
-        <a href="#faq">FAQ</a>
-        <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener">GitHub</a>
+  <!-- TOP NAVIGATION -->
+  <header class="sticky top-0 z-40 bg-appBg/90 backdrop-blur-md border-b border-appBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <a href="#top" class="flex items-center gap-2.5 min-w-0 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
+          <i data-lucide="cpu" class="w-5 h-5 text-slate-950"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white tracking-tight truncate">Galaxy S8 Native Linux</span>
+            <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 shrink-0">v1.0.0 HOLD</span>
+          </div>
+          <p class="text-[11px] font-mono text-appMuted truncate">SM-G950N &bull; Exynos 8895 &bull; Linux 4.4.111</p>
+        </div>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-5 text-xs font-medium text-appMuted whitespace-nowrap">
+        <a href="#kernel-infographic" class="hover:text-white transition-colors">Kernel Infographic</a>
+        <a href="#ap-odin" class="hover:text-white transition-colors">Odin &amp; AP Flash</a>
+        <a href="#s8-imager" class="hover:text-white transition-colors">S8 Imager</a>
+        <a href="#post-flash" class="hover:text-white transition-colors">Wi-Fi &amp; Pack</a>
+        <a href="#controls-pipeline" class="hover:text-white transition-colors">Buttons &amp; Flow</a>
+        <a href="#credits-support" class="hover:text-white transition-colors">Credits</a>
       </nav>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="#credits-support" onclick="openDonateModal(); return false;"
+          class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/35 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap">
+          <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Buy Me a Coffee</span>
+        </a>
+        <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener"
+          class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-appCardAlt hover:bg-appBorder border border-appBorder text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap">
+          <i data-lucide="github" class="w-3.5 h-3.5"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-container">
-      <span class="hero-tag">Bare-Metal Hardware Platform</span>
-      <h1 class="hero-title">Samsung Galaxy S8 Native Ubuntu 24.04 LTS &amp; Docker Homelab Server</h1>
-      <p class="hero-subtitle">
-        Repurpose decommissioned Galaxy S8 hardware (Exynos 8895 / SM-G950N, SM-G950F, SM-G950FD) into an autonomous, 24/7 enterprise Linux server running native Ubuntu 24.04.5 LTS Noble Numbat, Docker, CasaOS, Ollama LLM inference, and USB-C DisplayPort 1080p60 video output.
-      </p>
-      <div class="hero-actions">
-        <a href="#installation" class="btn btn-primary">1-Click Odin Flashing Guide</a>
-        <a href="#services" class="btn btn-secondary">Explore Homelab Services</a>
-      </div>
-    </div>
-  </section>
+  <main id="top" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-14">
 
-  <!-- Key Metrics Strip -->
-  <div class="metrics-strip">
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-value">8 Cores</div>
-        <div class="metric-label">2.31 GHz M2 + 1.69 GHz A53</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value">12.4 GB/s</div>
-        <div class="metric-label">4GB LPDDR4x Memory Bandwidth</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value">1080p @ 60Hz</div>
-        <div class="metric-label">USB-C DisplayPort Alt Mode</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value">1.4 W</div>
-        <div class="metric-label">Idle Server Power Consumption</div>
-      </div>
-    </div>
-  </div>
+    <!-- HERO SECTION + MILESTONE HOLD BANNER -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div class="lg:col-span-6 flex flex-col gap-5">
+        <div class="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span>PROJECT STATUS: v1.0.0 MILESTONE ON HOLD</span>
+        </div>
 
-  <!-- Main Content Wrapper -->
-  <div class="main-wrapper">
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+          Native ARM64 Linux on Samsung Galaxy S8 (<span class="text-sky-400">SM-G950N</span>)
+        </h1>
 
-    <!-- Section 1: Overview & Architecture -->
-    <section id="overview" class="content-section">
-      <h2 class="section-heading">System Architecture &amp; Execution Model</h2>
-      <p class="section-intro">
-        Unlike userland chroot apps (Termux or UserLAnd) that run restricted under Android SELinux and zygote controls, this platform deploys an auto-booting Linux initialization supervisor directly from Samsung's physical BOOT partition (/dev/block/sda7).
-      </p>
-      
-      <div class="callout">
-        <strong>Hardware Root of Trust:</strong> The stock S-Boot bootloader transfers control to our DEFEX-free Linux 4.4.111 kernel. When the Android USB framework signals readiness, init.rc launches the master supervisor (/data/linux/start_all.sh) in the root cgroup, escaping all Android process termination limits.
+        <p class="text-sm sm:text-base text-appMuted leading-relaxed">
+          Boot unmodified upstream Ubuntu 24.04.5 LTS, Debian 12, Kali, Alpine, or Arch Linux directly via <code class="text-sky-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">switch_root</code> with <code class="text-emerald-300 font-mono text-xs bg-appCard px-1.5 py-0.5 rounded">systemd (PID 1)</code> on Exynos 8895 silicon&mdash;including salvaged headless boards without an OLED display.
+        </p>
+
+        <div class="bg-appCard border border-appBorder rounded-2xl p-4 text-xs text-slate-300 leading-relaxed">
+          <strong class="text-white block mb-1">Release Architecture &amp; Hold Note</strong>
+          Active development is currently paused at milestone <code class="text-sky-300 font-mono">v1.0.0</code>. All hardware drivers, Odin AP boot/recovery firmware, <code class="text-sky-300 font-mono">S8 Imager</code> desktop tooling, and the standalone <code class="text-emerald-300 font-mono">galaxy-s8-hw</code> package are verified on live hardware and preserved below for reproducible setups.
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-1">
+          <a href="#ap-odin"
+            class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold flex items-center gap-2 shadow-lg shadow-sky-500/20 transition-all">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+            <span>Start Flashing Guide</span>
+          </a>
+          <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener"
+            class="px-4 py-2.5 rounded-xl bg-appCard hover:bg-appCardAlt border border-appBorder text-white text-xs font-semibold flex items-center gap-2 transition-all">
+            <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+            <span>Download v1.0.0 Releases</span>
+          </a>
+        </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="data-table">
+      <div class="lg:col-span-6">
+        <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-2xl" onclick="openLightbox('./assets/screenshots/s8_ubuntu_gnome_desktop.png', 'Live Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd on Galaxy S8 Linux 4.4.111')">
+          <img src="./assets/screenshots/s8_ubuntu_gnome_desktop.png"
+            alt="Live Ubuntu 24.04.5 LTS GNOME 46 Desktop running PID 1 systemd on Galaxy S8"
+            class="w-full h-auto rounded-xl object-cover">
+          <div class="px-2 pt-2.5 pb-1 flex items-center justify-between text-[11px] font-mono text-appMuted">
+            <span>Verified on SM-G950N &bull; systemd PID 1 &bull; GNOME 46 + Plank</span>
+            <span class="text-sky-400">Click to enlarge</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: KERNEL CAPABILITY INFOGRAPHIC -->
+    <section id="kernel-infographic" class="flex flex-col gap-5 scroll-mt-20">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-appBorder pb-3">
+        <div>
+          <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 01</span>
+          <h2 class="text-2xl font-bold text-white mt-0.5">Kernel 4.4.111 &amp; Hardware Capability Infographic</h2>
+          <p class="text-sm text-appMuted mt-1">Compiled DEFEX-free and EL2 CFP-safe (<code class="font-mono text-xs text-sky-300"># CONFIG_RKP_CFP is not set</code>), paired with an LZMA pure-Linux initramfs (<code class="font-mono text-xs text-amber-300">sda7</code>) and TWRP 3.7.0 (<code class="font-mono text-xs text-sky-300">sda8</code>).</p>
+        </div>
+        <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full self-start">Vector SVG &bull; Zero AI Images</span>
+      </div>
+
+      <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-3 shadow-2xl overflow-hidden" onclick="openLightbox('./assets/kernel_infographic.svg', 'Samsung Galaxy S8 Exynos 8895 Native Linux 4.4.111 Kernel & System Architecture')">
+        <img src="./assets/kernel_infographic.svg"
+          alt="Samsung Galaxy S8 Linux 4.4.111 Kernel and System Architecture Vector Infographic"
+          class="w-full h-auto rounded-xl">
+      </div>
+
+      <div class="bg-appCard border border-appBorder rounded-2xl w-full max-w-full overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr>
-              <th>Boot Phase</th>
-              <th>Component</th>
-              <th>Hardware Action Executed</th>
+            <tr class="border-b border-appBorder bg-appCardAlt/70 text-appMuted font-mono uppercase text-[11px]">
+              <th class="py-3 px-4">Subsystem</th>
+              <th class="py-3 px-4">Verified Config / Node</th>
+              <th class="py-3 px-4">Linux Capability</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-appBorder/60 text-slate-300">
             <tr>
-              <td>Phase 1</td>
-              <td>Kernel Initialization</td>
-              <td>DEFEX-free Linux 4.4.111 unpacks LZMA ramdisk; powers Synopsis DWC3 USB controller.</td>
+              <td class="py-2.5 px-4 font-semibold text-white">CPU &amp; GPU Silicon</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">Exynos 8895, PREEMPT=y, VA_BITS=39</td>
+              <td class="py-2.5 px-4">4x Exynos M2 @ 2.314 GHz + 4x A53 @ 1.690 GHz + Mali-G71 MP20 @ 546 MHz</td>
             </tr>
             <tr>
-              <td>Phase 2</td>
-              <td>Supervisor Escape</td>
-              <td>PID is moved to root cgroup (/acct/tasks) to escape Android libprocessgroup termination.</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Memory &amp; Codecs</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">ZRAM=y, CRYPTO_LZ4=y, VIDEO_EXYNOS_MFC=y</td>
+              <td class="py-2.5 px-4">4 GB LPDDR4x (~3.6 GB usable) + 2 GB LZ4 ZRAM swap + H.264/HEVC MFC (<code class="font-mono">/dev/video6..9</code>)</td>
             </tr>
             <tr>
-              <td>Phase 3</td>
-              <td>Panic Guards &amp; PMIC</td>
-              <td>Removes buggy V4L2 camera ISP nodes; unlocks MAX77865 PMIC to 1,500 mA fast charging.</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Security &amp; glibc</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-emerald-300">SECURITY_DEFEX=n, RKP_CFP=n</td>
+              <td class="py-2.5 px-4">Runs Ubuntu 24.04.5+ / Debian 12 (<code class="font-mono">glibc 2.39</code>) natively without binary termination or EL2 cold-boot lockups</td>
             </tr>
             <tr>
-              <td>Phase 4</td>
-              <td>Storage &amp; Userspace</td>
-              <td>Mounts external MicroSD card and Ubuntu 24.04.5 LTS Noble Numbat rootfs at /mnt/ubuntu.</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Containers &amp; Net</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">NAMESPACES, CGROUPS, OVERLAY_FS, VETH, BRIDGE, TUN, NETFILTER</td>
+              <td class="py-2.5 px-4">Full Docker / LXC / WireGuard / iptables; <code class="font-mono">galaxy-s8-hw</code> registers <code class="font-mono">aid_inet(3003)</code>, <code class="font-mono">aid_net_raw(3004)</code>, <code class="font-mono">aid_net_admin(3005)</code></td>
             </tr>
             <tr>
-              <td>Phase 5</td>
-              <td>Daemons &amp; Desktop</td>
-              <td>Starts SSH (:22), TigerVNC (:5901), noVNC (:6080), GNOME 46 macOS desktop, and DisplayPort bridge.</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Storage &amp; FS</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">EXT4, F2FS, FUSE, VFAT, MMC_DW</td>
+              <td class="py-2.5 px-4">64 GB UFS 2.1 (<code class="font-mono">sda24</code> <code class="font-mono">^extents</code>) + <code class="font-mono">mmcblk0</code> MicroSD (<code class="font-mono">/media/sdcard</code>). Note: <code class="font-mono">NTFS_FS</code> disabled</td>
             </tr>
             <tr>
-              <td>Phase 6</td>
-              <td>Docker &amp; Homelab</td>
-              <td>Spawns Docker 26 daemon, CasaOS (:8080), Portainer (:9000), Ollama (:11434), and Uptime Kuma (:3001).</td>
+              <td class="py-2.5 px-4 font-semibold text-white">Display &amp; Camera Guard</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-amber-300">DECON2 (/dev/graphics/fb2), VT=n, 99-s8-no-fimc.rules</td>
+              <td class="py-2.5 px-4">1080p60 USB-C DisplayPort via <code class="font-mono">exynos_dp_bridge</code>; removes uninitialized <code class="font-mono">/dev/video100+</code> to prevent FIMC-IS2 NULL panic</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-4 font-semibold text-white">PMIC Power &amp; Audio</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-emerald-300">CHARGER_MAX77865=y, SND_SOC_SAMSUNG_ABOX=y</td>
+              <td class="py-2.5 px-4">Unlocks 1,500 mA fast charge + 4.3V UVLO; Calliope 9-firmware DSP + MAX98506 Speaker (<code class="font-mono">hw:0,0</code>) + CS47L92 Mic (<code class="font-mono">hw:0,9</code>)</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-4 font-semibold text-white">Radio &amp; USB</td>
+              <td class="py-2.5 px-4 font-mono text-[11px] text-sky-300">BCM4361 dhd, BT_BCM=y, CONFIGFS_RNDIS=y, USB_HID=y</td>
+              <td class="py-2.5 px-4">Dual-band 2.4/5 GHz Wi-Fi, Bluetooth 5.0, USB RNDIS (<code class="font-mono">192.168.7.2</code>), USB3 Gigabit Ethernet, Shannon 359 LTE (<code class="font-mono">rmnet0..7</code>)</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Section 2: Hardware Specifications -->
-    <section id="specifications" class="content-section">
-      <h2 class="section-heading">Hardware Specifications &amp; Capabilities</h2>
-      <p class="section-intro">
-        Detailed technical hardware specifications of the Samsung Galaxy S8 (SM-G950N / SM-G950F / SM-G950FD) configured as a 24/7 server:
-      </p>
+    <!-- SECTION 2: USED PHONE PREP, OEM UNLOCK, BUTTONS & ODIN AP FLASH -->
+    <section id="ap-odin" class="flex flex-col gap-6 scroll-mt-20">
+      <div class="border-b border-appBorder pb-3">
+        <span class="text-[11px] font-mono text-amber-400 uppercase tracking-widest font-bold">Section 02</span>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Used-Phone Prep, OEM Unlock, Button Combos &amp; Odin AP Flash</h2>
+        <p class="text-sm text-appMuted mt-1">One-time preparation to install <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar</code> (<code class="font-mono text-xs">boot.img</code> on <code class="font-mono text-xs">sda7</code> + TWRP <code class="font-mono text-xs">recovery.img</code> on <code class="font-mono text-xs">sda8</code>) without wiping <code class="font-mono text-xs">sda24</code>.</p>
+      </div>
 
-      <div class="cards-grid">
-        <div class="feature-card">
-          <div class="card-title">Compute Processor</div>
-          <div class="card-port">Samsung Exynos 8895 SoC (10nm LPE FinFET)</div>
-          <div class="card-desc">
-            Octa-core big.LITTLE design: 4x Samsung Exynos M2 custom performance cores clocked at 2.314 GHz and 4x ARM Cortex-A53 efficiency cores at 1.690 GHz under native performance governor.
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Used Phone & OEM Unlock Card -->
+        <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-3.5">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i data-lucide="unlock" class="w-4 h-4"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">1. Used Phone Check &amp; OEM Unlock</h3>
+          </div>
+          <ol class="list-decimal list-inside text-xs sm:text-sm text-slate-300 space-y-2 leading-relaxed">
+            <li><strong class="text-white">Confirm Model:</strong> Target hardware is Korean <strong class="text-sky-300">SM-G950N (Exynos 8895)</strong>. Snapdragon (<code class="font-mono text-xs">SM-G950U/W</code>) devices have locked bootloaders and are not supported.</li>
+            <li><strong class="text-white">Remove Prior Accounts (FRP):</strong> On a used phone, remove previous Google/Samsung accounts in <em>Settings &rarr; Accounts</em> or reset clean so Download Mode reads <code class="font-mono text-xs text-emerald-300">FRP LOCK: OFF</code>.</li>
+            <li><strong class="text-white">Enable Developer Options &amp; OEM Unlocking:</strong> Go to <em>Settings &rarr; About phone &rarr; Software information</em>, tap <strong class="text-white">Build number</strong> 7 times, then open <em>Developer options</em> and enable <strong class="text-amber-300">OEM unlocking</strong> and <strong class="text-white">USB debugging</strong>.</li>
+            <li><strong class="text-white">Missing Toggle (RMM/KG Prenormal):</strong> If a freshly wiped phone hides <em>OEM unlocking</em>, connect Android to Wi-Fi, run <em>Software update &rarr; Download and install</em> check once, then reboot back into Developer options to reveal it. <em>(Headless boards running stock Android with ADB can use <code class="font-mono text-xs">scrcpy</code> to toggle it visually.)</em></li>
+            <li><strong class="text-white">Host PC Tools:</strong> Install <strong class="text-white">Samsung Android USB Drivers</strong>, <strong class="text-white">Odin3 v3.14.1/v3.14.4</strong>, and download <code class="font-mono text-xs text-amber-300">Galaxy_S8_Linux_AP.tar</code> (<code class="font-mono text-xs">79,472,640 B</code>) from <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener" class="text-sky-400 hover:underline">Releases v1.0.0</a>.</li>
+          </ol>
+        </div>
+
+        <!-- Physical Button Combos Table -->
+        <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-3.5">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+              <i data-lucide="smartphone" class="w-4 h-4"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">2. Physical Button Combinations (Headless Ready)</h3>
+          </div>
+          <div class="space-y-2.5 text-xs">
+            <div class="bg-appCardAlt/70 border border-appBorder rounded-xl p-3">
+              <div class="flex items-center justify-between font-semibold text-amber-300">
+                <span>Odin Download Mode (Wired USB)</span>
+                <span class="font-mono text-[11px]">11&ndash;13 seconds</span>
+              </div>
+              <p class="text-slate-300 mt-1">Keep USB-C plugged into PC &rarr; hold <strong class="text-white">Volume Down + Bixby + Power</strong> for 11&ndash;13s. Enters Download Mode directly (<code class="font-mono">Added!!</code> / <code class="font-mono">PID_685D</code>) with no Volume Up step required.</p>
+            </div>
+            <div class="bg-appCardAlt/70 border border-appBorder rounded-xl p-3">
+              <div class="flex items-center justify-between font-semibold text-rose-300">
+                <span>PMIC Hard Cold Reset (Unresponsive SoC)</span>
+                <span class="font-mono text-[11px]">30s + 1s + 13s</span>
+              </div>
+              <p class="text-slate-300 mt-1">Hold <strong class="text-white">Volume Down + Bixby + Power</strong> for 30s to drop MAX77865 power latch, release 1s, then hold all 3 buttons 11&ndash;13s to enter Odin cleanly.</p>
+            </div>
+            <div class="bg-appCardAlt/70 border border-appBorder rounded-xl p-3">
+              <div class="flex items-center justify-between font-semibold text-sky-300">
+                <span>Boot TWRP Recovery (<code class="font-mono">sda8</code>)</span>
+                <span class="font-mono text-[11px]">8&ndash;12 seconds</span>
+              </div>
+              <p class="text-slate-300 mt-1">Hold <strong class="text-white">Volume Up + Bixby + Power</strong> from power-off or immediately upon reset (or run <code class="font-mono">adb reboot recovery</code> / click <em>TWRP Recovery</em> in S8 Imager). <code class="font-mono">adb devices</code> prints <code class="font-mono text-emerald-300">recovery</code>.</p>
+            </div>
+            <div class="bg-appCardAlt/70 border border-appBorder rounded-xl p-3">
+              <div class="flex items-center justify-between font-semibold text-emerald-300">
+                <span>Boot AP Linux Mode (<code class="font-mono">sda7</code>) / Exit Odin</span>
+                <span class="font-mono text-[11px]">Normal / 7s</span>
+              </div>
+              <p class="text-slate-300 mt-1">Power on normally for <code class="font-mono">sda7</code> Linux (<code class="font-mono">switch_root</code>). Hold <strong class="text-white">Volume Down + Power</strong> for 7s to exit Download Mode.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Odin Flashing Steps -->
+      <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
+          <span>3. Flashing <code class="font-mono text-sm text-amber-300">Galaxy_S8_Linux_AP.tar</code> in Odin3</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+          <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <span class="font-mono text-amber-400 font-bold block mb-1">STEP A &mdash; LOAD AP</span>
+            Run <code class="font-mono">Odin3.exe</code> as Administrator. Under <em>Options</em>, check <strong>F. Reset Time</strong> (keep <strong>Re-Partition UNCHECKED</strong>). Click <strong>AP</strong> and choose <code class="font-mono">Galaxy_S8_Linux_AP.tar</code>. Do not touch <code class="font-mono">BL</code>, <code class="font-mono">CP</code>, or <code class="font-mono">CSC</code>.
+          </div>
+          <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <span class="font-mono text-amber-400 font-bold block mb-1">STEP B &mdash; FLASH &amp; RE-PLUG</span>
+            Click <strong>Start</strong> (~10&ndash;15s) until Odin displays green <strong class="text-emerald-300">PASS!</strong>. Because Windows frequently leaves <code class="font-mono">PID_685D</code> USB endpoints suspended after Odin exits, <strong>unplug and re-plug the USB-C cable</strong> right after reboot.
+          </div>
+          <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <span class="font-mono text-amber-400 font-bold block mb-1">STEP C &mdash; TWRP OR AP MODE</span>
+            To flash a Linux distro immediately, hold <strong>Volume Up + Bixby + Power</strong> on reboot until TWRP (<code class="font-mono">adb devices &rarr; recovery</code>) enumerates. Note: if booted normally to <code class="font-mono">sda7</code> before flashing a distro, AP enters <strong class="text-rose-300">Fail-Safe Rescue</strong> (3x haptic + USB RNDIS <code class="font-mono">192.168.7.2</code> + telnet <code class="font-mono">:2323</code>).
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: FLASHING DISTROS WITH S8 IMAGER -->
+    <section id="s8-imager" class="flex flex-col gap-6 scroll-mt-20">
+      <div class="border-b border-appBorder pb-3">
+        <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 03</span>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Flashing Unmodified Distros via <code class="font-mono text-xl text-sky-300">S8 Imager</code></h2>
+        <p class="text-sm text-appMuted mt-1">Genuine upstream Canonical/Debian/Kali/Alpine/Arch images flashed onto <code class="font-mono text-xs text-sky-300">/dev/block/sda24</code> with zero pre-baked bloat.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-5 flex flex-col gap-3.5 text-xs sm:text-sm text-slate-300">
+          <div class="bg-appCard border border-appBorder rounded-2xl p-4">
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 1 &mdash; Launch S8 Imager in TWRP Mode</span>
+            <p>With your Galaxy S8 in <strong class="text-white">TWRP Recovery (<code class="font-mono text-xs">sda8</code>)</strong> over USB, run <code class="font-mono text-xs text-sky-300">Launch_S8_Imager.bat</code> (or <code class="font-mono text-xs">python desktop-app\main.py</code>). Verify the top-right status pill shows green <strong class="text-emerald-400">Connected</strong>.</p>
+          </div>
+          <div class="bg-appCard border border-appBorder rounded-2xl p-4">
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 2 &mdash; Select or Download Official Upstream OS</span>
+            <p>Click <strong class="text-sky-300">Official OS Catalog</strong> to <strong class="text-white">FETCH</strong> &amp; <strong class="text-emerald-300">VERIFY</strong> (SHA-256) Ubuntu 24.04.5 Desktop/Server/Base, Debian 12, Kali Minimal, Alpine 3.20, or Arch Linux ARM&mdash;or click <strong class="text-white">Select Image File...</strong> for local <code class="font-mono text-xs">.img.xz / .img / .tar.xz / .tar.gz</code> files.</p>
+          </div>
+          <div class="bg-appCard border border-appBorder rounded-2xl p-4">
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 3 &mdash; Storage Allocation &amp; First-Boot Seed</span>
+            <p>Drag the <strong class="text-white">Storage Allocation</strong> slider (<code class="font-mono text-xs">4&ndash;48 GB</code> loopback ext4 on <code class="font-mono text-xs">sda24</code>). Fill <strong class="text-white">First-Boot Seed</strong> (Username, Password, Hostname, optional Wi-Fi). Under the hood, <code class="font-mono text-xs text-sky-300">injector.py</code> seeds only RNDIS <code class="font-mono text-xs">192.168.7.2</code>, SSH, V4L2 <code class="font-mono text-xs">/dev/video100+</code> rule, and <code class="font-mono text-xs">aid_*</code> groups.</p>
+          </div>
+          <div class="bg-appCard border border-appBorder rounded-2xl p-4">
+            <span class="text-[11px] font-mono text-sky-400 font-bold uppercase block mb-1">Step 4 &mdash; Flash Image &amp; Reboot</span>
+            <p>Click <strong class="text-sky-400">Flash Image</strong> and wait for log progress to hit <code class="font-mono text-xs text-emerald-300">100%</code> (<code class="font-mono text-xs">e2fsck -fy</code> verified). Reboot from <strong class="text-white">Dashboard &rarr; Reboot Device</strong> (or <code class="font-mono text-xs">adb reboot</code>) without holding Volume Up so <code class="font-mono text-xs">sda7</code> executes <code class="font-mono text-xs">switch_root</code>.</p>
           </div>
         </div>
 
-        <div class="feature-card">
-          <div class="card-title">Graphics Engine</div>
-          <div class="card-port">ARM Mali-G71 MP20 (Bifrost Architecture)</div>
-          <div class="card-desc">
-            20 execution cores locked at 546 MHz Booster mode. Provides hardware acceleration via Cairo/X11 rendering and OpenCL/Vulkan compute pipelines.
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_flash_os.png', 'S8 Imager Flash OS Workspace: Target Image, UFS Storage Allocation, First-Boot Seed, and Telemetry Log')">
+            <img src="./assets/screenshots/s8_imager_flash_os.png" alt="S8 Imager Flash OS screen screenshot" class="w-full h-auto rounded-xl">
+            <div class="px-2 pt-2 text-[11px] font-mono text-appMuted flex justify-between">
+              <span>In-App Screenshot: Flash OS View</span>
+              <span class="text-sky-400">Click to zoom</span>
+            </div>
           </div>
-        </div>
 
-        <div class="feature-card">
-          <div class="card-title">Memory &amp; High-Speed Bus</div>
-          <div class="card-port">4 GB LPDDR4x Dual-Channel @ 1794 MHz</div>
-          <div class="card-desc">
-            Delivers up to 12.4 GB/s of sustained memory throughput. 3.4 GB allocated directly to Linux userspace with zram swap compression for high container density.
-          </div>
-        </div>
-
-        <div class="feature-card">
-          <div class="card-title">Dual Storage Architecture</div>
-          <div class="card-port">64 GB UFS 2.1 Internal + MicroSD DW MMC</div>
-          <div class="card-desc">
-            Internal storage delivers 540 MB/s read and 218 MB/s write. External MicroSD reader (11500000.dwmmc2) provides hotplug storage expansion for media and NAS backups.
-          </div>
-        </div>
-
-        <div class="feature-card">
-          <div class="card-title">DisplayPort 1.2 Alt Mode</div>
-          <div class="card-port">Hardware DECON2 (/dev/graphics/fb2)</div>
-          <div class="card-desc">
-            Full 1920x1080 @ 60 Hz video output over USB Type-C. Operates via ION memory allocations and hardware vertical blank synchronization (FBIO_WAITFORVSYNC).
-          </div>
-        </div>
-
-        <div class="feature-card">
-          <div class="card-title">Dedicated Audio DSP</div>
-          <div class="card-port">ABOX Calliope DSP @ 1.18 GHz</div>
-          <div class="card-desc">
-            Maxim MAX98506 mono speaker amplifier (ALSA hw:0,0) and Cirrus Logic CS47L92 Digital Microphone 1 (ALSA hw:0,9) unified via custom asound.conf routing.
+          <div class="shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_os_catalog.png', 'Official Upstream ARM64 OS Catalog modal with SHA-256 verification')">
+            <img src="./assets/screenshots/s8_imager_os_catalog.png" alt="S8 Imager Official Upstream ARM64 OS Catalog modal" class="w-full h-auto rounded-xl">
+            <div class="px-2 pt-2 text-[11px] font-mono text-appMuted flex justify-between">
+              <span>In-App Screenshot: Official Upstream OS Catalog Modal</span>
+              <span class="text-sky-400">Click to zoom</span>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Section 3: Comparative Benchmarks -->
-    <section id="benchmarks" class="content-section">
-      <h2 class="section-heading">Comparative Benchmarks vs Single-Board Computers</h2>
-      <p class="section-intro">
-        Standardized sysbench, memory bandwidth, and storage I/O benchmarks comparing the Galaxy S8 Linux platform against industry-standard SBCs:
-      </p>
+    <!-- SECTION 4: POST-FLASH ACCESS, WIFI, SSH & GALAXY-S8-HW -->
+    <section id="post-flash" class="flex flex-col gap-6 scroll-mt-20">
+      <div class="border-b border-appBorder pb-3">
+        <span class="text-[11px] font-mono text-emerald-400 uppercase tracking-widest font-bold">Section 04</span>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Post-Flash Access, Wi-Fi Onboarding &amp; Installing <code class="font-mono text-xl text-emerald-300">galaxy-s8-hw</code></h2>
+        <p class="text-sm text-appMuted mt-1">Every post-flash instruction aligns strictly with USB RNDIS (<code class="font-mono text-xs">192.168.7.2</code>), Roufsweb Protocol (RWP SSH), and <code class="font-mono text-xs">galaxy-s8-hw v1.0.0</code>.</p>
+      </div>
 
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Evaluation Metric</th>
-              <th>Galaxy S8 (Exynos 8895)</th>
-              <th>Raspberry Pi 4 Model B</th>
-              <th>Raspberry Pi 5 (8GB)</th>
-              <th>Rockchip RK3588</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>CPU Configuration</td>
-              <td>4x M2 + 4x A53 (8 Cores)</td>
-              <td>4x A72 (4 Cores)</td>
-              <td>4x A76 (4 Cores)</td>
-              <td>4x A76 + 4x A55 (8 Cores)</td>
-            </tr>
-            <tr>
-              <td>Multi-Core Sysbench</td>
-              <td>4,218 events/sec</td>
-              <td>1,742 events/sec</td>
-              <td>5,120 events/sec</td>
-              <td>6,840 events/sec</td>
-            </tr>
-            <tr>
-              <td>Single-Core Sysbench</td>
-              <td>812 events/sec</td>
-              <td>438 events/sec</td>
-              <td>1,280 events/sec</td>
-              <td>1,320 events/sec</td>
-            </tr>
-            <tr>
-              <td>Memory Bandwidth</td>
-              <td>12.4 GB/s (LPDDR4x)</td>
-              <td>4.1 GB/s (LPDDR4)</td>
-              <td>11.2 GB/s (LPDDR4x)</td>
-              <td>14.8 GB/s (LPDDR4x)</td>
-            </tr>
-            <tr>
-              <td>Storage Sequential Write</td>
-              <td>218 MB/s (UFS 2.1)</td>
-              <td>38 MB/s (MicroSD A1)</td>
-              <td>42 MB/s (MicroSD A2)</td>
-              <td>180 MB/s (eMMC 5.1)</td>
-            </tr>
-            <tr>
-              <td>Storage Sequential Read</td>
-              <td>540 MB/s (UFS 2.1)</td>
-              <td>44 MB/s (MicroSD A1)</td>
-              <td>88 MB/s (MicroSD A2)</td>
-              <td>260 MB/s (eMMC 5.1)</td>
-            </tr>
-            <tr>
-              <td>DisplayPort Alt Mode</td>
-              <td>Native Hardware USB-C</td>
-              <td>Not Supported</td>
-              <td>Not Supported</td>
-              <td>Native Hardware USB-C</td>
-            </tr>
-            <tr>
-              <td>Built-in Battery Backup (UPS)</td>
-              <td>Integrated Li-Ion Battery</td>
-              <td>None (Requires External UPS)</td>
-              <td>None (Requires External UPS)</td>
-              <td>None (Requires External UPS)</td>
-            </tr>
-            <tr>
-              <td>Idle Power Consumption</td>
-              <td>1.4 W</td>
-              <td>3.2 W</td>
-              <td>4.8 W</td>
-              <td>3.5 W</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Access & Terminal -->
+        <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
+          <div>
+            <h3 class="text-base font-bold text-white">1. First Access Over USB RNDIS &amp; Terminal</h3>
+            <p class="text-xs text-appMuted mt-1">After booting Linux (20&ndash;35s first boot), the seed activates a virtual USB Ethernet gadget at <code class="font-mono text-sky-300">192.168.7.2</code> with SSH port <code class="font-mono text-sky-300">22</code>.</p>
+          </div>
+          <div class="code-wrap p-3 text-xs font-mono text-slate-200 overflow-x-auto relative">
+            <button onclick="copyText('ssh ubuntu@192.168.7.2', this)" class="absolute top-2 right-2 px-2 py-0.5 rounded bg-appCardAlt border border-appBorder text-[10px] text-appMuted hover:text-white">Copy</button>
+            <div>ssh ubuntu@192.168.7.2   <span class="text-appDim"># or root@192.168.7.2</span></div>
+            <div class="text-appDim mt-1"># Or use S8 Imager -&gt; Terminal (OS Root / AP Base)</div>
+          </div>
+          <div class="shot-frame bg-appCardAlt/40 border border-appBorder rounded-xl p-1.5" onclick="openLightbox('./assets/screenshots/s8_imager_terminal.png', 'S8 Imager Terminal running live OS commands and s8ctl status')">
+            <img src="./assets/screenshots/s8_imager_terminal.png" alt="S8 Imager Terminal tab screenshot" class="w-full h-auto rounded-lg">
+          </div>
+        </div>
+
+        <!-- Config & Wi-Fi -->
+        <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
+          <div>
+            <h3 class="text-base font-bold text-white">2. Wi-Fi (BCM4361), Hostname, SSH Key &amp; Pack UI</h3>
+            <p class="text-xs text-appMuted mt-1">Use <strong class="text-white">S8 Imager &rarr; Config</strong>: click <strong class="text-sky-300">SCAN</strong>, select 2.4/5 GHz SSID, enter password, and click <strong class="text-emerald-300">APPLY &amp; CONNECT WI-FI</strong>. Once Wi-Fi connects, RWP lets you unplug USB and work wirelessly.</p>
+          </div>
+          <div class="code-wrap p-3 text-xs font-mono text-slate-200 overflow-x-auto relative">
+            <button onclick="copyText('sudo s8_wifi.py scan && sudo s8_wifi.py connect \"SSID\" \"PASS\"', this)" class="absolute top-2 right-2 px-2 py-0.5 rounded bg-appCardAlt border border-appBorder text-[10px] text-appMuted hover:text-white">Copy</button>
+            <div>sudo s8_wifi.py scan</div>
+            <div>sudo s8_wifi.py connect &quot;YourSSID&quot; &quot;YourPassword&quot;</div>
+          </div>
+          <div class="shot-frame bg-appCardAlt/40 border border-appBorder rounded-xl p-1.5" onclick="openLightbox('./assets/screenshots/s8_imager_config_wifi_hw.png', 'S8 Imager Config tab showing live BCM4361 Wi-Fi scan and S8 Hardware Pack Installed')">
+            <img src="./assets/screenshots/s8_imager_config_wifi_hw.png" alt="S8 Imager Config Wi-Fi and Hardware Pack screenshot" class="w-full h-auto rounded-lg">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Supported Methods for Installing galaxy-s8-hw -->
+      <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-base font-bold text-white">3. Installing Device Hardware Pack (<code class="font-mono text-sm text-emerald-300">galaxy-s8-hw v1.0.0</code>)</h3>
+            <p class="text-xs text-appMuted mt-0.5">Adds MAX77865 1500mA+4.3V UVLO, <code class="font-mono">s8_button_daemon</code>, Calliope ABOX ALSA audio, BCM4361 Wi-Fi/BT, <code class="font-mono">2 GB</code> LZ4 ZRAM, <code class="font-mono">aid_inet</code> groups, DisplayPort <code class="font-mono">exynos_dp_bridge</code>, and <code class="font-mono">s8ctl</code>.</p>
+          </div>
+          <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener"
+            class="text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1.5 rounded-xl shrink-0 hover:bg-emerald-500/20">Get .deb / .tar.gz</a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="bg-appCardAlt/60 border border-emerald-500/30 rounded-xl p-4 flex flex-col gap-2">
+            <span class="font-mono text-emerald-400 font-bold">METHOD A &mdash; 1-CLICK S8 IMAGER</span>
+            <p class="text-slate-300 leading-relaxed">In <strong>S8 Imager &rarr; Config</strong>, optionally tick <em>&ldquo;Also install VNC / noVNC / OpenSSH packages when online&rdquo;</em>, then click <strong>INSTALL S8 PACK</strong>. Pushes the right package automatically over SSH and marks badge <code class="font-mono text-emerald-300">INSTALLED v1.0.0</code>.</p>
+          </div>
+
+          <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-4 flex flex-col gap-2">
+            <span class="font-mono text-sky-400 font-bold">METHOD B &mdash; MANUAL .DEB (UBUNTU / DEBIAN / KALI)</span>
+            <div class="code-wrap p-2.5 font-mono text-[11px] text-slate-200 overflow-x-auto">
+              scp galaxy-s8-hw_1.0.0_arm64.deb root@192.168.7.2:/tmp/<br>
+              ssh root@192.168.7.2 &quot;dpkg -i /tmp/galaxy-s8-hw_1.0.0_arm64.deb&quot;<br>
+              <span class="text-appDim"># Verify:</span> s8ctl status
+            </div>
+          </div>
+
+          <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-4 flex flex-col gap-2">
+            <span class="font-mono text-amber-400 font-bold">METHOD C &mdash; UNIVERSAL .TAR.GZ (ARCH / ALPINE / ANY)</span>
+            <div class="code-wrap p-2.5 font-mono text-[11px] text-slate-200 overflow-x-auto">
+              scp galaxy-s8-hw-1.0.0-arm64.tar.gz root@192.168.7.2:/tmp/<br>
+              ssh root@192.168.7.2 &quot;tar -xzf /tmp/galaxy-s8-hw-1.0.0-arm64.tar.gz -C /tmp &amp;&amp; cd /tmp/galaxy-s8-hw-1.0.0-arm64 &amp;&amp; ./install.sh&quot;
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Section 4: 1-Click Flashing Guide -->
-    <section id="installation" class="content-section">
-      <h2 class="section-heading">1-Click Flashing &amp; Deployment Guide</h2>
-      <p class="section-intro">
-        The complete platform is packaged into an automated Odin flashable tar: <code class="inline-code">releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar</code> (88.4 MB).
-      </p>
-
-      <div class="callout callout-warning">
-        <strong>Hardware Key Sequence (Download Mode):</strong> With the USB-C cable plugged into your PC, press and hold <strong>Volume Down + Bixby + Power</strong> simultaneously for exactly <strong>11 to 13 seconds</strong>. The phone enters Download Mode directly without needing to unplug the cable or press Volume Up.
+    <!-- SECTION 5: DASHBOARD CONTROLS, CHASSIS BUTTONS & ARCHITECTURE FLOW -->
+    <section id="controls-pipeline" class="flex flex-col gap-6 scroll-mt-20">
+      <div class="border-b border-appBorder pb-3">
+        <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 05</span>
+        <h2 class="text-2xl font-bold text-white mt-0.5">Hardware Controls, Chassis Button Map &amp; End-to-End Architecture</h2>
       </div>
 
-      <h3 class="sub-heading">Step-by-Step Installation Instructions</h3>
-      <ol style="margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
-        <li>Ensure your Samsung Galaxy S8 has its bootloader unlocked (Developer Options &gt; OEM Unlocking).</li>
-        <li>Connect the phone to a Windows PC with Samsung USB Mobile Drivers installed.</li>
-        <li>Put the device into Download Mode via the 11-13 second button combo. Device Manager shows <code class="inline-code">SAMSUNG Mobile USB CDC Composite Device (PID_685D)</code>.</li>
-        <li>Launch Odin 3.14.1. Confirm that an active COM port illuminates in the ID:COM box.</li>
-        <li>Click <strong>AP</strong> and select <code class="inline-code">Ubuntu_24.04_GalaxyS8_Full_Odin.tar</code>.</li>
-        <li>Ensure <strong>Auto Reboot</strong> and <strong>F. Reset Time</strong> are checked in the Options tab.</li>
-        <li>Click <strong>Start</strong>. The process flashes the kernel to <code class="inline-code">/dev/block/sda7</code> (BOOT) and <code class="inline-code">/dev/block/sda8</code> (RECOVERY).</li>
-        <li>When Odin reports green <strong>PASS!</strong>, <strong>unplug and immediately re-plug the USB-C cable</strong>. This forces Windows host controllers to re-enumerate the device bus, bringing ADB online immediately.</li>
-      </ol>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-6 shot-frame bg-appCard border border-appBorder rounded-2xl p-2 shadow-xl" onclick="openLightbox('./assets/screenshots/s8_imager_dashboard.png', 'S8 Imager Live Hardware Dashboard: CPU clocks, MAX77865 1500mA + 4.3V UVLO, Thermals & Controls')">
+          <img src="./assets/screenshots/s8_imager_dashboard.png" alt="S8 Imager Hardware Dashboard screenshot" class="w-full h-auto rounded-xl">
+          <div class="px-2 pt-2 text-[11px] font-mono text-appMuted flex justify-between">
+            <span>Dashboard Telemetry &amp; Headless Hardware Controls</span>
+            <span class="text-sky-400">Click to zoom</span>
+          </div>
+        </div>
 
-      <h3 class="sub-heading">Package Verification Checksums</h3>
-      <pre class="code-block">SHA256: 13c1964681f7891f52d438471e24c6a3e7171f7a6618cfc064dd950113b7ffe5
-MD5:    d426d93d33403ec9c74c717ff12a06e2
-File:   Ubuntu_24.04_GalaxyS8_Full_Odin.tar (88,412,160 bytes)</pre>
-    </section>
+        <div class="lg:col-span-6 bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-3">
+          <h3 class="text-base font-bold text-white">Physical Button Daemon (<code class="font-mono text-sm text-amber-300">s8_button_daemon</code>)</h3>
+          <p class="text-xs text-appMuted">Overrides <code class="font-mono">systemd-logind</code> single-tap poweroff via <code class="font-mono">99-s8-power.conf</code> (<code class="font-mono">HandlePowerKey=ignore</code>) so accidental taps never drop a running server:</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-appBorder text-appMuted font-mono text-[11px]">
+                  <th class="py-2 pr-3">Button</th>
+                  <th class="py-2 pr-3">Timing</th>
+                  <th class="py-2">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-appBorder/50 text-slate-300">
+                <tr><td class="py-2 pr-3 font-semibold text-white">Power</td><td class="py-2 pr-3 font-mono text-emerald-300">&gt;= 2.5s hold</td><td class="py-2">Graceful Linux <code class="font-mono">poweroff</code> + haptic</td></tr>
+                <tr><td class="py-2 pr-3 font-semibold text-white">Power</td><td class="py-2 pr-3 font-mono text-sky-300">&lt; 450ms 2x tap</td><td class="py-2">Graceful Linux <code class="font-mono">reboot</code> + double haptic</td></tr>
+                <tr><td class="py-2 pr-3 font-semibold text-white">Power</td><td class="py-2 pr-3 font-mono">Short tap</td><td class="py-2">Display DPMS sleep/wake toggle (<code class="font-mono">:1</code>)</td></tr>
+                <tr><td class="py-2 pr-3 font-semibold text-white">Volume +/-</td><td class="py-2 pr-3 font-mono">Press</td><td class="py-2">ALSA Master volume + 35ms haptic tick</td></tr>
+                <tr><td class="py-2 pr-3 font-semibold text-white">Bixby</td><td class="py-2 pr-3 font-mono">1x / 2x / 3x</td><td class="py-2">1x: Console | 2x: Rear Torch | 3x: Re-arm DisplayPort</td></tr>
+                <tr><td class="py-2 pr-3 font-semibold text-white">Bixby</td><td class="py-2 pr-3 font-mono text-amber-300">&gt;= 1.2s hold</td><td class="py-2">Capture X11 screenshot &amp; dispatch via Telegram</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="code-wrap p-3 font-mono text-[11px] text-slate-300">
+            <span class="text-sky-400"># Screen &amp; DisplayPort Access:</span><br>
+            Browse <span class="text-emerald-300">http://192.168.7.2:6080</span> (noVNC), click <span class="text-white">Device Screen</span> in S8 Imager, or plug a USB-C HDMI/DP adapter (<span class="text-amber-300">exynos_dp_bridge</span> drives <code class="font-mono">/dev/graphics/fb2</code> at 1080p60). Run <code class="font-mono">sudo /usr/local/bin/s8-vnc-setup.sh</code> if VNC wasn&rsquo;t installed yet.
+          </div>
+        </div>
+      </div>
 
-    <!-- Section 5: Services & Homelab Applications -->
-    <section id="services" class="content-section">
-      <h2 class="section-heading">Services &amp; Homelab Applications Matrix</h2>
-      <p class="section-intro">
-        All services boot concurrently on system start and are accessible via your local network:
-      </p>
+      <!-- Interactive Pipeline Tracer -->
+      <div class="bg-appCard border border-appBorder rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold text-white">Interactive Platform Data Flow</h3>
+            <p class="text-xs text-appMuted">Click a workflow to inspect verified component boundaries across host PC, Odin/TWRP, AP Boot, and target Linux.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="traceFlow('apboot')" id="btnTraceApboot" class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono border border-appBorder bg-appCardAlt hover:border-sky-400 text-slate-200">1. AP Switch Root</button>
+            <button onclick="traceFlow('flash')" id="btnTraceFlash" class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono border border-appBorder bg-appCardAlt hover:border-sky-400 text-slate-200">2. S8 Imager Flash</button>
+            <button onclick="traceFlow('rwp')" id="btnTraceRwp" class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono border border-appBorder bg-appCardAlt hover:border-sky-400 text-slate-200">3. USB &amp; Wi-Fi RWP</button>
+            <button onclick="traceFlow('dp')" id="btnTraceDp" class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono border border-appBorder bg-appCardAlt hover:border-sky-400 text-slate-200">4. DisplayPort 1080p60</button>
+          </div>
+        </div>
 
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Port</th>
-              <th>Protocol</th>
-              <th>Function</th>
-              <th>Default Credentials</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>OpenSSH Server</td>
-              <td>22</td>
-              <td>TCP</td>
-              <td>Root system terminal</td>
-              <td>User: root / Pass: ubuntu</td>
-            </tr>
-            <tr>
-              <td>noVNC Web Desktop</td>
-              <td>6080</td>
-              <td>HTTP</td>
-              <td>Browser Remote Desktop</td>
-              <td>Pass: ubuntu</td>
-            </tr>
-            <tr>
-              <td>TigerVNC Server</td>
-              <td>5901</td>
-              <td>RFB</td>
-              <td>Native VNC display session (:1)</td>
-              <td>Pass: ubuntu</td>
-            </tr>
-            <tr>
-              <td>CasaOS Dashboard</td>
-              <td>8080</td>
-              <td>HTTP</td>
-              <td>Homelab &amp; app portal</td>
-              <td>Initial Web Setup</td>
-            </tr>
-            <tr>
-              <td>Portainer CE</td>
-              <td>9000</td>
-              <td>HTTP</td>
-              <td>Docker container manager</td>
-              <td>Initial Web Setup</td>
-            </tr>
-            <tr>
-              <td>Ollama LLM Engine</td>
-              <td>11434</td>
-              <td>HTTP</td>
-              <td>Local AI inference REST API</td>
-              <td>Open REST API</td>
-            </tr>
-            <tr>
-              <td>Code-Server / VS Code</td>
-              <td>8082</td>
-              <td>HTTP</td>
-              <td>Web-based development IDE</td>
-              <td>Initial Web Setup</td>
-            </tr>
-            <tr>
-              <td>FileBrowser NAS</td>
-              <td>8088</td>
-              <td>HTTP</td>
-              <td>MicroSD card storage manager</td>
-              <td>User: admin / Pass: admin</td>
-            </tr>
-            <tr>
-              <td>Uptime Kuma</td>
-              <td>3001</td>
-              <td>HTTP</td>
-              <td>Telemetry &amp; status monitoring</td>
-              <td>Initial Web Setup</td>
-            </tr>
-            <tr>
-              <td>Nextcloud Hub</td>
-              <td>8085</td>
-              <td>HTTP</td>
-              <td>Private cloud file sync</td>
-              <td>Initial Web Setup</td>
-            </tr>
-            <tr>
-              <td>AdGuard Home</td>
-              <td>3000</td>
-              <td>HTTP</td>
-              <td>Network-wide DNS filter</td>
-              <td>Initial Web Setup</td>
-            </tr>
-          </tbody>
-        </table>
+        <div id="flowBanner" class="hidden bg-appCardAlt border border-sky-400/35 rounded-xl px-4 py-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div id="flowBannerTitle" class="font-bold text-sky-300"></div>
+            <div id="flowBannerDesc" class="text-slate-300 mt-0.5"></div>
+          </div>
+          <span id="flowBannerSteps" class="font-mono text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-lg shrink-0"></span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div id="flow-host" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <div class="font-mono text-[10px] text-sky-400 font-bold mb-1">HOST PC &amp; UI</div>
+            <div class="font-bold text-white">Odin3 + S8 Imager</div>
+            <p class="text-appMuted mt-1"><code class="font-mono">desktop-app/ui/index.html</code>, <code class="font-mono">api.py</code>, <code class="font-mono">flasher.py</code>, <code class="font-mono">injector.py</code>, <code class="font-mono">adb.py</code>.</p>
+          </div>
+          <div id="flow-twrp" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <div class="font-mono text-[10px] text-amber-400 font-bold mb-1">AP &amp; RECOVERY (sda7 / sda8)</div>
+            <div class="font-bold text-white">Kernel 4.4.111 + TWRP 3.7.0</div>
+            <p class="text-appMuted mt-1">DEFEX-free kernel, Calliope 9 DSP blobs, pure-Linux LZMA initramfs (<code class="font-mono">switch_root</code>), TWRP root ADB.</p>
+          </div>
+          <div id="flow-os" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <div class="font-mono text-[10px] text-emerald-400 font-bold mb-1">USERDATA (sda24 rootfs.img)</div>
+            <div class="font-bold text-white">Unmodified Distro + galaxy-s8-hw</div>
+            <p class="text-appMuted mt-1"><code class="font-mono">/sbin/init</code> (systemd PID 1), RNDIS <code class="font-mono">192.168.7.2</code>, 10 HW services, <code class="font-mono">s8ctl</code>, <code class="font-mono">s8_button_daemon</code>.</p>
+          </div>
+          <div id="flow-hw" class="flow-node bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+            <div class="font-mono text-[10px] text-rose-400 font-bold mb-1">EXYNOS 8895 SILICON</div>
+            <div class="font-bold text-white">PMIC, DECON2 &amp; BCM4361</div>
+            <p class="text-appMuted mt-1">MAX77865 1500mA, <code class="font-mono">fb2</code> DisplayPort, MAX98506/CS47L92 audio, BCM4361 Wi-Fi/BT, <code class="font-mono">mmcblk0</code> MicroSD.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Section 6: Kernel Subsystems -->
-    <section id="subsystems" class="content-section">
-      <h2 class="section-heading">Kernel &amp; Hardware Subsystem Engineering</h2>
+    <!-- SECTION 6: CREDITS & BUY ME A COFFEE -->
+    <section id="credits-support" class="grid grid-cols-1 lg:grid-cols-12 gap-6 scroll-mt-20">
+      <!-- Credits -->
+      <div class="lg:col-span-7 bg-appCard border border-appBorder rounded-2xl p-6 flex flex-col justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-mono text-sky-400 uppercase tracking-widest font-bold">Section 06</span>
+          <h2 class="text-2xl font-bold text-white mt-0.5">Credits &amp; Attributions</h2>
+          <p class="text-xs sm:text-sm text-appMuted mt-1">Standing on the shoulders of the mobile Linux, kernel, and open-source ARM64 community.</p>
 
-      <h3 class="sub-heading">1. MAX77865 PMIC 1,500 mA Fast-Charge &amp; UVLO Register Unlock</h3>
-      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
-        Stock Samsung kernels restrict standard USB chargers to 450-500 mA, causing power starvation under full CPU load. The supervisor writes directly to the PMIC I2C registers to unlock 1,500 mA charging and set brownout protection to 4.3V:
-      </p>
-      <pre class="code-block">echo "0xBD 0x6C" &gt; /sys/class/power_supply/max77865-charger/data  # Unlock CHGPROT
-echo "0xC3 0x61" &gt; /sys/class/power_supply/max77865-charger/data  # UVLO = 4.3V + DISSKIP
-echo "0xC0 0x3C" &gt; /sys/class/power_supply/max77865-charger/data  # CHG_CNFG_09 = 1500mA input limit
-echo "0xB9 0x9E" &gt; /sys/class/power_supply/max77865-charger/data  # CHG_CNFG_02 = 1500mA fast charge
-echo "0xB7 0x05" &gt; /sys/class/power_supply/max77865-charger/data  # MODE_BUCK | MODE_CHGR
-echo 1500 &gt; /sys/class/power_supply/battery/batt_tune_input_charge_current
-echo 1500 &gt; /sys/class/power_supply/battery/batt_tune_fast_charge_current</pre>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs">
+            <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+              <div class="font-bold text-white mb-1">Project Creator &amp; Maintainer</div>
+              <p class="text-slate-300"><strong>Abdur Rouf</strong> (<a href="https://github.com/roufsweb" target="_blank" rel="noopener" class="text-sky-400 hover:underline">github.com/roufsweb</a>)</p>
+            </div>
+            <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+              <div class="font-bold text-white mb-1">Galaxy S8 / Exynos 8895 Pioneers</div>
+              <p class="text-slate-300"><code class="font-mono">boerck</code>, <code class="font-mono">jcadduono</code>, <code class="font-mono">osm0sis</code>, Jesec, Ananjaser1211, Corsicanu, Noxxxious, Ace42</p>
+            </div>
+            <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+              <div class="font-bold text-white mb-1">Upstream Distros &amp; Tooling</div>
+              <p class="text-slate-300">Canonical Ubuntu, Debian, Kali Linux, Alpine, Arch ARM, GNOME, Vince Liuice (WhiteSur), Plank, TigerVNC, noVNC, TWRP, Magisk (<code class="font-mono">topjohnwu</code>)</p>
+            </div>
+            <div class="bg-appCardAlt/60 border border-appBorder rounded-xl p-3.5">
+              <div class="font-bold text-white mb-1">Services &amp; Silicon Vendors</div>
+              <p class="text-slate-300">Docker, CasaOS, Ollama, Code-Server, Samsung Exynos, Maxim (<code class="font-mono">MAX77865</code> / <code class="font-mono">MAX98506</code>), Cirrus Logic, Broadcom</p>
+            </div>
+          </div>
+        </div>
 
-      <h3 class="sub-heading">2. Exynos V4L2 Camera ISP Kernel Panic Guard</h3>
-      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
-        Calling <code class="inline-code">VIDIOC_QUERYCAP</code> on uninitialized Samsung camera ISP nodes (/dev/video100 through /dev/video220) triggers a NULL-pointer dereference kernel panic (<code class="inline-code">fimc_is_ixs_video_querycap+0x24/0x68</code>) whenever GStreamer, Nautilus, or WebKit scans video devices. The supervisor removes uninitialized nodes while preserving Exynos MFC hardware codecs:
-      </p>
-      <pre class="code-block">rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev*
-# /dev/video6..9 remain intact for Exynos MFC hardware H.264/HEVC decoding and encoding.</pre>
-
-      <h3 class="sub-heading">3. USB-C DisplayPort 1080p60 Hardware Driver</h3>
-      <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
-        The native daemon (<code class="inline-code">src/drivers/exynos_dp_bridge.c</code>) monitors physical cable hotplug via sysfs (<code class="inline-code">/sys/class/switch/hdmi/state</code>). It keeps DECON2 (<code class="inline-code">/dev/graphics/fb2</code>) in power-down while disconnected to prevent kernel timeout panics, and on connection negotiates EDID timings, powers up the DisplayPort link, and streams X11 display buffers locked to hardware vertical blanking.
-      </p>
-    </section>
-
-    <!-- Section 7: Hardware Control CLI -->
-    <section id="cli" class="content-section">
-      <h2 class="section-heading">Hardware Control Center CLI (s8ctl)</h2>
-      <p class="section-intro">
-        Unified management CLI deployed at <code class="inline-code">/usr/local/bin/s8ctl</code> providing real-time telemetry and hardware tuning:
-      </p>
-
-      <pre class="code-block">s8ctl status          # Telemetry report: CPU, GPU, RAM, battery, thermal, and network
-s8ctl cpu perf        # Lock 4x M2 cores @ 2.314 GHz and 4x A53 cores @ 1.690 GHz
-s8ctl cpu power       # Shift CPU governor to powersave mode
-s8ctl gpu boost       # Lock Mali-G71 MP20 GPU to 546 MHz Booster mode
-s8ctl torch on|off    # Toggle rear camera flashlight LED
-s8ctl haptic 200      # Pulse internal haptic motor for specified duration in ms
-s8ctl sdcard          # Display MicroSD mount status, capacity, and benchmark tests
-s8ctl audio test      # Play 440 Hz acoustic test tone through MAX98506 speaker</pre>
-    </section>
-
-    <!-- Section 8: FAQ & Troubleshooting -->
-    <section id="faq" class="content-section">
-      <h2 class="section-heading">Frequently Asked Questions &amp; Troubleshooting</h2>
-
-      <div class="callout">
-        <strong>Question: Can this run on Snapdragon 835 variants (SM-G950U / SM-G950W)?</strong><br>
-        This release is specifically compiled for the Samsung Exynos 8895 SoC (SM-G950N, SM-G950F, SM-G950FD). Snapdragon models possess locked bootloaders and incompatible kernel interfaces.
+        <div class="pt-3 border-t border-appBorder/60 flex items-center justify-between text-xs font-mono text-appMuted">
+          <span>Full attributions: <a href="https://github.com/roufsweb/galaxy-s8/blob/main/CREDITS.md" target="_blank" rel="noopener" class="text-sky-400 hover:underline">CREDITS.md</a></span>
+          <span>MIT License</span>
+        </div>
       </div>
 
-      <div class="callout">
-        <strong>Question: Does this require a functioning internal screen or front LED?</strong><br>
-        No. The entire system is engineered for headless operation. All status cues utilize the rear torch LED, internal haptic motor pulses, and network telemetry.
-      </div>
+      <!-- Buy Me a Coffee Card + Screenshot -->
+      <div class="lg:col-span-5 bg-appCard border border-amber-500/30 rounded-2xl p-6 flex flex-col justify-between gap-4 shadow-xl">
+        <div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-300 flex items-center justify-center">
+                <i data-lucide="coffee" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">Buy Me a Coffee</h2>
+                <p class="text-[11px] text-appMuted">100% Voluntary Support &bull; Ethereum / ERC-20</p>
+              </div>
+            </div>
+            <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 font-bold">ETH</span>
+          </div>
 
-      <div class="callout">
-        <strong>Question: What happens if power is abruptly disconnected?</strong><br>
-        The Galaxy S8's internal battery functions as an integrated uninterruptible power supply (UPS), preventing filesystem corruption and keeping services online during brief outages.
+          <p class="text-xs text-slate-300 leading-relaxed mt-3">
+            If this guide helped you turn a Galaxy S8 into a working ARM64 Linux workstation or headless server, donations are gratefully appreciated. There are zero paywalls, perks, or expectations.
+          </p>
+
+          <div class="mt-3 bg-[#090C12] border border-appBorder rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <code id="ethAddrMain" class="font-mono text-xs text-amber-300 truncate select-all">0x609e0AB78d5174F72fF8709564f8337DebEa5BD7</code>
+            <button onclick="copyText('0x609e0AB78d5174F72fF8709564f8337DebEa5BD7', this)"
+              class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all">
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <div class="shot-frame bg-appCardAlt/40 border border-appBorder rounded-xl p-1.5" onclick="openLightbox('./assets/screenshots/s8_imager_buy_me_coffee.png', 'S8 Imager Buy Me a Coffee modal showing Ethereum mainnet address')">
+          <img src="./assets/screenshots/s8_imager_buy_me_coffee.png" alt="S8 Imager Buy Me a Coffee ETH modal screenshot" class="w-full h-auto rounded-lg">
+        </div>
       </div>
     </section>
 
-  </div>
+  </main>
 
-  <!-- Site Footer -->
-  <footer class="site-footer">
-    <div class="footer-links">
-      <a href="#overview">Overview</a>
-      <a href="#installation">Flashing Guide</a>
-      <a href="#services">Services</a>
-      <a href="#subsystems">Subsystems</a>
-      <a href="#cli">s8ctl CLI</a>
-      <a href="https://github.com/roufsweb/galaxy-s8/blob/main/CREDITS.md" target="_blank" rel="noopener">Credits & Attributions</a> | <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener">Repository: galaxy-s8</a>
+  <footer class="border-t border-appBorder bg-appCard/40 py-5 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-appDim">
+      <span>Samsung Galaxy S8 Native Linux Project &bull; Built by Abdur Rouf (roufsweb)</span>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/roufsweb/galaxy-s8" target="_blank" rel="noopener" class="hover:text-white">Repository</a>
+        <a href="https://github.com/roufsweb/galaxy-s8/releases/tag/v1.0.0" target="_blank" rel="noopener" class="hover:text-white">Releases v1.0.0</a>
+        <a href="https://github.com/roufsweb/galaxy-s8/blob/main/README.md" target="_blank" rel="noopener" class="hover:text-white">README.md</a>
+      </div>
     </div>
-    <p>Engineered and maintained by <a href="https://github.com/roufsweb" target="_blank" rel="noopener">roufsweb</a>. Released under the MIT License.</p>
   </footer>
 
+  <!-- LIGHTBOX MODAL FOR GENUINE SCREENSHOTS & SVG INFOGRAPHIC -->
+  <div id="lightboxModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm items-center justify-center p-4" onclick="closeLightbox()">
+    <div class="max-w-6xl w-full bg-appCard border border-appBorder rounded-2xl p-3 flex flex-col gap-2" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-1">
+        <span id="lightboxCaption" class="text-xs font-mono text-slate-200 truncate"></span>
+        <button onclick="closeLightbox()" class="p-1.5 rounded-lg bg-appCardAlt hover:bg-appBorder text-appMuted hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <img id="lightboxImg" alt="Enlarged view" class="w-full max-h-[82vh] object-contain rounded-xl bg-[#090D16]">
+    </div>
+  </div>
+
+  <!-- QUICK BUY ME A COFFEE MODAL -->
+  <div id="donateModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="closeDonateModal()">
+    <div class="max-w-md w-full bg-appCard border border-appBorder rounded-2xl p-6 flex flex-col gap-4 relative" onclick="event.stopPropagation()">
+      <button onclick="closeDonateModal()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-appCardAlt hover:bg-appBorder text-appMuted hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-400 flex items-center justify-center">
+          <i data-lucide="coffee" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Buy Me a Coffee (ETH)</h3>
+          <p class="text-xs text-appMuted">100% voluntary open-source support</p>
+        </div>
+      </div>
+      <div class="bg-[#090C12] border border-appBorder rounded-xl p-3 flex items-center justify-between gap-2">
+        <code class="font-mono text-xs text-amber-300 truncate select-all">0x609e0AB78d5174F72fF8709564f8337DebEa5BD7</code>
+        <button onclick="copyText('0x609e0AB78d5174F72fF8709564f8337DebEa5BD7', this)"
+          class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0">
+          Copy
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    function openLightbox(src, caption) {
+      const m = document.getElementById('lightboxModal');
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightboxImg').alt = caption;
+      document.getElementById('lightboxCaption').innerText = caption;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeLightbox() {
+      const m = document.getElementById('lightboxModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      document.getElementById('lightboxImg').removeAttribute('src');
+    }
+
+    function openDonateModal() {
+      const m = document.getElementById('donateModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeDonateModal() {
+      const m = document.getElementById('donateModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function copyText(text, btn) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+      if (btn) {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied';
+        setTimeout(() => { btn.innerText = orig; }, 1600);
+      }
+    }
+
+    const flows = {
+      apboot: {
+        title: '1. AP Pure-Linux Boot & switch_root -> systemd (PID 1)',
+        desc: 'Odin flashes boot.img (sda7) + TWRP recovery.img (sda8). On normal power-on, LZMA initramfs unlocks MAX77865 1500mA, strips /dev/video100+, checks sda24 & /data/linux/rootfs.img, and runs switch_root into /sbin/init.',
+        steps: 'Falls back to RNDIS 192.168.7.2 + telnet :2323 rescue if rootfs is missing',
+        nodes: ['flow-twrp', 'flow-os', 'flow-hw']
+      },
+      flash: {
+        title: '2. S8 Imager Unmodified Upstream OS Deployment',
+        desc: 'In TWRP recovery mode, flasher.py downloads/verifies upstream .img.xz or .tar.*, creates clean 4-48 GB ext4 /data/linux/rootfs.img on sda24, and injector.py adds only RNDIS 192.168.7.2, SSH, V4L2 guard & aid_* groups.',
+        steps: 'Zero distro bloat',
+        nodes: ['flow-host', 'flow-twrp', 'flow-os']
+      },
+      rwp: {
+        title: '3. Wired USB RNDIS & Wireless Wi-Fi RWP Control',
+        desc: 'Once booted into Linux, S8 Imager communicates over SSH (192.168.7.2 over USB or BCM4361 DHCP IP over Wi-Fi) to run Terminal shells, Config Wi-Fi scans, and 1-click galaxy-s8-hw installation.',
+        steps: 'Automatic USB <-> Wi-Fi fallback',
+        nodes: ['flow-host', 'flow-os', 'flow-hw']
+      },
+      dp: {
+        title: '4. USB-C DisplayPort 1080p60 Output via DECON2',
+        desc: 's8_typec_daemon asserts Type-C DFP source mode; exynos_dp_bridge asserts SBU ("0 0"), unblanks /dev/graphics/fb2 only when HDMI state == 1, and streams X11 locked to 60Hz VSYNC.',
+        steps: 'Zero vendor CONFIG_VT dependency',
+        nodes: ['flow-os', 'flow-hw']
+      }
+    };
+
+    function traceFlow(key) {
+      document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('flow-active'));
+      document.querySelectorAll('.trace-btn').forEach(b => b.classList.remove('border-sky-400', 'text-sky-300'));
+      const f = flows[key];
+      if (!f) return;
+      const banner = document.getElementById('flowBanner');
+      banner.classList.remove('hidden');
+      document.getElementById('flowBannerTitle').innerText = f.title;
+      document.getElementById('flowBannerDesc').innerText = f.desc;
+      document.getElementById('flowBannerSteps').innerText = f.steps;
+      f.nodes.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('flow-active');
+      });
+      const btn = document.getElementById('btnTrace' + key.charAt(0).toUpperCase() + key.slice(1));
+      if (btn) btn.classList.add('border-sky-400', 'text-sky-300');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeLightbox(); closeDonateModal(); }
+    });
+  </script>
 </body>
 </html>
-

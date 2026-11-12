@@ -1,0 +1,5 @@
+# Samsung Galaxy S8 Android-compatible udev symlinks & GPU/ION permissions
+SUBSYSTEM=="graphics", KERNEL=="fb*", SYMLINK+="graphics/%k", MODE="0666"
+SUBSYSTEM=="block", SYMLINK+="block/%k"
+KERNEL=="ion|mali0|binder|ashmem", MODE="0666"
+

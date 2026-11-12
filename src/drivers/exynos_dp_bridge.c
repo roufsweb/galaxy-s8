@@ -198,6 +198,65 @@ static void pulse_vibrator(int ms) {
   }
 }
 
+static void write_string_file(const char *path, const char *val) {
+  FILE *fp = fopen(path, "w");
+  if (fp) {
+    fprintf(fp, "%s\n", val);
+    fclose(fp);
+  }
+}
+
+static bool check_typec_partner(void) {
+  return (access("/sys/class/typec/port0/port0-partner", F_OK) == 0) ||
+         (read_int_file("/sys/class/sec/ccic/state", 0) != 0);
+}
+
+static void ensure_usb_host_mode(void) {
+  char buf[32] = {0};
+  FILE *fp = fopen("/sys/class/typec/port0/data_role", "r");
+  if (fp) {
+    if (fgets(buf, sizeof(buf), fp) && strstr(buf, "[device]")) {
+      write_string_file("/sys/class/typec/port0/data_role", "host");
+      write_string_file("/sys/class/host_notify/usb_otg/mode", "HOST");
+      write_string_file("/sys/class/sec/ccic/role_swap", "1");
+      printf("[exynos_dp_bridge] Commanded USB Host (XHCI) mode for Type-C peripherals.\n");
+    }
+    fclose(fp);
+  }
+}
+
+static int attempt_dp_link_negotiation(void) {
+  /* 1. Attempt 2-lane DP link (VESA Pin Assignment D for Multi-Function Hubs) */
+  write_string_file("/sys/class/dp_sec/dp_sbu_sw_sel", "0 0");
+  write_string_file("/sys/class/dp_sec/link", "22");
+  usleep(150000);
+  if (read_int_file("/sys/class/switch/hdmi/state", 0) > 0)
+    return 1;
+
+  /* 2. Flipped orientation 2-lane */
+  write_string_file("/sys/class/dp_sec/dp_sbu_sw_sel", "1 0");
+  write_string_file("/sys/class/dp_sec/link", "22");
+  usleep(150000);
+  if (read_int_file("/sys/class/switch/hdmi/state", 0) > 0)
+    return 1;
+
+  /* 3. 4-lane DP link (dedicated DP/HDMI cables without USB) */
+  write_string_file("/sys/class/dp_sec/dp_sbu_sw_sel", "0 0");
+  write_string_file("/sys/class/dp_sec/link", "24");
+  usleep(150000);
+  if (read_int_file("/sys/class/switch/hdmi/state", 0) > 0)
+    return 1;
+
+  /* 4. Flipped orientation 4-lane */
+  write_string_file("/sys/class/dp_sec/dp_sbu_sw_sel", "1 0");
+  write_string_file("/sys/class/dp_sec/link", "24");
+  usleep(150000);
+  if (read_int_file("/sys/class/switch/hdmi/state", 0) > 0)
+    return 1;
+
+  return 0;
+}
+
 static int configure_dp_resolution(int fb_fd, uint32_t *out_w,
                                    uint32_t *out_h) {
   struct exynos_displayport_data dp_data;

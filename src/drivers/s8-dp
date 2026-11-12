@@ -1,0 +1,61 @@
+#!/bin/sh
+# ==============================================================================
+# s8_dp_connect.sh — Galaxy S8 USB-C DisplayPort / HDMI Bring-Up & Test Tool
+# ==============================================================================
+echo "=========================================================="
+echo " Samsung Galaxy S8 (SM-G950N) DisplayPort Alt Mode Linker"
+echo "=========================================================="
+
+echo "[1] Current Hardware & Role Status:"
+echo "    - HDMI switch state: $(cat /sys/class/switch/hdmi/state 2>/dev/null || echo unknown)"
+echo "    - CCIC state:        $(cat /sys/class/sec/ccic/state 2>/dev/null || echo unknown)"
+echo "    - CCIC USBPD IDs:    $(cat /sys/class/sec/ccic/usbpd_ids 2>/dev/null || echo unknown)"
+echo "    - Type-C Port Type:  $(cat /sys/class/typec/port0/port_type 2>/dev/null || echo unknown)"
+echo "    - Type-C Data Role:  $(cat /sys/class/typec/port0/data_role 2>/dev/null || echo unknown)"
+echo "    - Battery:           $(cat /sys/class/power_supply/battery/capacity 2>/dev/null)% ($(cat /sys/class/power_supply/battery/voltage_now 2>/dev/null) uV)"
+
+echo "[2] Asserting DFP / Host Mode & Enabling AUX Switch..."
+# Ensure CCIC has AUX analog switch enabled (0 0 is standard orientation, active low oe=0)
+echo "0 0" > /sys/class/dp_sec/dp_sbu_sw_sel 2>/dev/null || true
+echo 1 > /sys/class/dp_sec/dex 2>/dev/null || true
+echo 16 > /sys/class/dp_sec/forced_resolution 2>/dev/null || true
+echo 7 > /sys/class/dp_sec/log_level 2>/dev/null || true
+
+# Setting port_type to 'source' and role_swap to 1 commands the monitor via USB-PD DR_SWAP to make the phone the Data Host / DP Source
+echo source > /sys/class/typec/port0/port_type 2>/dev/null || true
+echo 1 > /sys/class/sec/ccic/role_swap 2>/dev/null || true
+sleep 1
+
+HPD=$(cat /sys/class/switch/hdmi/state 2>/dev/null || echo 0)
+echo "    - HDMI Switch State after role_swap: $HPD"
+
+if [ "$HPD" -eq 0 ]; then
+    echo "[3] HPD=0, triggering displayport_hpd_changed(1) via mode 9..."
+    echo 9 > /sys/class/dp_sec/link 2>/dev/null || true
+    sleep 1
+    HPD=$(cat /sys/class/switch/hdmi/state 2>/dev/null || echo 0)
+    echo "    - HDMI Switch State after mode 9: $HPD"
+fi
+
+if [ "$HPD" -eq 0 ]; then
+    echo "[4] Standard orientation failed. Trying flipped orientation (sel=1)..."
+    echo "1 0" > /sys/class/dp_sec/dp_sbu_sw_sel 2>/dev/null || true
+    sleep 0.5
+    echo 9 > /sys/class/dp_sec/link 2>/dev/null || true
+    sleep 1
+    HPD=$(cat /sys/class/switch/hdmi/state 2>/dev/null || echo 0)
+    echo "    - HDMI Switch State on Flipped Orientation: $HPD"
+fi
+
+if [ "$HPD" -eq 1 ]; then
+    echo ">>> SUCCESS: USB-C DisplayPort Link Active (HPD=1)!"
+    echo 150 > /sys/class/timed_output/vibrator/enable 2>/dev/null || true
+else
+    echo ">>> DisplayPort link did not lock automatically yet."
+fi
+
+echo "[5] Kernel DisplayPort & CCIC Log:"
+dmesg | grep -iE 'Displayport|decon|s2mm005|ccic' | tail -n 15
+
+echo "[6] exynos_dp_bridge Status:"
+pgrep -fa exynos_dp_bridge || echo "    exynos_dp_bridge not running!"

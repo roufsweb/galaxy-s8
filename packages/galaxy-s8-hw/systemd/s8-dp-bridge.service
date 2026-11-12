@@ -1,0 +1,14 @@
+[Unit]
+Description=Galaxy S8 USB-C DisplayPort Hotplug Bridge
+After=s8-hardware.service s8-vnc.service
+ConditionPathExists=/usr/local/bin/exynos_dp_bridge
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/s8-dp-bridge.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+

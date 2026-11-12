@@ -164,3 +164,18 @@ Execute these checks to verify that every hardware and software subsystem is ope
   * Phone pulses haptic motor once for 150 ms to confirm video lock.
   * External display immediately shows the 1920x1080 @ 60 Hz GNOME desktop.
   * Hardware mouse cursor tracks smoothly with zero tearing.
+
+### 9. Cold Power-Cycle & Power-Loss Recovery Check
+* **Objective:** Verify that the system autonomously recovers from sudden power cuts, dead battery conditions, or cold resets with automatic ext4 journal replay and PMIC fast-charge re-negotiation.
+* **Hardware Warning:** Avoid repeatedly disconnecting the physical battery cable (the motherboard FPC socket is rated for only ~20-30 cycles). Use the safe, 100% equivalent methods below:
+* **Procedure A (PMIC Cold Reset via Hardware Latch):**
+  1. Hold **Volume Down + Bixby + Power** for **30 seconds** continuously.
+  2. Release all buttons. The MAX77865 PMIC drops `EN_BUCK`, wipes DRAM state, and initiates a true cold boot via S-Boot and EL2 TrustZone.
+  3. Verify: Phone boots, double-vibrates (`2x 150ms`), unlocks 1500 mA fast charging, and ADB enumerates automatically.
+* **Procedure B (Hard Power-Loss via Kernel SysRq):**
+  1. Run:
+     ```powershell
+     adb shell "echo b > /proc/sysrq-trigger"
+     ```
+  2. The kernel immediately reboots without clean filesystem unmounting.
+  3. Verify: `e2fsck -p -y /data/linux/rootfs.img` automatically replays the dirty journal, and the Linux desktop / services resume with zero orphaned inodes.

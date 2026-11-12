@@ -1,0 +1,14 @@
+[Unit]
+Description=Galaxy S8 CC-Aware Type-C Multi-Role Supervisor
+After=s8-hardware.service
+ConditionPathExists=/usr/bin/python3
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/s8_typec_daemon.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

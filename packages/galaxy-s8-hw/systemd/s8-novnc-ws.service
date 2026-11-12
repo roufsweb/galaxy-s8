@@ -1,0 +1,15 @@
+[Unit]
+Description=Galaxy S8 noVNC WebSocket Proxy (6080 -> 5901)
+After=s8-vnc.service network.target
+ConditionPathExists=/usr/bin/websockify
+
+[Service]
+Type=simple
+SupplementaryGroups=aid_inet aid_net_raw aid_net_admin
+ExecStart=/bin/sh -c 'if [ -d /usr/share/novnc ]; then exec /usr/bin/websockify --web=/usr/share/novnc 6080 127.0.0.1:5901; else exec /usr/bin/websockify 6081 127.0.0.1:5901; fi'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+

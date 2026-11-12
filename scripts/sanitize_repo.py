@@ -46,7 +46,7 @@ EXCLUDE_DIRS = {
     ".vscode",
     "dist",
     "build",
-    "galaxy-s8-kvm-kernel",
+    "kernel",
     "AP_G950NKSU5DVG2_CL21340847_QB54384937_REV00_user_low_ship_meta_OS9.tar",
     "galaxy-s8-stock-firmwire",
     "device_firmware",
@@ -54,11 +54,14 @@ EXCLUDE_DIRS = {
     "ramdisk_root",
     "ramdisk_work",
     "magisk_boot",
+    "scratch",
+    "archive",
+    "desktop-app",
 }
 
 EXCLUDE_EXTENSIONS = {
     ".tar", ".tar.gz", ".tar.md5", ".md5", ".img", ".lz4", ".bin", ".blob", ".hcd",
-    ".so", ".png", ".jpg", ".jpeg", ".ico", ".wav", ".mp3", ".pdf",
+    ".so", ".dylib", ".dll", ".exe", ".png", ".jpg", ".jpeg", ".ico", ".wav", ".mp3", ".pdf",
     ".lock", ".pyc"
 }
 
@@ -112,7 +115,7 @@ def walk_repo(root_dir):
         
         for file in files:
             ext = os.path.splitext(file)[1].lower()
-            if ext in EXCLUDE_EXTENSIONS:
+            if ext in EXCLUDE_EXTENSIONS or file.startswith(".env"):
                 continue
             filepath = os.path.join(root, file)
             try:

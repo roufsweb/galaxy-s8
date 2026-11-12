@@ -1,0 +1,14 @@
+[Unit]
+Description=Galaxy S8 Broadcom BCM4361 Bluetooth Bring-Up
+After=s8-hardware.service
+ConditionPathExists=/usr/local/bin/start_bluetooth.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+KillMode=process
+ExecStart=/usr/local/bin/start_bluetooth.sh
+
+[Install]
+WantedBy=multi-user.target
+

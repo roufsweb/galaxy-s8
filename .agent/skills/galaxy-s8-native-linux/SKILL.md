@@ -57,6 +57,9 @@ adb shell "chroot /mnt/ubuntu /usr/local/bin/start_gnome_macos.sh"
 
 ## 3. Rebuilding Auto-Boot `boot.img` & 1-Click Odin Installer
 
+> [!NOTE]
+> For complete step-by-step kernel compilation and Odin AP assembly details, see the dedicated skill [`galaxy-s8-ap-kernel-builder`](file:///e:/rouf/galaxy-s8/.agent/skills/galaxy-s8-ap-kernel-builder/SKILL.md) and [`docs/AP_AND_KERNEL_BUILD_GUIDE.md`](file:///e:/rouf/galaxy-s8/docs/AP_AND_KERNEL_BUILD_GUIDE.md).
+
 Run [`e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py`](file:///e:/rouf/galaxy-s8/scratch/build_rocksolid_boot.py):
 ```powershell
 python e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py
@@ -64,15 +67,15 @@ python e:\rouf\galaxy-s8\scratch\build_rocksolid_boot.py
 * Built with 6 strict automated validation guarantees:
   1. Base kernel & ramdisk from proven stable `archive/boot_twrp_exact.tar`.
   2. Direct embedding of all 9 Calliope DSP audio firmware binaries into `etc/firmware/` and `vendor/firmware/` (zero IPC timeouts).
-  3. Minimal `permissive.sh` (`setenforce 0` only) with zero rogue background loops and zero bind mounts.
+  3. Minimal `permissive.sh` (`setenforce 0` + `echo $$ > /acct/tasks`) with zero rogue background loops and zero bind mounts.
   4. Auto-repair of ext4 journals (`e2fsck -p /dev/block/sda24`) on boot.
-  5. Auto-boot triggered cleanly on `sys.usb.ffs.ready=1` so ADB root shell is always guaranteed.
+  5. Auto-boot triggered on `sys.usb.ffs.ready=1` (`on property:sys.usb.ffs.ready=1 -> start ubuntu_boot`) ensuring ADB root daemon is fully ready before `/data/linux/start_all.sh` runs.
   6. Automated pre-flash verification of CPIO integrity and size limit (`<= 41,943,040` bytes).
 * Outputs:
-  * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`38,971,408` B `<= 41,943,040` B `sda7` limit)
-  * `e:\rouf\galaxy-s8\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`87,214,080` B USTAR archive for Odin `AP` slot)
+  * `e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img` (`38,977,552` B `<= 41,943,040` B `sda7` limit)
+  * `e:\rouf\galaxy-s8\releases\Ubuntu_24.04_GalaxyS8_Full_Odin.tar` (`77,967,360` B USTAR archive for Odin `AP` slot, containing dual auto-booting images for both `boot.img` and `recovery.img`)
 * Flash live via ADB without Odin:
   ```powershell
   adb push e:\rouf\galaxy-s8\scratch\boot_ubuntu_autoboot.img /tmp/boot.img
-  adb shell "dd if=/tmp/boot.img of=/dev/block/sda7 bs=4096 conv=fsync && rm /tmp/boot.img && sync"
+  adb shell "dd if=/tmp/boot.img of=/dev/block/sda7 bs=4096 conv=fsync && dd if=/tmp/boot.img of=/dev/block/sda8 bs=4096 conv=fsync && rm /tmp/boot.img && sync"
   ```

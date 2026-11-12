@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxy S8 Native Linux — Project Architecture & Data Flow Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#090B10',
+            appCard: '#11151F',
+            appCardAlt: '#181E2C',
+            appBorder: '#232B3E',
+            appBlue: '#3B82F6',
+            appCyan: '#06B6D4',
+            appEmerald: '#10B981',
+            appAmber: '#F59E0B',
+            appRose: '#F43F5E',
+            appMuted: '#94A3B8',
+            appDim: '#64748B'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    body { background-color: #090B10; color: #F8FAFC; overflow-x: hidden; }
+    .flow-active { border-color: #38BDF8 !important; box-shadow: 0 0 20px rgba(56, 189, 248, 0.35) !important; transform: scale(1.02); }
+    .flow-line-active { stroke: #38BDF8 !important; stroke-width: 3 !important; filter: drop-shadow(0 0 6px #38BDF8); }
+    .node-card { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #232B3E; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased text-slate-100">
+
+  <!-- ===================================================================== -->
+  <!-- TOP HEADER / CONTROL BAR                                              -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-50 bg-appBg/90 backdrop-blur-md border-b border-appBorder px-6 py-3.5 flex items-center justify-between shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <i data-lucide="network" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm font-bold tracking-tight text-white">Galaxy S8 Native Linux Platform</h1>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">roufsweb</span>
+        </div>
+        <p class="text-[11px] text-appMuted">Interactive Data Flow & File Dependency Visualizer</p>
+      </div>
+    </div>
+
+    <!-- Trace Simulator Action Pills -->
+    <div class="flex items-center gap-2">
+      <span class="text-[11px] font-mono text-appDim uppercase tracking-wider mr-1">Simulate Flow:</span>
+      <button onclick="traceFlow('flash')" id="btnTraceFlash"
+        class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-appBorder bg-appCard hover:bg-appCardAlt text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span>OS Deployment</span>
+      </button>
+      <button onclick="traceFlow('telemetry')" id="btnTraceTelemetry"
+        class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-appBorder bg-appCard hover:bg-appCardAlt text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>Telemetry Polling</span>
+      </button>
+      <button onclick="traceFlow('terminal')" id="btnTraceTerminal"
+        class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-appBorder bg-appCard hover:bg-appCardAlt text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span>Dual-Shell Execution</span>
+      </button>
+      <button onclick="traceFlow('displayport')" id="btnTraceDisplayPort"
+        class="trace-btn px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-appBorder bg-appCard hover:bg-appCardAlt text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+        <span>DisplayPort 1080p60</span>
+      </button>
+      <button onclick="resetFlow()"
+        class="px-2.5 py-1.5 rounded-xl text-xs font-mono text-appDim hover:text-white border border-appBorder/50 hover:bg-appCardAlt transition-all ml-1">
+        Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- MAIN VISUAL CONTENT AREA                                              -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 p-6 flex flex-col gap-8 max-w-[1700px] w-full mx-auto">
+
+    <!-- Active Flow Narrative Banner -->
+    <div id="flowBanner" class="hidden bg-appCard border border-appBorder rounded-2xl p-4 shadow-xl flex items-center justify-between transition-all">
+      <div class="flex items-center gap-3">
+        <div id="flowBannerIcon" class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"></div>
+        <div>
+          <h2 id="flowBannerTitle" class="text-xs font-bold text-white tracking-wide"></h2>
+          <p id="flowBannerDesc" class="text-xs text-appMuted mt-0.5"></p>
+        </div>
+      </div>
+      <div id="flowBannerSteps" class="text-xs font-mono text-cyan-400 bg-appCardAlt px-3 py-1.5 rounded-lg border border-appBorder"></div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 6-LAYER VERTEX-TO-BACK DATA FLOW DIAGRAM                            -->
+    <!-- =================================================================== -->
+    <div class="grid grid-cols-6 gap-3.5 relative">
+
+      <!-- LAYER 1: FRONTEND DESKTOP UI -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-cyan-400 uppercase tracking-wider">
+            <i data-lucide="layout" class="w-3.5 h-3.5"></i>
+            <span>Layer 1: Desktop UI</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">index.html</span>
+        </div>
+
+        <!-- Node: Header HUD -->
+        <div id="node-ui-header" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Header & Peripherals</span>
+            <span class="text-[9px] font-mono text-appDim">DOM</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Status pill, battery voltage HUD, rear torch switch, haptics trigger.</p>
+          <div class="flex flex-wrap gap-1 mt-1 text-[10px] font-mono text-appDim">
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#connStatusDot</span>
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#btnTorchToggle</span>
+          </div>
+        </div>
+
+        <!-- Node: Flash Page -->
+        <div id="node-ui-flash" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">OS Flasher Page</span>
+            <span class="text-[9px] font-mono text-appDim">#pageFlash</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Image file picker, distro library modal, 4-48GB storage slider, clean ext4 toggle.</p>
+          <div class="flex flex-wrap gap-1 mt-1 text-[10px] font-mono text-appDim">
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#storageSlider</span>
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#btnStartDeploy</span>
+          </div>
+        </div>
+
+        <!-- Node: Dashboard Page -->
+        <div id="node-ui-dashboard" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Hardware Dashboard</span>
+            <span class="text-[9px] font-mono text-appDim">#pageDashboard</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Octa-core M2/A53 CPU gauges, Mali-G71 546MHz GPU booster, DisplayPort state.</p>
+          <div class="flex flex-wrap gap-1 mt-1 text-[10px] font-mono text-appDim">
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#cpuFreqM2</span>
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#dpStateBadge</span>
+          </div>
+        </div>
+
+        <!-- Node: Terminal Page -->
+        <div id="node-ui-terminal" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Dual-Shell Terminal</span>
+            <span class="text-[9px] font-mono text-appDim">#pageTerminal</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Interactive command executor: OS Root (chroot) vs AP Base (/sbin/sh).</p>
+          <div class="flex flex-wrap gap-1 mt-1 text-[10px] font-mono text-appDim">
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#termNativeInput</span>
+            <span class="bg-appCardAlt px-1.5 py-0.5 rounded">#termQuickPills</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 2: REST / WEBSOCKET API -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-blue-400 uppercase tracking-wider">
+            <i data-lucide="server" class="w-3.5 h-3.5"></i>
+            <span>Layer 2: REST API</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">api.py</span>
+        </div>
+
+        <!-- Node: /api/status -->
+        <div id="node-api-status" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">GET /api/status</span>
+            <span class="text-[9px] font-mono text-emerald-400">1.5s Poll</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Batch telemetry aggregator: CPU, thermal, battery, charging, DisplayPort, Wi-Fi IP.</p>
+          <span class="text-[10px] font-mono text-appDim">S8ApiHandler.do_GET()</span>
+        </div>
+
+        <!-- Node: /api/flash/* -->
+        <div id="node-api-flash" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">/api/flash/*</span>
+            <span class="text-[9px] font-mono text-amber-400">REST Endpoints</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight"><code>/start</code> (spawns deployment thread), <code>/status</code> (500ms progress stream), <code>/cancel</code>.</p>
+          <span class="text-[10px] font-mono text-appDim">flasher.py bridge</span>
+        </div>
+
+        <!-- Node: /api/exec -->
+        <div id="node-api-exec" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">GET /api/exec</span>
+            <span class="text-[9px] font-mono text-sky-400">Dual-Transport</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Dispatches commands via USB Wire (ADB) or Wi-Fi Network (roufsweb RWP SSH).</p>
+          <span class="text-[10px] font-mono text-appDim">adb_client.exec_os() / shell()</span>
+        </div>
+
+        <!-- Node: /api/screen & Controls -->
+        <div id="node-api-screen" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">/api/screen & Controls</span>
+            <span class="text-[9px] font-mono text-appDim">Peripherals</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">ADB forwards :6080/:5901/:2222; opens noVNC. <code>/api/torch</code>, <code>/api/haptic</code>, <code>/api/reboot</code>.</p>
+          <span class="text-[10px] font-mono text-appDim">webbrowser.open()</span>
+        </div>
+      </div>
+
+      <!-- LAYER 3: PYTHON CORE ENGINES -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-purple-400 uppercase tracking-wider">
+            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+            <span>Layer 3: Core Engines</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">app/core/</span>
+        </div>
+
+        <!-- Node: FlasherEngine -->
+        <div id="node-core-flasher" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">FlasherEngine</span>
+            <span class="text-[9px] font-mono text-amber-400">flasher.py</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Autonomous 2-stage deployment: asserts PMIC, formats clean ext4 without extents, unpacks rootfs.</p>
+          <span class="text-[10px] font-mono text-appDim">start_flash() thread</span>
+        </div>
+
+        <!-- Node: DeviceManager -->
+        <div id="node-core-device" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">DeviceManager</span>
+            <span class="text-[9px] font-mono text-emerald-400">device.py</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Telemetry supervisor with 2.5s TTL cache, non-blocking Wi-Fi socket probing, and peripheral controls.</p>
+          <span class="text-[10px] font-mono text-appDim">get_telemetry()</span>
+        </div>
+
+        <!-- Node: AdbClient -->
+        <div id="node-core-adb" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">AdbClient</span>
+            <span class="text-[9px] font-mono text-sky-400">adb.py</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Targeted subprocess executor: auto-selects bundled <code>desktop-app/bin/adb.exe</code>, manages port tunnels.</p>
+          <span class="text-[10px] font-mono text-appDim">serial: ce10171ab3e9620804</span>
+        </div>
+      </div>
+
+      <!-- LAYER 4: TARGET PHONE SUPERVISOR & DRIVERS -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-emerald-400 uppercase tracking-wider">
+            <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+            <span>Layer 4: Target Daemons</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">/data/linux/</span>
+        </div>
+
+        <!-- Node: start_all.sh -->
+        <div id="node-daemon-supervisor" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">start_all.sh</span>
+            <span class="text-[9px] font-mono text-emerald-400">Supervisor</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Master boot script: cgroup /acct/tasks escape, removes buggy /dev/video100+, unlocks 1500mA charging.</p>
+          <span class="text-[10px] font-mono text-appDim">init.rc auto-boot target</span>
+        </div>
+
+        <!-- Node: exynos_dp_bridge -->
+        <div id="node-daemon-dp" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">exynos_dp_bridge</span>
+            <span class="text-[9px] font-mono text-indigo-400">C Driver</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Manages DECON2 fb2 DisplayPort 1080p60: arms FB_BLANK_POWERDOWN while state==0; unblanks on plug.</p>
+          <span class="text-[10px] font-mono text-appDim">/dev/ion FBIO_WAITFORVSYNC</span>
+        </div>
+
+        <!-- Node: s8ctl & Peripherals -->
+        <div id="node-daemon-s8ctl" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">s8ctl & s8_typec_daemon</span>
+            <span class="text-[9px] font-mono text-appDim">CLI / Python</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Unified hardware CLI (CPU/GPU boost, audio, Wi-Fi scan, torch). Type-C daemon enforces DFP source mode.</p>
+          <span class="text-[10px] font-mono text-appDim">/usr/local/bin/s8ctl</span>
+        </div>
+      </div>
+
+      <!-- LAYER 5: AP LAYER (BOOT & RECOVERY) -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-amber-400 uppercase tracking-wider">
+            <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+            <span>Layer 5: AP Slot</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">sda7 / sda8</span>
+        </div>
+
+        <!-- Node: boot.img & recovery.img -->
+        <div id="node-ap-boot" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Golden Kernel & DTB</span>
+            <span class="text-[9px] font-mono text-amber-400">40 MB Limit</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Linux 4.4.111 DEFEX-free kernel + Korean Rev 11 DTB (0x50a6) packed into Android Boot Header v0.</p>
+          <span class="text-[10px] font-mono text-appDim">boot_ubuntu_autoboot.img</span>
+        </div>
+
+        <!-- Node: Calliope 9 DSP Firmwares -->
+        <div id="node-ap-dsp" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Calliope 9 DSP Suite</span>
+            <span class="text-[9px] font-mono text-purple-400">Audio Blobs</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Embedded in CPIO ramdisk (etc/firmware/ and vendor/firmware/). Zero IPC watchdog timeouts.</p>
+          <span class="text-[10px] font-mono text-appDim">calliope_sram.bin, etc.</span>
+        </div>
+
+        <!-- Node: init.rc & Cgroup Hook -->
+        <div id="node-ap-initrc" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">init.rc Supervisor Hook</span>
+            <span class="text-[9px] font-mono text-cyan-400">Auto-Boot</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Triggered on <code>sys.usb.ffs.ready=1</code> so adbd root is operational before start_all.sh launches.</p>
+          <span class="text-[10px] font-mono text-appDim">service ubuntu_boot</span>
+        </div>
+      </div>
+
+      <!-- LAYER 6: PHYSICAL EXYNOS SILICON -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5 text-xs font-bold font-mono text-rose-400 uppercase tracking-wider">
+            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+            <span>Layer 6: Silicon / HW</span>
+          </div>
+          <span class="text-[10px] font-mono text-appDim">SM-G950N</span>
+        </div>
+
+        <!-- Node: MAX77865 PMIC -->
+        <div id="node-hw-pmic" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">MAX77865 PMIC</span>
+            <span class="text-[9px] font-mono text-rose-400">Power Silicon</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Registers 0xBD, 0xC3, 0xC0, 0xB9, 0xB7: 1500mA fast charge + 4.3V UVLO brownout guard.</p>
+          <span class="text-[10px] font-mono text-appDim">/sys/.../max77865-charger/data</span>
+        </div>
+
+        <!-- Node: DECON2 & DisplayPort Switch -->
+        <div id="node-hw-dp" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">DECON2 & SBU Switch</span>
+            <span class="text-[9px] font-mono text-indigo-400">DisplayPort</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">Type-C Alt Mode pins: SBU analog switch (dp_sbu_sw_sel "0 0") & VDD_DP_3P3 power rail.</p>
+          <span class="text-[10px] font-mono text-appDim">/dev/graphics/fb2</span>
+        </div>
+
+        <!-- Node: Audio & Peripherals -->
+        <div id="node-hw-peripherals" class="node-card bg-appCard rounded-2xl border border-appBorder p-3 flex flex-col gap-1.5 shadow-lg">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-white">Audio, UFS & Shannon</span>
+            <span class="text-[9px] font-mono text-appDim">Peripherals</span>
+          </div>
+          <p class="text-[11px] text-appMuted leading-tight">MAX98506 speaker amp (hw:0,0), CS47L92 DMIC1 (hw:0,9), 64GB UFS 2.1 (sda), Shannon 359 LTE.</p>
+          <span class="text-[10px] font-mono text-appDim">/dev/block/sda15, rmnet0..7</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MODULAR OS STRATEGY & VANILLA DISTRO MATRIX                         -->
+    <!-- =================================================================== -->
+    <section class="bg-appCard rounded-3xl border border-appBorder p-6 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white tracking-wide">Vanilla Base OS + On-Demand Modular Layering Strategy</h2>
+            <p class="text-xs text-appMuted">Upstream distribution rootfs deployed natively — extra packages provisioned modularly post-install via console/AI.</p>
+          </div>
+        </div>
+        <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+          Zero Pre-Baked Bloat
+        </span>
+      </div>
+
+      <div class="grid grid-cols-4 gap-3.5 mt-1">
+        <!-- Distro 1: Ubuntu 24.04 LTS -->
+        <div class="bg-appCardAlt/70 border border-appBorder rounded-2xl p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white">Ubuntu 24.04.5 LTS</span>
+              <span class="text-[10px] font-mono text-amber-400">Noble Numbat</span>
+            </div>
+            <p class="text-[11px] text-appMuted mt-1">Glibc 2.39, ARM64. Clean minimal rootfs (~650 MB).</p>
+          </div>
+          <div class="pt-2 border-t border-appBorder/50 flex flex-col gap-1 text-[10px] font-mono text-appDim">
+            <span class="text-sky-400">Post-Install Modules:</span>
+            <span>• GNOME 46 + macOS Sonoma Theme</span>
+            <span>• Docker 26 + CasaOS Dashboard</span>
+          </div>
+        </div>
+
+        <!-- Distro 2: Debian 12 -->
+        <div class="bg-appCardAlt/70 border border-appBorder rounded-2xl p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white">Debian 12 Bookworm</span>
+              <span class="text-[10px] font-mono text-rose-400">Rock Solid</span>
+            </div>
+            <p class="text-[11px] text-appMuted mt-1">Pure upstream Debian ARM64 rootfs (~320 MB).</p>
+          </div>
+          <div class="pt-2 border-t border-appBorder/50 flex flex-col gap-1 text-[10px] font-mono text-appDim">
+            <span class="text-sky-400">Post-Install Modules:</span>
+            <span>• Headless TTY Server / Homelab</span>
+            <span>• Ollama LLM Inference Node</span>
+          </div>
+        </div>
+
+        <!-- Distro 3: Alpine Linux 3.20 -->
+        <div class="bg-appCardAlt/70 border border-appBorder rounded-2xl p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white">Alpine Linux 3.20</span>
+              <span class="text-[10px] font-mono text-cyan-400">Musl Libc</span>
+            </div>
+            <p class="text-[11px] text-appMuted mt-1">Ultra-lightweight (~30 MB idle RAM, 5MB rootfs).</p>
+          </div>
+          <div class="pt-2 border-t border-appBorder/50 flex flex-col gap-1 text-[10px] font-mono text-appDim">
+            <span class="text-sky-400">Post-Install Modules:</span>
+            <span>• Bare-metal Micro-Container Host</span>
+            <span>• WireGuard VPN Gateway</span>
+          </div>
+        </div>
+
+        <!-- Distro 4: Kali NetHunter / HAOS -->
+        <div class="bg-appCardAlt/70 border border-appBorder rounded-2xl p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white">Specialized Images</span>
+              <span class="text-[10px] font-mono text-purple-400">HAOS / Kali</span>
+            </div>
+            <p class="text-[11px] text-appMuted mt-1">Home Assistant OS 18.4 & Kali Minimal ARM64.</p>
+          </div>
+          <div class="pt-2 border-t border-appBorder/50 flex flex-col gap-1 text-[10px] font-mono text-appDim">
+            <span class="text-sky-400">Post-Install Modules:</span>
+            <span>• Zigbee/Matter Home Hub</span>
+            <span>• BCM4361 Monitor Mode Audit Tools</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEARCHABLE FILE CONNECTIVITY REPOSITORY DIRECTORY                   -->
+    <!-- =================================================================== -->
+    <section class="bg-appCard rounded-3xl border border-appBorder p-6 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <i data-lucide="folder-git-2" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white tracking-wide">Project File & Component Explorer</h2>
+            <p class="text-xs text-appMuted">Live searchable catalog of all indexed project files, scripts, drivers, and guides.</p>
+          </div>
+        </div>
+        
+        <!-- Live Filter Search Box -->
+        <div class="relative w-72">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-appDim absolute left-3 top-3"></i>
+          <input type="text" id="fileFilterInput" oninput="filterFiles(this.value)" placeholder="Search files, routes, or roles..."
+            class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-appCardAlt border border-appBorder text-xs text-white placeholder-appDim focus:outline-none focus:border-cyan-400 font-mono">
+        </div>
+      </div>
+
+      <!-- File Cards Grid -->
+      <div id="fileCardsGrid" class="grid grid-cols-3 gap-3 mt-1">
+        <!-- Injected dynamically via JavaScript -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- SCRIPT: INTERACTIVE SIMULATION & REPOSITORY DATA                      -->
+  <!-- ===================================================================== -->
+  <script>
+    lucide.createIcons();
+
+    // Repository File Catalog Data
+    const projectFiles = [
+      {
+        path: "Launch_S8_Imager.bat",
+        category: "Launcher",
+        size: "1.2 KB",
+        role: "1-Click Windows batch launcher for S8 Imager desktop app with venv auto-detection.",
+        connectsTo: ["desktop-app/main.py", "desktop-app/app/main.py"]
+      },
+      {
+        path: "desktop-app/ui/index.html",
+        category: "Desktop Frontend",
+        size: "95 KB",
+        role: "High-density Bento grid UI: flasher, hardware dashboard, consoles, dual-shell terminal.",
+        connectsTo: ["desktop-app/app/server/api.py", "/api/status", "/api/flash/*", "/api/exec"]
+      },
+      {
+        path: "desktop-app/app/server/api.py",
+        category: "Backend API",
+        size: "14 KB",
+        role: "ThreadingHTTPServer REST API & WebSocket dispatcher bridging UI to core engines.",
+        connectsTo: ["desktop-app/app/core/device.py", "desktop-app/app/core/flasher.py", "desktop-app/app/core/adb.py"]
+      },
+      {
+        path: "desktop-app/app/core/flasher.py",
+        category: "Deployment Engine",
+        size: "12 KB",
+        role: "Autonomous 2-stage multi-ROM deployer: PMIC assertion, mkfs.ext4 ^extents, rootfs extraction.",
+        connectsTo: ["/dev/block/sda15", "start_all.sh", "max77865-charger/data"]
+      },
+      {
+        path: "desktop-app/app/core/device.py",
+        category: "Hardware Poller",
+        size: "9 KB",
+        role: "Unified telemetry collector: battery, CPU M2/A53, thermals, DisplayPort, non-blocking Wi-Fi probe.",
+        connectsTo: ["/sys/class/power_supply/battery", "/sys/devices/system/cpu", "/sys/class/switch/hdmi/state"]
+      },
+      {
+        path: "desktop-app/app/core/adb.py",
+        category: "Host Bridge",
+        size: "6 KB",
+        role: "Thread-safe ADB bridge with bundled binary fallback and direct SSH/RWP Wi-Fi transport.",
+        connectsTo: ["desktop-app/bin/adb.exe", "ce10171ab3e9620804", "port tunnels 6080/5901/2222"]
+      },
+      {
+        path: "scratch/start_all.sh",
+        category: "Target Supervisor",
+        size: "3.2 KB",
+        role: "Master boot supervisor: cgroup /acct/tasks escape, V4L2 disarm, 1500mA PMIC unlock, GNOME 46.",
+        connectsTo: ["/data/linux/rootfs.img", "exynos_dp_bridge", "s8ctl", "init.rc"]
+      },
+      {
+        path: "scratch/exynos_dp_bridge.c",
+        category: "Hardware Driver",
+        size: "19 KB",
+        role: "DECON2 fb2 DisplayPort 1080p60 framebuffer bridge with EDID negotiation and VSYNC lock.",
+        connectsTo: ["/dev/graphics/fb2", "/dev/ion", "/sys/class/dp_sec/dp_sbu_sw_sel"]
+      },
+      {
+        path: "scratch/s8ctl.py",
+        category: "CLI Suite",
+        size: "14 KB",
+        role: "Unified hardware controller: CPU profiles, GPU 546MHz booster, audio routing, torch, haptics.",
+        connectsTo: ["/sys/kernel/gpu/gpu_clock", "/sys/class/leds/torch-sec1/brightness", "asound.conf"]
+      },
+      {
+        path: "src/drivers/s8_typec_daemon.py",
+        category: "Power Daemon",
+        size: "5 KB",
+        role: "Type-C CCIC supervisor asserting DFP source mode (Rp pull-ups) and re-asserting 1500mA charging.",
+        connectsTo: ["/sys/class/typec/port0/port_type", "/sys/class/sec/ccic/role_swap"]
+      },
+      {
+        path: "scratch/build_rocksolid_boot.py",
+        category: "AP Builder",
+        size: "23 KB",
+        role: "Automated builder: embeds 9 Calliope DSP firmwares, strips fonts, packages Odin AP tar.",
+        connectsTo: ["boot_ubuntu_autoboot.img", "Ubuntu_24.04_GalaxyS8_Full_Odin.tar"]
+      },
+      {
+        path: "docs/AP_AND_KERNEL_BUILD_GUIDE.md",
+        category: "Documentation",
+        size: "11 KB",
+        role: "Authoritative technical manual for Exynos 8895 kernel compilation and Odin AP slot packaging.",
+        connectsTo: ["arch/arm64/boot/Image", "dtb_rev11.img", "build_rocksolid_boot.py"]
+      },
+      {
+        path: "docs/OS_MANAGEMENT_AND_FLASHING.md",
+        category: "Documentation",
+        size: "8 KB",
+        role: "Complete specification of exposed AP components, dual storage, and 3 flashing pipelines.",
+        connectsTo: ["flasher.py", "sda15", "Odin AP slot"]
+      },
+      {
+        path: "PROJECT_INDEX.md",
+        category: "Catalog Index",
+        size: "85 KB",
+        role: "Master autonomous repository index and Vertex-to-Back Application Dependency Graph.",
+        connectsTo: ["scripts/project_index.py", "All 1,256 verified project assets"]
+      },
+      {
+        path: "GEMINI.md",
+        category: "Master Rulebook",
+        size: "15 KB",
+        role: "17 strict empirical anti-hallucination hardware rules verified on live live SM-G950N phone.",
+        connectsTo: ["All agent skills and operational runbooks"]
+      }
+    ];
+
+    function renderFiles(files) {
+      const grid = document.getElementById('fileCardsGrid');
+      grid.innerHTML = files.map(f => `
+        <div class="bg-appCardAlt/50 border border-appBorder/80 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5 hover:border-cyan-500/40 transition-colors">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-bold text-white truncate max-w-[210px]" title="${f.path}">${f.path}</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-appBorder text-cyan-400 shrink-0">${f.category}</span>
+            </div>
+            <p class="text-[11px] text-appMuted mt-1 leading-relaxed">${f.role}</p>
+          </div>
+          <div class="pt-2 border-t border-appBorder/40 text-[10px] font-mono text-appDim flex items-center justify-between">
+            <span class="truncate max-w-[200px]" title="Connects to: ${f.connectsTo.join(', ')}">🔗 ${f.connectsTo[0]}</span>
+            <span>${f.size}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterFiles(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) {
+        renderFiles(projectFiles);
+        return;
+      }
+      const filtered = projectFiles.filter(f => 
+        f.path.toLowerCase().includes(q) ||
+        f.role.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q) ||
+        f.connectsTo.some(c => c.toLowerCase().includes(q))
+      );
+      renderFiles(filtered);
+    }
+
+    // Interactive Trace Simulator
+    const flowScenarios = {
+      flash: {
+        title: "Autonomous 2-Stage OS Deployment Flow",
+        desc: "User selects OS image & slider -> /api/flash/start -> FlasherEngine -> asserts MAX77865 PMIC 1500mA -> formats sda15 clean ext4 (^extents) -> unpacks rootfs -> start_all.sh -> dual haptic pulse.",
+        steps: "6 Steps • Verified Zero Data Loss",
+        nodes: ["node-ui-flash", "node-api-flash", "node-core-flasher", "node-daemon-supervisor", "node-ap-boot", "node-hw-pmic", "node-hw-peripherals"],
+        color: "amber"
+      },
+      telemetry: {
+        title: "1.5s High-Frequency Hardware Telemetry Polling Flow",
+        desc: "UI DOM requests /api/status -> S8ApiHandler -> DeviceManager (2.5s cache TTL) -> reads CPU sysfs, thermal junction temp, battery voltage, and DisplayPort state.",
+        steps: "Avg 2.25ms • Sub-50ms Budget",
+        nodes: ["node-ui-header", "node-ui-dashboard", "node-api-status", "node-core-device", "node-hw-pmic", "node-hw-dp"],
+        color: "emerald"
+      },
+      terminal: {
+        title: "Dual-Shell Interactive Root Terminal Flow",
+        desc: "#termNativeInput keystroke -> /api/exec?env=os|ap -> AdbClient -> dispatches via USB wire or Wi-Fi SSH -> executes in root chroot /mnt/ubuntu or /sbin/sh base.",
+        steps: "PTY Output Streamed • ANSI Colorized",
+        nodes: ["node-ui-terminal", "node-api-exec", "node-core-adb", "node-daemon-s8ctl", "node-ap-initrc"],
+        color: "sky"
+      },
+      displayport: {
+        title: "Native USB-C DisplayPort 1080p60 Hardware Pipeline",
+        desc: "Type-C monitor plugged -> switch/hdmi/state flips 1 -> exynos_dp_bridge asserts SBU analog switch ('0 0') -> unblanks DECON2 fb2 -> streams /dev/ion frames locked to 60Hz VSYNC.",
+        steps: "Zero Kernel Panic Guard Active",
+        nodes: ["node-ui-dashboard", "node-api-status", "node-core-device", "node-daemon-dp", "node-hw-dp"],
+        color: "indigo"
+      }
+    };
+
+    function traceFlow(scenarioKey) {
+      resetFlow();
+      const s = flowScenarios[scenarioKey];
+      if (!s) return;
+
+      // Update Narrative Banner
+      const banner = document.getElementById('flowBanner');
+      banner.classList.remove('hidden');
+      document.getElementById('flowBannerTitle').innerText = s.title;
+      document.getElementById('flowBannerDesc').innerText = s.desc;
+      document.getElementById('flowBannerSteps').innerText = s.steps;
+
+      const iconEl = document.getElementById('flowBannerIcon');
+      iconEl.className = `w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-${s.color}-500/10 text-${s.color}-400`;
+      iconEl.innerHTML = `<i data-lucide="activity" class="w-4 h-4"></i>`;
+
+      // Highlight Active Nodes
+      s.nodes.forEach((nId, idx) => {
+        const el = document.getElementById(nId);
+        if (el) {
+          setTimeout(() => {
+            el.classList.add('flow-active');
+          }, idx * 80);
+        }
+      });
+
+      // Highlight button
+      document.querySelectorAll('.trace-btn').forEach(btn => btn.classList.remove('border-cyan-400', 'text-cyan-300'));
+      const activeBtn = document.getElementById(`btnTrace${scenarioKey.charAt(0).toUpperCase() + scenarioKey.slice(1)}`);
+      if (activeBtn) activeBtn.classList.add('border-cyan-400', 'text-cyan-300');
+
+      lucide.createIcons();
+    }
+
+    function resetFlow() {
+      document.getElementById('flowBanner').classList.add('hidden');
+      document.querySelectorAll('.node-card').forEach(n => n.classList.remove('flow-active'));
+      document.querySelectorAll('.trace-btn').forEach(btn => btn.classList.remove('border-cyan-400', 'text-cyan-300'));
+    }
+
+    // Initial Render
+    renderFiles(projectFiles);
+  </script>
+</body>
+</html>
+

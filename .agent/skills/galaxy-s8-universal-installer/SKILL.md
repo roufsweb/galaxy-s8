@@ -50,15 +50,16 @@ Users can place any of the following images directly into the exposed drive:
 
 ---
 
-## 3. Strict Pre-Flash Validation Checklist (`build_rocksolid_boot.py`)
+## 3. Strict Pre-Flash Validation Checklist (`build_golden_boot.py`)
 
 Before any Odin package is created or flashed, the automated validator MUST confirm:
 1. **Partition Limit:** `boot.img` size `<= 41,943,040` bytes (`sda7` limit).
 2. **Zero Rogue Loops:** `sbin/permissive.sh` contains ONLY `setenforce 0`. No background subshells, no mount polling.
 3. **Firmware Integrity:** All 9 Calliope DSP audio firmware binaries exist in `etc/firmware/` and `vendor/firmware/` inside the CPIO archive.
 4. **Zero Shadowing:** Ramdisk never mounts `/system_root` or external partitions over `/etc/firmware`.
-5. **Clean Trigger:** `init.rc` triggers supervisor on `property:sys.usb.ffs.ready=1` (ADB root always online).
+5. **Universal Auto-Boot Trigger:** `init.rc` triggers supervisor on `boot` (`on boot -> start ubuntu_boot`), ensuring both PC-tethered and standalone battery-powered boots succeed reliably.
 6. **Auto-Repair:** `exec /sbin/e2fsck -p /dev/block/sda24` runs before mounting `/data` to heal uncommitted dirty journals from abrupt power cuts in <200ms.
+7. **Dual-Partition Packaging:** Packages golden image into both `boot.img` and `recovery.img` in `releases/Ubuntu_24.04_GalaxyS8_Full_Odin.tar` so ungraceful crash recovery (`reset_reason=9`) automatically resumes native Linux.
 
 ---
 

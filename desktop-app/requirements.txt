@@ -1,0 +1,4 @@
+# Core runtime has zero mandatory external dependencies (uses standard library http.server and subprocess)
+# Optional build tools:
+pyinstaller>=6.0.0
+

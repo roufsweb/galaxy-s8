@@ -1,0 +1,24 @@
+#!/sbin/openrc-run
+# Galaxy S8 Exynos 8895 Hardware Service (Alpine / OpenRC)
+description="Samsung Galaxy S8 Hardware Initialization, USB RNDIS & Chassis Buttons"
+
+depend() {
+    need localmount
+    before net
+}
+
+start() {
+    ebegin "Initializing Galaxy S8 Hardware Suite"
+    /usr/local/bin/s8-hardware-init.sh
+    start-stop-daemon --start --background --make-pidfile --pidfile /run/s8-usb-gadget.pid --exec /usr/local/bin/s8-usb-gadget.sh
+    start-stop-daemon --start --background --make-pidfile --pidfile /run/s8-buttons.pid --exec /usr/local/bin/s8_button_daemon
+    eend 0
+}
+
+stop() {
+    ebegin "Stopping Galaxy S8 Hardware Daemons"
+    start-stop-daemon --stop --pidfile /run/s8-buttons.pid 2>/dev/null || true
+    start-stop-daemon --stop --pidfile /run/s8-usb-gadget.pid 2>/dev/null || true
+    eend 0
+}
+

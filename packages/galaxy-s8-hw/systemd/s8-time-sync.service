@@ -1,0 +1,14 @@
+[Unit]
+Description=Galaxy S8 NTP / HTTP Clock Synchronization
+After=network-online.target s8-hardware.service
+Wants=network-online.target
+ConditionPathExists=/usr/bin/python3
+
+[Service]
+Type=simple
+SupplementaryGroups=aid_inet aid_net_raw
+ExecStart=/usr/bin/python3 /usr/local/bin/s8-time-sync.py
+
+[Install]
+WantedBy=multi-user.target
+

@@ -198,6 +198,34 @@ static void pulse_vibrator(int ms) {
   }
 }
 
+static void write_string_file(const char *path, const char *val) {
+  FILE *fp = fopen(path, "w");
+  if (fp) {
+    fprintf(fp, "%s\n", val);
+    fclose(fp);
+  }
+}
+
+static bool check_typec_partner(void) {
+  return (access("/sys/class/typec/port0/port0-partner", F_OK) == 0) ||
+         (read_int_file("/sys/class/sec/ccic/state", 0) != 0);
+}
+
+static void ensure_usb_host_mode(void) {
+  char buf[32] = {0};
+  FILE *fp = fopen("/sys/class/typec/port0/data_role", "r");
+  if (fp) {
+    if (fgets(buf, sizeof(buf), fp) && strstr(buf, "[device]")) {
+      write_string_file("/sys/class/typec/port0/data_role", "host");
+      write_string_file("/sys/class/host_notify/usb_otg/mode", "HOST");
+      write_string_file("/sys/class/sec/ccic/role_swap", "1");
+      printf("[exynos_dp_bridge] Commanded USB Host (XHCI) mode for Type-C peripherals.\n");
+    }
+    fclose(fp);
+  }
+}
+
+
 static int configure_dp_resolution(int fb_fd, uint32_t *out_w,
                                    uint32_t *out_h) {
   struct exynos_displayport_data dp_data;

@@ -1,0 +1,2637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S8 Imager by roufsweb — Universal Linux OS Installer & Device Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#0F1014',
+            appCard: '#17181E',
+            appCardAlt: '#21242E',
+            appBorder: '#282C38',
+            appBlue: '#3478F6',
+            appBlueHover: '#2563EB',
+            appCyan: '#38BDF8',
+            appCyanHover: '#0EA5E9',
+            appCyanDim: '#0C4A6E',
+            appMuted: '#94A3B8',
+            appDim: '#64748B'
+          },
+          fontFamily: {
+            sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    body {
+      background-color: #0F1014;
+      color: #FFFFFF;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #282C38;
+      border-radius: 4px;
+    }
+
+    .modal-backdrop {
+      background-color: rgba(10, 10, 14, 0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    /* Modern Glassmorphic Toggle Switch */
+    .toggle-checkbox:checked {
+      right: 0;
+      background-color: #38BDF8;
+    }
+
+    .toggle-checkbox:checked+.toggle-label {
+      background-color: rgba(56, 189, 248, 0.25);
+      border-color: #38BDF8;
+    }
+  </style>
+</head>
+
+<body class="h-screen w-screen flex p-3 gap-3 font-sans antialiased bg-appBg text-white">
+
+  <!-- ================================================================= -->
+  <!-- 1. LEFT EXPANDABLE SIDEBAR (Multi-Page Navigation)                -->
+  <!-- ================================================================= -->
+  <aside id="appSidebar"
+    class="w-56 transition-all duration-300 flex flex-col justify-between py-2.5 shrink-0 bg-appCard/50 border border-appBorder rounded-3xl p-2.5 shadow-xl backdrop-blur-md overflow-hidden">
+    <div class="flex flex-col gap-3 w-full">
+      <!-- Branded S8 Logo + Title Header -->
+      <div id="sidebarLogoHeader" class="flex items-center gap-2.5 px-1 py-0.5 justify-start w-full">
+        <!-- Phone Vector Logo Badge from Build -->
+        <div id="sidebarLogoBadge"
+          class="w-9 h-9 rounded-2xl bg-gradient-to-br from-appBlue via-blue-600 to-sky-400 p-0.5 shadow-lg shadow-sky-500/20 shrink-0 cursor-pointer"
+          onclick="toggleSidebar()" title="Click to collapse/expand">
+          <div
+            class="w-full h-full bg-[#12151C] rounded-[14px] flex items-center justify-center relative overflow-hidden">
+            <!-- Galaxy S8 Authentic Dual-Edge Infinity Display Silhouette -->
+            <svg class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5.5" y="2" width="13" height="20" rx="3.5" ry="3.5" />
+              <line x1="10" y1="4.5" x2="14" y2="4.5" stroke-width="1.5" stroke="#94A3B8" />
+              <line x1="8" y1="2" x2="8" y2="22" stroke-width="0.8" stroke="#38BDF8" stroke-dasharray="2 1" />
+              <line x1="16" y1="2" x2="16" y2="22" stroke-width="0.8" stroke="#38BDF8" stroke-dasharray="2 1" />
+              <circle cx="12" cy="18.5" r="0.8" fill="#38BDF8" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Sidebar Header Title (Smoothly hidden when collapsed) -->
+        <div class="sidebar-label flex flex-col overflow-hidden transition-opacity duration-200">
+          <span class="text-sm font-bold tracking-tight text-white whitespace-nowrap">S8 Imager</span>
+          <span class="text-[9px] font-mono text-sky-400 font-semibold tracking-wider whitespace-nowrap">EXYNOS
+            8895</span>
+        </div>
+      </div>
+
+      <!-- Multi-Page Navigation Menu -->
+      <nav class="flex flex-col gap-1 w-full">
+        <!-- Page 1: Flash OS (Default Active) -->
+        <button id="navBtnFlash" onclick="switchPage('flash')"
+          class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-2xl bg-sky-500/15 border border-sky-400/40 text-sky-300 font-bold shadow-md shadow-sky-500/10 transition-all active:scale-[0.98] group"
+          title="Flash OS">
+          <div class="w-7 h-7 rounded-xl bg-sky-400/20 flex items-center justify-center shrink-0 text-sky-400">
+            <i data-lucide="zap" class="w-3.5 h-3.5 stroke-[2.5]"></i>
+          </div>
+          <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Flash OS</span>
+        </button>
+
+        <!-- Page 2: Hardware Dashboard & SoC Telemetry -->
+        <button id="navBtnDashboard" onclick="switchPage('dashboard')"
+          class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-transparent transition-all active:scale-[0.98] group"
+          title="Hardware Dashboard">
+          <div
+            class="w-7 h-7 rounded-xl bg-appCardAlt flex items-center justify-center shrink-0 group-hover:text-white">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 stroke-[2]"></i>
+          </div>
+          <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Dashboard</span>
+        </button>
+
+        <!-- Page 3: Interactive Terminal Shell -->
+        <button id="navBtnTerminal" onclick="switchPage('terminal')"
+          class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-transparent transition-all active:scale-[0.98] group"
+          title="Terminal">
+          <div
+            class="w-7 h-7 rounded-xl bg-appCardAlt flex items-center justify-center shrink-0 group-hover:text-white">
+            <i data-lucide="terminal" class="w-3.5 h-3.5 stroke-[2]"></i>
+          </div>
+          <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Terminal</span>
+        </button>
+
+        <!-- Page 4: Device & Network Configuration -->
+        <button id="navBtnConfig" onclick="switchPage('config')"
+          class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-transparent transition-all active:scale-[0.98] group"
+          title="Device & Network Configuration">
+          <div
+            class="w-7 h-7 rounded-xl bg-appCardAlt flex items-center justify-center shrink-0 group-hover:text-white">
+            <i data-lucide="settings-2" class="w-3.5 h-3.5 stroke-[2]"></i>
+          </div>
+          <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Config</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom Sidebar Controls: Support Project & Collapse / Expand -->
+    <div class="w-full pt-1.5 border-t border-appBorder/40 flex flex-col gap-1">
+      <button onclick="openDonateModal()"
+        class="sidebar-bottom-btn flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-2xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 transition-all active:scale-[0.98] group"
+        title="Support Project (ETH / MetaMask)">
+        <div
+          class="w-7 h-7 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 text-amber-400 group-hover:scale-105 transition-transform">
+          <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+        </div>
+        <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Buy Me a Coffee</span>
+      </button>
+
+      <button id="sidebarToggleBtn" onclick="toggleSidebar()"
+        class="sidebar-bottom-btn flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-appBorder/40 transition-all"
+        title="Toggle Sidebar">
+        <div class="w-7 h-7 rounded-xl bg-appCardAlt flex items-center justify-center shrink-0">
+          <i id="sidebarToggleIcon" data-lucide="panel-left-close" class="w-3.5 h-3.5"></i>
+        </div>
+        <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================================================================= -->
+  <!-- 2. MAIN WORKSPACE CONTAINER (Multi-Page Content Area)             -->
+  <!-- ================================================================= -->
+  <main class="flex-1 flex flex-col gap-3 overflow-hidden">
+
+    <!-- TOP HEADER: S8 Imager Brand + Roufsweb Protocol Status Pill -->
+    <header class="flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          S8 Imager
+        </h1>
+        <span class="text-xs font-semibold text-appDim tracking-wide">by roufsweb</span>
+        <span id="pageHeaderTitle" class="hidden"></span>
+      </div>
+
+      <!-- Roufsweb Protocol Connection Status Container (Fixed dimensions, no jumping) -->
+      <div id="deviceStatusPill" onclick="toggleConnectionDemo()"
+        class="w-36 h-8 cursor-pointer transition-all duration-300 active:scale-[0.98] backdrop-blur-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs rounded-full shadow-md shadow-emerald-500/10 flex items-center justify-center gap-2 select-none"
+        title="roufsweb protocol — Click to test toggle">
+        <div id="statusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></div>
+        <span id="statusText" class="font-semibold text-xs tracking-wide">Connected</span>
+      </div>
+    </header>
+
+    <!-- =============================================================== -->
+    <!-- PAGE 1: FLASH OS — SINGLE UNIFIED CONTAINER                     -->
+    <!-- =============================================================== -->
+    <div id="pageFlash" class="page-view flex-1 flex flex-col bg-appCard border border-appBorder rounded-3xl p-5 shadow-2xl overflow-hidden gap-3.5 h-full">
+
+      <!-- Top Row: Target Image Selection & Universal Storage Allocation -->
+      <div class="grid grid-cols-12 gap-3 shrink-0">
+        <!-- Target OS Selection (7 cols) -->
+        <div class="col-span-7 bg-appCardAlt/60 border border-appBorder rounded-2xl p-3.5 flex flex-col justify-between gap-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+                <i data-lucide="disc" class="w-3.5 h-3.5"></i>
+              </div>
+              <h2 class="text-xs font-semibold text-white tracking-wide">Target Image</h2>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="flashTargetArch" class="text-[9px] font-mono text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-400/20">
+                ARM64 (aarch64)
+              </span>
+              <span id="flashTargetBadge" class="text-[9px] font-mono text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded border border-sky-400/20">
+                UBUNTU 24.04 LTS
+              </span>
+            </div>
+          </div>
+
+          <input type="file" id="customImgFileInput" accept=".img,.iso,.tar,.xz,.zst,.gz,.raw,.bin,.tgz" onchange="handleCustomFileSelected(event)" class="hidden" data-testid="customImgFileInput">
+          
+          <div class="flex items-center gap-2">
+            <button id="btnSelectOsFile" onclick="selectOsImage()" data-testid="btnBrowseFile"
+              class="py-2 px-3 rounded-xl bg-appCard hover:bg-appBorder border border-appBorder/80 text-white text-xs font-medium flex items-center gap-2 transition-all active:scale-[0.98] shrink-0">
+              <i data-lucide="folder-open" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Select Image File...</span>
+            </button>
+            <button id="btnOpenCatalog" onclick="openDistroModal()"
+              class="py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-[0.98] shrink-0">
+              <i data-lucide="cloud-download" class="w-3.5 h-3.5"></i>
+              <span>Official OS Catalog</span>
+            </button>
+
+            <!-- Image File Path Container with Copy Icon -->
+            <div class="flex-1 bg-slate-950/70 border border-appBorder/50 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 overflow-hidden text-[11px] font-mono">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+                <span id="flashSelectedName" class="text-white font-medium truncate" title="ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz">
+                  ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz
+                </span>
+                <span id="flashSelectedPath" class="hidden">distros/ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz</span>
+              </div>
+              <button onclick="copyImagePath()" class="text-appMuted hover:text-white shrink-0 p-0.5" title="Copy path">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Real Image Metadata Strip -->
+          <div class="flex items-center justify-between text-[10px] font-mono bg-appBg/50 rounded-xl px-3 py-1 border border-appBorder/40">
+            <div class="flex items-center gap-1.5 text-appMuted">
+              <span>Size:</span>
+              <span id="flashImageSize" class="text-slate-200 font-semibold">3.07 GB (xz) &rarr; 9.4 GB Raw</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-appMuted">Source:</span>
+              <span id="flashChecksumStatus" class="text-emerald-400 font-semibold flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-3 h-3"></i> Official Canonical ARM64
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Storage Allocation with Color-Coded Partition Split (5 cols) -->
+        <div class="col-span-5 bg-appCardAlt/60 border border-appBorder rounded-2xl p-3.5 flex flex-col justify-between gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+              </div>
+              <h2 class="text-xs font-semibold text-white tracking-wide">Storage Allocation</h2>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px] font-mono">
+              <span class="px-2 py-0.5 rounded font-bold bg-sky-500/15 border border-sky-400/30 text-sky-300">
+                <span id="sliderValueDisplay">16</span> GB System
+              </span>
+              <span class="px-2 py-0.5 rounded font-bold bg-emerald-500/15 border border-emerald-400/30 text-emerald-400">
+                <span id="userDataDisplay">37.7</span> GB Data
+              </span>
+            </div>
+          </div>
+
+          <div class="my-0.5">
+            <input type="range" id="allocSlider" min="4" max="48" step="1" value="16"
+              oninput="updateAllocSlider(this.value)"
+              data-testid="allocSlider"
+              class="w-full h-2 bg-appBorder rounded-lg appearance-none cursor-pointer accent-sky-400">
+          </div>
+
+          <!-- Color-Coded Dual-Partition Visual Bar -->
+          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden flex border border-appBorder/40">
+            <div id="allocSystemBar" class="bg-sky-400 h-full transition-all duration-150" style="width: 30%"></div>
+            <div id="allocDataBar" class="bg-emerald-400 h-full transition-all duration-150" style="width: 70%"></div>
+          </div>
+
+          <div class="flex items-center justify-between text-[10px] font-mono text-appDim">
+            <span id="deviceUfsVariant" class="text-appMuted font-semibold">64 GB UFS 2.1 (/dev/block/sda24)</span>
+            <span>Total Userdata: <span id="totalUfsDisplay" class="text-slate-200 font-bold">53.7</span> GB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Minimal First-Boot Connectivity Seed Row (User, Password, Hostname, Optional Wi-Fi) -->
+      <div class="bg-appCardAlt/50 border border-appBorder rounded-2xl px-3.5 py-2.5 grid grid-cols-12 gap-2 items-center shrink-0">
+        <div class="col-span-2 flex items-center gap-1.5 text-[11px] font-mono text-sky-300 font-semibold">
+          <i data-lucide="key-round" class="w-3.5 h-3.5 shrink-0"></i>
+          <span class="truncate">First-Boot Seed</span>
+        </div>
+        <input id="seedUserInput" type="text" value="ubuntu" placeholder="Username"
+          class="col-span-2 bg-appCard border border-appBorder rounded-lg px-2.5 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-appBlue" title="Initial Linux Username">
+        <input id="seedPassInput" type="password" value="ubuntu" placeholder="Password"
+          class="col-span-2 bg-appCard border border-appBorder rounded-lg px-2.5 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-appBlue" title="Initial Password">
+        <input id="seedHostInput" type="text" value="galaxy-s8" placeholder="Hostname"
+          class="col-span-2 bg-appCard border border-appBorder rounded-lg px-2.5 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-appBlue" title="System Hostname">
+        <input id="seedWifiSsidInput" type="text" value="" placeholder="Wi-Fi SSID (optional)"
+          class="col-span-2 bg-appCard border border-appBorder rounded-lg px-2.5 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-appBlue" title="Optional Pre-Boot Wi-Fi SSID">
+        <input id="seedWifiPassInput" type="password" value="" placeholder="Wi-Fi Pass (optional)"
+          class="col-span-2 bg-appCard border border-appBorder rounded-lg px-2.5 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-appBlue" title="Optional Wi-Fi Password">
+      </div>
+
+      <!-- Center: Unified Flashing Execution & Real-Time Terminal Log Container -->
+      <div class="flex-1 flex flex-col bg-slate-950/90 border border-appBorder/80 rounded-2xl p-4 shadow-inner overflow-hidden justify-between min-h-[320px]">
+        <!-- Unified Log Header -->
+        <div class="flex items-center justify-between pb-2.5 border-b border-appBorder/60 shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <h2 class="text-xs font-semibold text-white tracking-wide">Unified Flashing &amp; Hardware Telemetry Log</h2>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span id="flashStatusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded text-appDim">
+              Idle
+            </span>
+            <button id="btnCopyFlashLogs" onclick="copyFlashLogs()"
+              class="text-xs font-mono text-appDim hover:text-white bg-appCardAlt hover:bg-appBorder border border-appBorder/80 px-2.5 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1.5"
+              title="Copy entire deployment log">
+              <i data-lucide="copy" class="w-3 h-3 text-sky-400"></i>
+              <span id="btnCopyFlashLogsTxt">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Real Execution Log Window (Auto-scrolling Monospace Terminal with Live Background Telemetry) -->
+        <div id="flashLogWindow"
+          class="my-3 flex-1 font-mono text-[11px] leading-relaxed text-slate-300 overflow-y-auto custom-scrollbar select-text">
+          <div id="flashLogBuffer" class="flex flex-col gap-1"></div>
+        </div>
+
+        <!-- Real-Time Progress Bar & Telemetry Footer -->
+        <div class="pt-2.5 border-t border-appBorder/60 shrink-0 flex flex-col gap-1.5">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span id="flashStepDesc" class="text-appMuted text-[11px] truncate max-w-[80%]">Ready</span>
+            <span id="flashPercent" class="font-bold text-sky-400 text-xs">0%</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-appBorder/40">
+            <div id="flashProgressBar"
+              class="bg-sky-400 h-full rounded-full transition-all duration-300"
+              style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Primary Flash Action Button -->
+      <div class="shrink-0">
+        <button id="btnStartDeploy" onclick="startFlashProcess()"
+          class="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-slate-950 py-3 rounded-2xl text-xs font-bold tracking-wide transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20">
+          <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+          <span id="btnStartDeployTxt">Flash Image</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- PAGE 2: HARDWARE DASHBOARD & UNIFIED SOC/PMIC/THERMAL TELEMETRY -->
+    <!-- =============================================================== -->
+    <div id="pageDashboard" class="page-view flex-1 grid grid-cols-12 gap-3 overflow-y-auto pr-1 hidden">
+
+      <!-- Column 1: Processor & Memory Subsystem (4 cols) -->
+      <section
+        class="col-span-4 bg-appCard rounded-3xl border border-appBorder p-4 shadow-xl flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2 border-b border-appBorder/50">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <h2 class="text-xs font-bold text-white tracking-wide">Processor & Memory</h2>
+          </div>
+          <span id="dashCpuGovernor"
+            class="text-[10px] text-sky-400 font-mono bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-400/20 font-semibold">
+            Performance
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-2 my-2 text-xs font-mono">
+          <!-- CPU Metric -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Octa-Core CPU (4x M2 + 4x A53)</span>
+              <div id="dashCpuFreq" class="text-xs font-bold text-white mt-0.5">-- MHz</div>
+            </div>
+            <span class="text-[9px] text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-400/20 shrink-0">Exynos 8895</span>
+          </div>
+
+          <!-- GPU Metric -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Mali-G71 GPU (20 Cores)</span>
+              <div id="dashGpuStatus" class="text-xs font-bold text-amber-300 mt-0.5">Dynamic</div>
+            </div>
+            <span class="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-400/20 shrink-0">Bifrost</span>
+          </div>
+
+          <!-- RAM Metric -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">LPDDR4x Memory</span>
+              <div id="dashRamFree" class="text-xs font-bold text-emerald-400 mt-0.5">-- GB Free</div>
+            </div>
+            <span id="dashRamTotal" class="text-[9px] text-appMuted shrink-0">of 3.6 GB</span>
+          </div>
+
+          <!-- Storage Metric -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Storage Allocation</span>
+              <div id="dashStorageTotal" class="text-xs font-bold text-white mt-0.5">53.7 GB UFS 2.1</div>
+            </div>
+            <span id="dashSdCardStatus" class="text-[9px] text-appMuted bg-appCard px-1.5 py-0.5 rounded border border-appBorder shrink-0">Checking...</span>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
+          <span>Host SoC Architecture</span>
+          <span class="text-sky-400 font-semibold">Exynos 8895 @ 60Hz</span>
+        </div>
+      </section>
+
+      <!-- Column 2: Battery & MAX77865 Power PMIC (4 cols) -->
+      <section
+        class="col-span-4 bg-appCard rounded-3xl border border-appBorder p-4 shadow-xl flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2 border-b border-appBorder/50">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400"></i>
+            <h3 class="text-xs font-bold text-white tracking-wide">MAX77865 Power & Battery</h3>
+          </div>
+          <span id="dashChargeCurrent"
+            class="text-[10px] font-mono text-appMuted font-bold bg-appCardAlt px-2 py-0.5 rounded border border-appBorder">
+            -- mA
+          </span>
+        </div>
+
+        <!-- Gauge & Battery Details -->
+        <div class="flex items-center gap-3.5 my-2 bg-appCardAlt/50 border border-appBorder/60 p-2.5 rounded-2xl">
+          <!-- Circular Battery Ring -->
+          <div class="relative w-14 h-14 flex items-center justify-center shrink-0">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <path class="text-appBorder" stroke="currentColor" stroke-width="3.5" fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path id="dashBatteryRing" class="text-emerald-400 transition-all duration-500" stroke="currentColor" stroke-width="3.5" stroke-dasharray="0, 100"
+                stroke-linecap="round" fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <span id="dashBatteryPct" class="absolute text-xs font-bold font-mono text-white">--%</span>
+          </div>
+
+          <!-- Live Status Details -->
+          <div class="text-xs font-mono flex flex-col gap-0.5 min-w-0">
+            <div id="dashChargeStatus" class="flex items-center gap-1.5 text-appMuted font-semibold">
+              <span class="w-2 h-2 rounded-full bg-appMuted"></span>
+              <span class="truncate">Awaiting Telemetry</span>
+            </div>
+            <div class="text-appMuted text-[10px] flex items-center gap-2">
+              <span>Voltage: <span id="dashVoltage" class="text-white font-semibold">--</span></span>
+              <span>•</span>
+              <span>Temp: <span id="dashBatTemp" class="text-white font-semibold">--</span></span>
+            </div>
+            <span class="text-emerald-400 text-[10px] flex items-center gap-1 font-semibold">
+              <i data-lucide="shield-check" class="w-3 h-3"></i> UVLO 4.3V Armed
+            </span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 mb-2 text-xs font-mono">
+          <!-- Fast Charge Control -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Fast-Charge Supervision</span>
+              <div id="dashUvlo" class="text-xs font-bold text-white mt-0.5">UVLO 4.3V Cutoff Armed</div>
+            </div>
+            <span class="text-[9px] text-sky-400 font-mono bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-400/20 shrink-0">Reg 0xBD 0x6C</span>
+          </div>
+
+          <!-- Port Mode -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">USB-C Port Role</span>
+              <div class="text-xs font-bold text-white mt-0.5">DFP / Source Enforced</div>
+            </div>
+            <span class="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">Rp Pull-up</span>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
+          <span>Continuous fast charging</span>
+          <span class="text-emerald-400 font-semibold">1500mA Constant</span>
+        </div>
+      </section>
+
+      <!-- Column 3: Thermal Zones & Health Subsystem (4 cols) -->
+      <section
+        class="col-span-4 bg-appCard rounded-3xl border border-appBorder p-4 shadow-xl flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2 border-b border-appBorder/50">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i>
+            <h3 class="text-xs font-bold text-white tracking-wide">Thermal Telemetry</h3>
+          </div>
+          <span id="dashThermalState"
+            class="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            NOMINAL
+          </span>
+        </div>
+
+        <div class="flex flex-col gap-2 my-2 text-xs font-mono">
+          <!-- Big M2 Cluster -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Big M2 / SoC Zone</span>
+              <div id="dashTempM2" class="text-sm font-bold text-white mt-0.5">--°C</div>
+            </div>
+            <span class="text-[9px] text-appMuted bg-appCard px-1.5 py-0.5 rounded border border-appBorder shrink-0">TMU Zone 0</span>
+          </div>
+
+          <!-- Little A53 Cluster -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Little A53 / Efficiency</span>
+              <div id="dashTempA53" class="text-sm font-bold text-white mt-0.5">--°C</div>
+            </div>
+            <span class="text-[9px] text-appMuted bg-appCard px-1.5 py-0.5 rounded border border-appBorder shrink-0">Cool Range</span>
+          </div>
+
+          <!-- Mali-G71 GPU -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Mali-G71 MP20 GPU</span>
+              <div id="dashTempGpu" class="text-sm font-bold text-white mt-0.5">--°C</div>
+            </div>
+            <span class="text-[9px] text-appMuted bg-appCard px-1.5 py-0.5 rounded border border-appBorder shrink-0">Bifrost</span>
+          </div>
+
+          <!-- Governor Diagnostics -->
+          <div class="bg-appCardAlt/70 border border-appBorder p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-appMuted text-[9px] block">Hardware Telemetry</span>
+              <div id="dashGovernorStatus" class="text-xs font-bold text-appMuted mt-0.5">Awaiting device</div>
+            </div>
+            <span id="dashTempSoc" class="text-[9px] text-appMuted shrink-0">SoC: --</span>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
+          <span>Active hardware governor</span>
+          <span class="text-emerald-400 font-semibold">100% Unthrottled</span>
+        </div>
+      </section>
+
+      <!-- Bottom Row: Headless Hardware Controls (12 cols) -->
+      <section
+        class="col-span-12 bg-appCard rounded-3xl border border-appBorder p-4 shadow-xl flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="cpu" class="w-3.5 h-3.5 text-sky-400"></i>
+            <h3 class="text-xs font-bold text-white tracking-wide">Headless Hardware Controls</h3>
+          </div>
+          <span id="dashDpStatus" class="text-[10px] font-mono text-appMuted font-bold bg-appCardAlt px-2.5 py-0.5 rounded border border-appBorder">
+            DP: Offline
+          </span>
+        </div>
+
+        <div class="grid grid-cols-5 gap-3 my-1">
+          <button id="hwTorchBtn" onclick="toggleTorch()"
+            class="p-3 bg-appCardAlt hover:bg-appBorder border border-appBorder rounded-2xl flex flex-col items-center justify-between text-xs font-semibold text-white transition-all active:scale-95 text-center">
+            <i data-lucide="sun" class="w-4 h-4 text-amber-300 mb-1"></i>
+            <span>Rear Torch</span>
+            <span id="torchStatusBadge" class="text-[9px] font-mono text-appMuted mt-0.5">OFF</span>
+          </button>
+
+          <button onclick="triggerHaptic()"
+            class="p-3 bg-appCardAlt hover:bg-appBorder border border-appBorder rounded-2xl flex flex-col items-center justify-between text-xs font-semibold text-white transition-all active:scale-95 text-center">
+            <i data-lucide="vibrate" class="w-4 h-4 text-sky-400 mb-1"></i>
+            <span>Haptic Pulse</span>
+            <span class="text-[9px] font-mono text-sky-400 mt-0.5">150ms</span>
+          </button>
+
+          <button onclick="triggerReboot('download')"
+            class="p-3 bg-appCardAlt hover:bg-amber-500/20 hover:border-amber-500/40 border border-appBorder rounded-2xl flex flex-col items-center justify-between text-xs font-semibold text-white transition-all active:scale-95 text-center">
+            <i data-lucide="arrow-down-circle" class="w-4 h-4 text-amber-400 mb-1"></i>
+            <span>Odin Mode</span>
+            <span class="text-[9px] font-mono text-amber-400 mt-0.5">Download</span>
+          </button>
+
+          <button onclick="triggerReboot('recovery')"
+            class="p-3 bg-appCardAlt hover:bg-blue-500/20 hover:border-blue-500/40 border border-appBorder rounded-2xl flex flex-col items-center justify-between text-xs font-semibold text-white transition-all active:scale-95 text-center">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-sky-400 mb-1"></i>
+            <span>TWRP Recovery</span>
+            <span class="text-[9px] font-mono text-sky-400 mt-0.5">Recovery</span>
+          </button>
+
+          <button onclick="triggerReboot('device')"
+            class="p-3 bg-appCardAlt hover:bg-rose-500/20 hover:border-rose-500/40 border border-appBorder rounded-2xl flex flex-col items-center justify-between text-xs font-semibold text-white transition-all active:scale-95 text-center">
+            <i data-lucide="power" class="w-4 h-4 text-rose-400 mb-1"></i>
+            <span>Reboot Device</span>
+            <span class="text-[9px] font-mono text-rose-400 mt-0.5">Reset</span>
+          </button>
+        </div>
+
+        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
+          <span>Direct kernel hardware triggers: /sys/class/timed_output/vibrator • /sys/class/leds/torch-sec1</span>
+          <span class="text-purple-300 font-semibold font-mono">DECON2 /dev/graphics/fb2 Active</span>
+        </div>
+      </section>
+
+    </div>
+
+
+
+    <!-- =============================================================== -->
+    <!-- =============================================================== -->
+    <!-- PAGE 3: FULL-PAGE MINIMALIST NATIVE TERMINAL                     -->
+    <!-- =============================================================== -->
+    <div id="pageTerminal"
+      class="page-view flex-1 flex flex-col bg-appCard border border-appBorder rounded-3xl shadow-2xl overflow-hidden hidden">
+
+      <!-- Minimalist Unified Header: Shell Switcher + s8ctl Helper + Status + Utilities -->
+      <div
+        class="px-4 py-2 bg-[#0A0D14] border-b border-appBorder/60 flex items-center justify-between shrink-0 gap-3">
+        
+        <!-- Left: Branding & Segmented Controls -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-white uppercase tracking-wider select-none pr-1">
+            <i data-lucide="terminal" class="w-4 h-4 text-sky-400"></i>
+            <span class="hidden sm:inline">Terminal</span>
+          </div>
+
+          <!-- Shell Segmented Switcher -->
+          <div class="flex items-center bg-[#131722] border border-appBorder/80 rounded-xl p-0.5 text-xs font-mono gap-0.5">
+            <button id="btnShellOs" onclick="switchNativeShell('os')"
+              class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-400/30 transition-all text-[11px] shadow-sm"
+              title="Linux Ubuntu/Debian Root Chroot">
+              OS Root
+            </button>
+            <button id="btnShellAp" onclick="switchNativeShell('ap')"
+              class="px-3 py-1 rounded-lg text-appMuted hover:text-white transition-all font-semibold text-[11px]"
+              title="Android Recovery Base Shell (/sbin/sh)">
+              AP Base
+            </button>
+          </div>
+
+          <!-- Active USB ADB Connection Indicator -->
+          <div id="badgeUsbConn"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 font-mono text-[11px] font-semibold"
+            title="Direct USB ADB Wire Communication">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>USB ADB</span>
+          </div>
+
+          <!-- s8ctl Command Helper Dropdown (Custom Interactive Dark Menu) -->
+          <div class="relative" id="s8ctlDropdownContainer">
+            <button id="s8ctlMenuBtn" onclick="toggleS8ctlDropdown(event)" type="button"
+              class="flex items-center gap-1.5 bg-[#131722] hover:bg-[#1A2030] border border-appBorder/80 hover:border-sky-400/50 rounded-xl px-2.5 py-1 text-xs font-mono text-slate-200 transition-all active:scale-95 shadow-sm"
+              title="Quick s8ctl Hardware Commands">
+              <i data-lucide="wrench" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+              <span id="s8ctlCurrentLabel" class="text-[11px] font-semibold text-slate-200">s8ctl Commands</span>
+              <i data-lucide="chevron-down" id="s8ctlChevron" class="w-3 h-3 text-appMuted transition-transform duration-200"></i>
+            </button>
+
+            <!-- Floating Custom Dark Menu -->
+            <div id="s8ctlMenuDropdown"
+              class="hidden absolute left-0 top-full mt-1.5 w-72 bg-[#0E121B] border border-appBorder/90 rounded-2xl shadow-2xl z-50 p-1.5 flex flex-col gap-0.5 font-mono text-[11px]">
+              <div class="px-2.5 py-1 text-[10px] text-appMuted uppercase tracking-wider font-semibold border-b border-appBorder/50 mb-1 flex items-center justify-between">
+                <span>Hardware Routines</span>
+                <span class="text-sky-400">s8ctl CLI</span>
+              </div>
+              <button onclick="selectS8ctlCmd('s8ctl status')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold">s8ctl status</span>
+                <span class="text-[10px] text-appMuted group-hover:text-sky-300/80">Hardware Overview</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl cpu performance')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold">s8ctl cpu performance</span>
+                <span class="text-[10px] text-sky-400 font-semibold">2.31 GHz Boost</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl cpu powersave')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold">s8ctl cpu powersave</span>
+                <span class="text-[10px] text-appMuted">Low Power</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl gpu boost')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-amber-500/15 hover:text-amber-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold text-amber-300">s8ctl gpu boost</span>
+                <span class="text-[10px] text-amber-400/80 font-semibold">Mali-G71 546MHz</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl battery')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-emerald-500/15 hover:text-emerald-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold text-emerald-400">s8ctl battery</span>
+                <span class="text-[10px] text-emerald-400/80 font-semibold">MAX77865 1500mA</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl torch toggle')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-amber-500/15 hover:text-amber-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold text-amber-300">s8ctl torch toggle</span>
+                <span class="text-[10px] text-appMuted">Rear Flash</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl haptic 150')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold">s8ctl haptic 150</span>
+                <span class="text-[10px] text-sky-400 font-semibold">150ms Pulse</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl dp status')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-purple-500/15 hover:text-purple-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold text-purple-300">s8ctl dp status</span>
+                <span class="text-[10px] text-purple-400 font-semibold">DisplayPort</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl audio test')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all group">
+                <span class="font-bold">s8ctl audio test</span>
+                <span class="text-[10px] text-appMuted">Calliope ABOX</span>
+              </button>
+              <button onclick="selectS8ctlCmd('s8ctl help')" type="button"
+                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-sky-500/15 hover:text-sky-300 text-slate-200 flex items-center justify-between transition-all border-t border-appBorder/50 pt-2 group">
+                <span class="font-bold text-sky-400">s8ctl help</span>
+                <span class="text-[10px] text-appMuted">Command Guide</span>
+              </button>
+            </div>
+
+            <!-- Native select with explicit dark styles kept for test automation & sync -->
+            <select id="s8ctlSelect" onchange="runS8ctlQuick(this.value);" class="sr-only" aria-hidden="true">
+              <option value="" disabled selected>s8ctl Commands...</option>
+              <option value="s8ctl status">s8ctl status</option>
+              <option value="s8ctl cpu performance">s8ctl cpu performance</option>
+              <option value="s8ctl cpu powersave">s8ctl cpu powersave</option>
+              <option value="s8ctl gpu boost">s8ctl gpu boost</option>
+              <option value="s8ctl battery">s8ctl battery</option>
+              <option value="s8ctl torch toggle">s8ctl torch toggle</option>
+              <option value="s8ctl haptic 150">s8ctl haptic 150</option>
+              <option value="s8ctl dp status">s8ctl dp status</option>
+              <option value="s8ctl audio test">s8ctl audio test</option>
+              <option value="s8ctl help">s8ctl help</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Right: Actions & Status -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button onclick="copyTerminalBuffer()"
+            class="w-7 h-7 rounded-lg bg-appCardAlt hover:bg-appBorder border border-appBorder text-appMuted hover:text-white transition-all flex items-center justify-center active:scale-95"
+            title="Copy buffer to clipboard">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="exportTerminalLog()"
+            class="w-7 h-7 rounded-lg bg-appCardAlt hover:bg-appBorder border border-appBorder text-appMuted hover:text-white transition-all flex items-center justify-center active:scale-95"
+            title="Export session log">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+          <button onclick="clearTerminalBuffer()"
+            class="w-7 h-7 rounded-lg bg-appCardAlt hover:bg-rose-500/20 border border-appBorder hover:border-rose-500/40 text-appMuted hover:text-rose-300 transition-all flex items-center justify-center active:scale-95"
+            title="Clear screen (Ctrl+L)">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Single Full-Height Native Terminal Canvas (Click anywhere to focus) -->
+      <div id="nativeTerminalArea" onclick="focusNativeTerminal()"
+        class="flex-1 p-5 font-mono text-xs overflow-y-auto custom-scrollbar bg-[#080A10] leading-relaxed cursor-text select-text flex flex-col justify-start">
+        
+        <!-- Header Banner & Persistent Entry Blocks -->
+        <div id="termHeaderBanner"></div>
+        <div id="termScreenBuffer" class="flex flex-col gap-3 select-text"></div>
+
+        <!-- Native Inline Prompt Line (Direct typing right in the terminal flow) -->
+        <div class="flex items-center gap-2 mt-2 shrink-0">
+          <span id="termInlinePrompt"
+            class="text-emerald-400 font-bold select-none shrink-0 font-mono">root@Galaxy-S8-Ubuntu:~#</span>
+          <input id="termNativeInput" type="text" onkeydown="handleNativeKey(event)"
+            class="flex-1 bg-transparent border-none outline-none text-white font-mono text-xs p-0 m-0 caret-emerald-400 focus:ring-0 focus:outline-none"
+            autocomplete="off" spellcheck="false" autofocus>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- PAGE 4: DEVICE & NETWORK CONFIGURATION                          -->
+    <!-- =============================================================== -->
+    <div id="pageConfig" class="page-view flex-1 grid grid-cols-12 gap-3 overflow-y-auto hidden pr-1">
+
+      <!-- Left Column (6 cols): Network Onboarding & Wi-Fi Configuration -->
+      <div class="col-span-6 flex flex-col gap-3">
+        <section class="bg-appCard rounded-3xl border border-appBorder p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                  <i data-lucide="wifi" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-white">Network Onboarding</h2>
+                  <p class="text-[11px] text-appMuted">Dual-Band Broadcom BCM4361 (2.4 GHz + 5 GHz)</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-400/20">
+                WIFI
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-3.5 my-2">
+              <div>
+                <label class="text-[11px] font-bold text-appMuted block mb-1.5">Select Nearby Wi-Fi Network</label>
+                <div class="flex gap-2">
+                  <select id="wifiSsidSelect"
+                    class="flex-1 bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-appBlue">
+                    <option value="">(Click SCAN to discover Wi-Fi networks)</option>
+                  </select>
+                  <button id="wifiScanBtn" onclick="scanWifiLive()"
+                    class="bg-appCardAlt hover:bg-appBorder border border-appBorder text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-[0.98]">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> SCAN
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-[11px] font-bold text-appMuted block mb-1.5">Wi-Fi Password</label>
+                <input id="wifiPassInput" type="password" placeholder="Enter WPA2 / WPA3 password..."
+                  class="w-full bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-appBlue">
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-appBorder/50 flex flex-col gap-3">
+            <button id="wifiConnectBtn" onclick="connectWifiLive()"
+              class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xs py-2.5 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
+              APPLY &amp; CONNECT WI-FI
+            </button>
+
+            <!-- Active Connection Telemetry Banner -->
+            <div class="bg-appBg/60 rounded-2xl p-3 border border-appBorder/50 flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-2">
+                <span id="liveWifiDot" class="w-2 h-2 rounded-full bg-appMuted"></span>
+                <span class="text-appMuted">Wi-Fi IP:</span>
+                <span id="liveWifiIp" class="text-white font-bold">Offline</span>
+              </div>
+              <span id="liveWifiStateBadge" class="text-[10px] text-appMuted font-semibold bg-appCard px-2 py-0.5 rounded border border-appBorder">
+                OFFLINE
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column (6 cols): Device Identity & Access Configuration -->
+      <div class="col-span-6 flex flex-col gap-3">
+        <section class="bg-appCard rounded-3xl border border-appBorder p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+                  <i data-lucide="shield" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-white">Device Identity &amp; Access</h2>
+                  <p class="text-[11px] text-appMuted">Hostname, SSH Public Keys &amp; System Password</p>
+                </div>
+              </div>
+              <span id="configFeedbackBadge" class="text-[10px] font-mono text-sky-300 font-bold bg-sky-500/10 px-2 py-0.5 rounded border border-sky-400/20">
+                READY
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-3.5 my-2">
+              <!-- Hostname Config -->
+              <div>
+                <label class="text-[11px] font-bold text-appMuted block mb-1.5">Device Hostname</label>
+                <div class="flex gap-2">
+                  <input id="configHostnameInput" type="text" value="galaxy-s8" placeholder="e.g. galaxy-s8"
+                    class="flex-1 bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-appBlue">
+                  <button id="btnApplyHostname" onclick="applyHostname()"
+                    class="bg-appCardAlt hover:bg-appBorder border border-appBorder text-white px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]">
+                    APPLY
+                  </button>
+                </div>
+              </div>
+
+              <!-- SSH Public Key Injection -->
+              <div>
+                <label class="text-[11px] font-bold text-appMuted block mb-1.5">Authorized SSH Public Key (Passwordless Login)</label>
+                <div class="flex gap-2">
+                  <input id="configSshKeyInput" type="text" placeholder="Paste ssh-ed25519 / ssh-rsa key..."
+                    class="flex-1 bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-appBlue">
+                  <button id="btnInjectSsh" onclick="injectSshKey()"
+                    class="bg-appCardAlt hover:bg-appBorder border border-appBorder text-sky-400 hover:text-sky-300 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]">
+                    INJECT
+                  </button>
+                </div>
+              </div>
+
+              <!-- Root / User Password -->
+              <div>
+                <label class="text-[11px] font-bold text-appMuted block mb-1.5">System Password (User / Root)</label>
+                <div class="flex gap-2">
+                  <input id="configPassInput" type="password" placeholder="Set new user &amp; root password..."
+                    class="flex-1 bg-appCardAlt border border-appBorder rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-appBlue">
+                  <button id="btnSetPassword" onclick="setSystemPassword()"
+                    class="bg-appCardAlt hover:bg-appBorder border border-appBorder text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]">
+                    SET
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-appBorder/50 text-[10px] font-mono text-appDim flex items-center justify-between">
+            <span>Security changes take effect immediately</span>
+            <span class="text-sky-400 font-semibold">SSH: port 22 (2222 tunnel)</span>
+          </div>
+        </section>
+
+        <!-- Post-Boot S8 Hardware Pack Card (galaxy-s8-hw) -->
+        <section class="bg-appCard rounded-3xl border border-appBorder p-5 shadow-xl flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="cpu" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-white">S8 Hardware Pack (galaxy-s8-hw)</h2>
+                <p class="text-[11px] text-appMuted">PMIC 1500mA, Buttons (Hold=Poweroff), Audio, DisplayPort, BCM4361 Wi-Fi</p>
+              </div>
+            </div>
+            <span id="hwInjectStatusBadge" class="text-[10px] font-mono text-appMuted font-bold bg-appCardAlt px-2 py-0.5 rounded border border-appBorder">
+              CHECKING
+            </span>
+          </div>
+          <label class="flex items-center gap-2 text-[11px] font-mono text-slate-300 cursor-pointer select-none">
+            <input id="chkInstallVncDesktop" type="checkbox" class="rounded border-appBorder bg-appCardAlt text-emerald-400 focus:ring-0">
+            <span>Also install VNC / noVNC / OpenSSH packages when online</span>
+          </label>
+          <div class="flex items-center justify-between gap-3 pt-1">
+            <span id="hwInjectSummary" class="text-[11px] font-mono text-appDim truncate">
+              1-click .deb / .tar.gz install over USB RNDIS (192.168.7.2)
+            </span>
+            <button id="btnInjectHardwareSuite" onclick="triggerHardwareSuiteInject()"
+              class="shrink-0 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98] flex items-center gap-1.5">
+              <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+              INSTALL S8 PACK
+            </button>
+          </div>
+        </section>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: OFFICIAL UPSTREAM OS CATALOG & DOWNLOADER                  -->
+  <!-- ================================================================= -->
+  <div id="distroModal" class="fixed inset-0 modal-backdrop hidden items-center justify-center p-6 z-50">
+    <div class="w-full max-w-2xl bg-appCard border border-appBorder rounded-3xl shadow-2xl p-6 flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-blue-500/10 text-appBlue flex items-center justify-center">
+            <i data-lucide="disc" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Official Upstream ARM64 OS Catalog</h3>
+            <p class="text-[11px] text-appMuted">Unmodified upstream releases &middot; SHA-256 verified before flashing</p>
+          </div>
+        </div>
+        <button onclick="closeDistroModal()"
+          class="w-7 h-7 rounded-lg hover:bg-appCardAlt text-appMuted hover:text-white flex items-center justify-center">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="distroDownloadProgressWrap" class="hidden bg-appCardAlt border border-sky-400/30 rounded-xl p-3 text-xs font-mono">
+        <div class="flex items-center justify-between mb-1.5">
+          <span id="distroDownloadLabel" class="text-sky-300 font-semibold">Downloading upstream image...</span>
+          <span id="distroDownloadPct" class="text-white font-bold">0%</span>
+        </div>
+        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+          <div id="distroDownloadBar" class="bg-sky-400 h-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div id="distroCatalogList" class="flex flex-col gap-2 max-h-96 overflow-y-auto custom-scrollbar pr-1">
+        <!-- Option 0: Browse Custom OS Image File from PC -->
+        <div onclick="triggerFilePicker(); closeDistroModal();"
+          class="p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40 rounded-2xl cursor-pointer flex items-center justify-between transition-all group">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+              <i data-lucide="folder-open" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <span>Select Custom Image File from PC</span>
+                <span class="text-[9px] bg-amber-500/20 text-amber-200 px-1.5 py-0.2 rounded font-mono font-semibold">EXPLORER</span>
+              </div>
+              <div class="text-[10px] text-appMuted font-mono mt-0.5">Pick any official .img.xz, .img, .raw, .tar.xz, or .tar.gz from disk</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform"></i>
+        </div>
+
+        <!-- Upstream Distro 1: Official Ubuntu Desktop -->
+        <div onclick="selectDistro('Ubuntu 24.04.5 Desktop', 'ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz', 'distros/ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz', 'OFFICIAL UPSTREAM')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Ubuntu 24.04.5 LTS Desktop (Canonical ARM64)</span>
+              <span class="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.2 rounded font-mono font-semibold">RECOMMENDED</span>
+            </div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Unmodified Canonical GNOME Desktop &middot; SHA-256 Verified &middot; 3.07 GB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="verifyDistro('ubuntu-desktop-24.04')" class="px-2 py-1 rounded-lg bg-appCard border border-appBorder text-[10px] font-mono text-emerald-300 hover:bg-emerald-500/15">VERIFY</button>
+            <button onclick="downloadDistro('ubuntu-desktop-24.04')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 2: Ubuntu Server -->
+        <div onclick="selectDistro('Ubuntu 24.04 Server', 'ubuntu-24.04-server-rootfs-arm64.tar.xz', 'distros/ubuntu-24.04-server-rootfs-arm64.tar.xz', 'SERVER TAR.XZ')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white">Ubuntu 24.04 Server Rootfs (Official)</div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Clean Canonical Server CLI + apt &middot; 206 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('ubuntu-server-24.04')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 3: Debian 12 -->
+        <div onclick="selectDistro('Debian 12', 'debian-12-generic-arm64.tar.xz', 'distros/debian-12-generic-arm64.tar.xz', 'DEBIAN 12')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white">Debian GNU/Linux 12 Bookworm (Official)</div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Official Generic ARM64 Rootfs &middot; 253 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('debian-12')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 4: Kali ARM64 -->
+        <div onclick="selectDistro('Kali Linux', 'kali-nethunter-rootfs-minimal-arm64.tar.xz', 'distros/kali-nethunter-rootfs-minimal-arm64.tar.xz', 'KALI ARM64')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white">Kali Linux NetHunter ARM64 (Official)</div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Official Offensive Security Minimal Rootfs &middot; 120 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('kali-nethunter')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 5: Arch Linux ARM -->
+        <div onclick="selectDistro('Arch Linux', 'ArchLinuxARM-aarch64-latest.tar.gz', 'distros/ArchLinuxARM-aarch64-latest.tar.gz', 'ARCH ARM64')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white">Arch Linux ARM64 (Official)</div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Official Rolling AArch64 Rootfs &middot; 791 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('arch-arm64')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 6: Alpine Linux -->
+        <div onclick="selectDistro('Alpine Linux', 'alpine-minirootfs-3.20.3-aarch64.tar.gz', 'distros/alpine-minirootfs-3.20.3-aarch64.tar.gz', 'ALPINE 3.20')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white">Alpine Linux 3.20 Minirootfs (Official)</div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Ultra-light OpenRC Container Base &middot; 3.8 MB</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('alpine-3.20')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: SUPPORT THE PROJECT / BUY ME A COFFEE (Ethereum / MetaMask)-->
+  <!-- ================================================================= -->
+  <div id="donateModal" class="fixed inset-0 modal-backdrop hidden items-center justify-center p-6 z-50">
+    <div
+      class="w-full max-w-md bg-appCard border border-appBorder rounded-3xl shadow-2xl p-6 flex flex-col gap-4 relative animate-in fade-in zoom-in-95 duration-200">
+      <!-- Close Button -->
+      <button onclick="closeDonateModal()"
+        class="absolute top-4 right-4 text-appMuted hover:text-white p-1.5 rounded-xl bg-appCardAlt hover:bg-appBorder transition-colors">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Header Icon & Title -->
+      <div class="flex items-center gap-3">
+        <div
+          class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/20 via-orange-500/20 to-amber-600/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10 shrink-0">
+          <i data-lucide="coffee" class="w-6 h-6 stroke-[2.2]"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            Buy Me a Coffee
+            <span
+              class="text-[9px] font-mono font-bold text-purple-300 bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 rounded-full">ETH</span>
+          </h2>
+          <p class="text-xs text-appMuted">Support open-source S8 Linux development</p>
+        </div>
+      </div>
+
+      <!-- Description / Zero-Expectations Note -->
+      <div
+        class="text-xs text-slate-300 leading-relaxed bg-appBg/60 p-3.5 rounded-2xl border border-appBorder/50 flex flex-col gap-1.5">
+        <div class="font-semibold text-white flex items-center gap-1.5">
+          <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400 fill-rose-400/30"></i>
+          100% Voluntary Community Support
+        </div>
+        <p class="text-appMuted text-[11px]">
+          If this project helped you bring your Galaxy S8 to life as a desktop computer or server, donations are deeply
+          appreciated. There are no perks, tiers, or promises—just pure gratitude for supporting independent
+          engineering!
+        </p>
+      </div>
+
+      <!-- Ethereum & MetaMask Wallet Container -->
+      <div class="bg-appCardAlt border border-appBorder rounded-2xl p-3.5 flex flex-col gap-2.5">
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-purple-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
+            </svg>
+            Ethereum (MetaMask / Web3)
+          </span>
+          <span
+            class="text-emerald-400 text-[10px] font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">ERC-20</span>
+        </div>
+
+        <div class="bg-[#0C0E14] border border-appBorder rounded-xl p-2.5 flex items-center justify-between gap-2">
+          <code id="ethWalletAddr"
+            class="font-mono text-xs text-amber-300 truncate select-all">0x609e0AB78d5174F72fF8709564f8337DebEa5BD7</code>
+          <button id="copyWalletBtn" onclick="copyWalletAddress()"
+            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-amber-500/20">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="flex items-center justify-between text-[10px] text-appDim font-mono pt-1">
+        <span>Network: Ethereum Mainnet</span>
+        <span>Built by <a href="https://github.com/roufsweb" target="_blank"
+            class="text-sky-400 hover:underline">roufsweb</a></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- JAVASCRIPT: MULTI-PAGE ROUTER, REST API & INTERACTION CONTROLS     -->
+  <!-- ================================================================= -->
+  <script>
+    lucide.createIcons();
+
+    let currentTorch = false;
+    let currentAlloc = 16;
+    let currentEnv = 'os';
+    let currentTransport = 'usb';
+    let liveWifiIp = '--';
+    let isConnected = false;
+    let isSidebarExpanded = true;
+    let currentPage = 'flash';
+    let selectedTargetOs = 'ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz';
+    let currentDeviceOs = 'Awaiting device...';
+    let totalUfsCapacity = 53.7;
+    window._hwInstallRunning = false;
+
+    const pageMeta = {
+      'flash': { title: 'Flash OS', btn: 'navBtnFlash' },
+      'dashboard': { title: 'Hardware Dashboard', btn: 'navBtnDashboard' },
+      'terminal': { title: 'Terminal', btn: 'navBtnTerminal' },
+      'config': { title: 'Device & Network Configuration', btn: 'navBtnConfig' }
+    };
+
+    // 1. Multi-Page View Switcher
+    function switchPage(pageKey) {
+      if (pageKey === 'consoles' || pageKey === 'wifi') pageKey = 'config';
+      if (!pageMeta[pageKey]) return;
+      currentPage = pageKey;
+
+      // Update Header Title
+      document.getElementById('pageHeaderTitle').innerText = pageMeta[pageKey].title;
+
+      // Hide all page containers
+      document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
+
+      // Show selected page container
+      const targetPage = document.getElementById('page' + pageKey.charAt(0).toUpperCase() + pageKey.slice(1));
+      if (targetPage) targetPage.classList.remove('hidden');
+
+      // Update Sidebar Nav Button Styling
+      const alignClasses = isSidebarExpanded ? "px-2.5 justify-start gap-2.5" : "px-0 justify-center";
+      Object.keys(pageMeta).forEach(k => {
+        const btn = document.getElementById(pageMeta[k].btn);
+        if (!btn) return;
+        const div = btn.querySelector('div');
+        if (k === pageKey) {
+          btn.className = `flex items-center ${alignClasses} w-full py-2 rounded-2xl bg-sky-500/15 border border-sky-400/40 text-sky-300 font-bold shadow-md shadow-sky-500/10 transition-all active:scale-[0.98] group`;
+          if (div) div.className = "w-7 h-7 rounded-xl bg-sky-400/20 flex items-center justify-center shrink-0 text-sky-400";
+        } else {
+          btn.className = `flex items-center ${alignClasses} w-full py-2 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-transparent transition-all active:scale-[0.98] group`;
+          if (div) div.className = "w-7 h-7 rounded-xl bg-appCardAlt flex items-center justify-center shrink-0 group-hover:text-white";
+        }
+      });
+
+      // Render native terminal & focus cursor if entering terminal page
+      if (pageKey === 'terminal') {
+        renderNativeTerminal();
+      }
+
+      lucide.createIcons();
+    }
+
+    // 2. Expandable Sidebar Toggle & Responsive Check
+    function toggleSidebar() {
+      isSidebarExpanded = !isSidebarExpanded;
+      applySidebarState();
+    }
+
+    function applySidebarState() {
+      const sb = document.getElementById('appSidebar');
+      const icon = document.getElementById('sidebarToggleIcon');
+      const labels = document.querySelectorAll('.sidebar-label');
+      const logoHeader = document.getElementById('sidebarLogoHeader');
+      const navBtns = sb.querySelectorAll('nav button');
+      const bottomBtns = sb.querySelectorAll('.sidebar-bottom-btn');
+
+      if (isSidebarExpanded) {
+        sb.classList.remove('w-16', 'items-center');
+        sb.classList.add('w-56');
+        if (logoHeader) {
+          logoHeader.className = "flex items-center gap-2.5 px-1 py-0.5 justify-start w-full";
+        }
+        navBtns.forEach(btn => {
+          btn.classList.remove('justify-center', 'px-0');
+          btn.classList.add('justify-start', 'px-2.5', 'gap-2.5');
+        });
+        bottomBtns.forEach(btn => {
+          btn.classList.remove('justify-center', 'px-0');
+          btn.classList.add('justify-start', 'px-2.5', 'gap-2.5');
+        });
+        labels.forEach(el => el.classList.remove('hidden'));
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-close');
+      } else {
+        sb.classList.remove('w-56');
+        sb.classList.add('w-16', 'items-center');
+        if (logoHeader) {
+          logoHeader.className = "flex items-center justify-center px-0 py-0.5 w-full";
+        }
+        navBtns.forEach(btn => {
+          btn.classList.remove('justify-start', 'px-2.5', 'gap-2.5');
+          btn.classList.add('justify-center', 'px-0');
+        });
+        bottomBtns.forEach(btn => {
+          btn.classList.remove('justify-start', 'px-2.5', 'gap-2.5');
+          btn.classList.add('justify-center', 'px-0');
+        });
+        labels.forEach(el => el.classList.add('hidden'));
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-open');
+      }
+      lucide.createIcons();
+    }
+
+    // Auto-adjust sidebar on narrow screens, default expanded on big screens
+    if (window.innerWidth < 1024) {
+      isSidebarExpanded = false;
+      applySidebarState();
+    }
+
+    // Global Escape Key Listener for Modals
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDistroModal();
+        closeDonateModal();
+      }
+    });
+
+    // 3. Roufsweb Protocol Connection Status Container (Fixed Dimensions, Zero Jumping)
+    function setConnectionState(connected) {
+      isConnected = connected;
+      const pill = document.getElementById('deviceStatusPill');
+      const dot = document.getElementById('statusDot');
+      const txt = document.getElementById('statusText');
+      if (!pill || !dot || !txt) return;
+
+      if (isConnected) {
+        pill.className = "w-36 h-8 cursor-pointer transition-all duration-300 active:scale-[0.98] backdrop-blur-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs rounded-full shadow-md shadow-emerald-500/10 flex items-center justify-center gap-2 select-none";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0";
+        txt.innerText = "Connected";
+        pill.title = "roufsweb protocol: Connected — Click to test toggle";
+      } else {
+        pill.className = "w-36 h-8 cursor-pointer transition-all duration-300 active:scale-[0.98] backdrop-blur-md bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-xs rounded-full shadow-md shadow-rose-500/10 flex items-center justify-center gap-2 select-none";
+        dot.className = "w-2 h-2 rounded-full bg-rose-500 shrink-0";
+        txt.innerText = "Disconnected";
+        pill.title = "roufsweb protocol: Disconnected — Click to test toggle";
+      }
+    }
+
+    function toggleConnectionDemo() {
+      setConnectionState(!isConnected);
+    }
+
+    // 4. Modals Control
+    function openDistroModal() {
+      document.getElementById('distroModal').classList.remove('hidden');
+      document.getElementById('distroModal').classList.add('flex');
+    }
+    function closeDistroModal() {
+      document.getElementById('distroModal').classList.add('hidden');
+      document.getElementById('distroModal').classList.remove('flex');
+    }
+
+    function openDonateModal() {
+      const modal = document.getElementById('donateModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+    function closeDonateModal() {
+      const modal = document.getElementById('donateModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    function copyWalletAddress() {
+      const addr = "0x609e0AB78d5174F72fF8709564f8337DebEa5BD7";
+      navigator.clipboard.writeText(addr);
+      const btn = document.getElementById('copyWalletBtn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Copied!';
+      btn.className = "px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-emerald-500/20";
+      lucide.createIcons();
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.className = "px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-amber-500/20";
+        lucide.createIcons();
+      }, 1800);
+    }
+
+    // 5. Universal OS File Selection & Explorer Integration
+    let currentSelectedImagePath = "distros/ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz";
+
+    function showToast(msg, type = "info") {
+      let toast = document.getElementById('globalAppToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'globalAppToast';
+        toast.className = 'fixed bottom-5 right-5 z-50 px-4 py-2 rounded-2xl font-mono text-xs shadow-2xl transition-all duration-300 pointer-events-none transform translate-y-10 opacity-0 flex items-center gap-2';
+        document.body.appendChild(toast);
+      }
+      const bgColors = {
+        success: 'bg-[#121E18] text-emerald-300 border border-emerald-500/40',
+        error: 'bg-[#221316] text-rose-300 border border-rose-500/40',
+        info: 'bg-[#121622] text-sky-300 border border-sky-500/40'
+      };
+      toast.className = `fixed bottom-5 right-5 z-50 px-4 py-2 rounded-2xl font-mono text-xs shadow-2xl transition-all duration-300 pointer-events-none flex items-center gap-2 ${bgColors[type] || bgColors.info}`;
+      toast.innerText = msg;
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+      });
+      clearTimeout(window._toastTimeout);
+      window._toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0');
+      }, 3000);
+    }
+
+    async function selectOsImage() {
+      try {
+        const res = await fetch('/api/browse/image');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.selected && data.path) {
+            applySelectedImage(data.path, data.name, data.size_mb, data.format);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Native file picker failed or cancelled:", err);
+      }
+      triggerFilePicker();
+    }
+
+    function copyImagePath() {
+      const pathEl = document.getElementById('flashSelectedPath');
+      if (pathEl) {
+        navigator.clipboard.writeText(pathEl.innerText.trim());
+        showToast("Image path copied to clipboard", "success");
+      }
+    }
+
+    function copyFlashLogs() {
+      const buffer = document.getElementById('flashLogBuffer');
+      if (!buffer) return;
+      const text = buffer.innerText || buffer.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const txt = document.getElementById('btnCopyFlashLogsTxt');
+        if (txt) {
+          const orig = txt.innerText;
+          txt.innerText = "Copied!";
+          setTimeout(() => { txt.innerText = orig; }, 1800);
+        }
+        showToast("Logs copied to clipboard", "success");
+      });
+    }
+
+    function applySelectedImage(path, name, sizeMb, format) {
+      resetFlashButtonState();
+      currentSelectedImagePath = path;
+      selectedTargetOs = name;
+      document.getElementById('flashSelectedName').innerText = name;
+      document.getElementById('flashSelectedPath').innerText = path;
+      const targetBadge = document.getElementById('flashTargetBadge');
+      if (targetBadge) {
+        targetBadge.innerText = `${format || 'ARM64'} • ${sizeMb ? sizeMb + ' MB' : 'READY'}`;
+        targetBadge.className = "text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
+      }
+      checkOsMatch();
+      showToast(`Selected OS Image: ${name}`, "success");
+    }
+
+    function triggerFilePicker() {
+      const input = document.getElementById('customImgFileInput');
+      if (input) input.click();
+    }
+
+    function handleCustomFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      resetFlashButtonState();
+
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(0);
+      const sizeStr = file.size > 1024 * 1024 * 1024
+        ? (file.size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+        : sizeMb + ' MB';
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const isCompressed = ['xz', 'gz', 'zst', 'bz2', 'tar'].includes(ext);
+      const badgeText = isCompressed ? 'COMPRESSED IMAGE' : 'RAW ROOTFS';
+
+      currentSelectedImagePath = file.name;
+      document.getElementById('flashSelectedName').innerText = file.name;
+      const targetBadge = document.getElementById('flashTargetBadge');
+      if (targetBadge) {
+        targetBadge.innerText = badgeText;
+        targetBadge.className = "text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
+      }
+      document.getElementById('flashSelectedPath').innerText = `Local File • ${sizeStr} • ${file.name}`;
+      selectedTargetOs = file.name;
+      checkOsMatch();
+      showToast(`Selected custom image: ${file.name} (${sizeStr})`, "success");
+    }
+
+    function selectDistro(shortName, fullName, path, badgeText) {
+      currentSelectedImagePath = path;
+      document.getElementById('flashSelectedName').innerText = fullName;
+      document.getElementById('flashSelectedPath').innerText = path;
+      const targetBadge = document.getElementById('flashTargetBadge');
+      if (targetBadge) {
+        targetBadge.innerText = badgeText || 'ARM64';
+        targetBadge.className = "text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
+      }
+      selectedTargetOs = fullName;
+      checkOsMatch();
+      closeDistroModal();
+    }
+
+    function updateInstalledOsStatus(osName) {
+      currentDeviceOs = osName || 'Base AP Recovery';
+      const el = document.getElementById('flashCurrentDeviceOS');
+      if (el) el.innerText = currentDeviceOs;
+      checkOsMatch();
+    }
+
+    function updateCleanWipeWarning(isClean) {
+      const el = document.getElementById('flashWipeWarning');
+      if (!el) return;
+      const targetLower = (selectedTargetOs || '').toLowerCase();
+      const liveLower = (currentDeviceOs || '').toLowerCase();
+      const isMatch = (targetLower.includes('debian') && liveLower.includes('debian')) ||
+                      (targetLower.includes('ubuntu') && liveLower.includes('ubuntu'));
+
+      if (isMatch) {
+        el.className = "mt-2 text-[9px] font-mono font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+        el.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-emerald-400 shrink-0"></i><span class="truncate">Reinstall / Refresh active OS</span>`;
+      } else if (isClean) {
+        el.className = "mt-2 text-[9px] font-mono font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 bg-amber-500/10 text-amber-300 border border-amber-500/20";
+        el.innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400 shrink-0"></i><span class="truncate">Will be wiped cleanly</span>`;
+      } else {
+        el.className = "mt-2 text-[9px] font-mono font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 bg-sky-500/10 text-sky-300 border border-sky-500/20";
+        el.innerHTML = `<i data-lucide="info" class="w-3 h-3 text-sky-400 shrink-0"></i><span class="truncate">Preserves user /data files</span>`;
+      }
+      lucide.createIcons();
+    }
+
+    function checkOsMatch() {
+      const badgeContainer = document.getElementById('flashMatchBadge');
+      const targetLower = (selectedTargetOs || '').toLowerCase();
+      const liveLower = (currentDeviceOs || '').toLowerCase();
+
+      // Check if both mention debian, ubuntu, or exact matches
+      const isMatch = (targetLower.includes('debian') && liveLower.includes('debian')) ||
+                      (targetLower.includes('ubuntu') && liveLower.includes('ubuntu')) ||
+                      (targetLower.includes('home assistant') && liveLower.includes('haos'));
+
+      if (badgeContainer) {
+        if (isMatch) {
+          badgeContainer.innerHTML = `
+            <span class="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
+              <i data-lucide="check-circle" class="w-3 h-3 text-emerald-400"></i>
+              <span>Already Flashed &amp; Live</span>
+            </span>
+          `;
+        } else {
+          badgeContainer.innerHTML = `
+            <span class="text-[9px] font-mono font-bold text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
+              <i data-lucide="arrow-down-circle" class="w-3 h-3 text-sky-400"></i>
+              <span>Ready to Flash</span>
+            </span>
+          `;
+        }
+      }
+      const cleanCheck = document.getElementById('toggleClean');
+      updateCleanWipeWarning(cleanCheck ? cleanCheck.checked : true);
+      lucide.createIcons();
+    }
+
+    // 6. Dynamic Storage Partitioning Slider (Windows C: vs D: Drive Architecture - 64GB / 128GB Auto-Scaling)
+    function setDeviceStorageCapacity(totalGb, variantName) {
+      if (!totalGb || totalGb <= 0) return;
+      totalUfsCapacity = parseFloat(totalGb);
+      const maxAlloc = Math.max(16, Math.floor(totalGb - 5.0));
+
+      const ufsEl = document.getElementById('deviceUfsVariant');
+      if (ufsEl) ufsEl.innerText = `${variantName || '64 GB UFS 2.1'} (/dev/block/sda15)`;
+
+      const totEl = document.getElementById('totalUfsDisplay');
+      if (totEl) totEl.innerText = totalUfsCapacity.toFixed(1);
+
+      const slider = document.getElementById('allocSlider');
+      if (slider) {
+        slider.max = maxAlloc;
+      }
+
+      updateAllocSlider(currentAlloc);
+    }
+
+    function updateAllocSlider(size) {
+      const maxLimit = Math.max(16, Math.floor(totalUfsCapacity - 5.0));
+      const val = Math.min(maxLimit, Math.max(4, parseInt(size) || 16));
+      currentAlloc = val;
+      const totalUfs = totalUfsCapacity;
+      const freeData = (totalUfs - val).toFixed(1);
+      const pctSystem = ((val / totalUfs) * 100).toFixed(1);
+      const pctData = (100 - parseFloat(pctSystem)).toFixed(1);
+
+      // Update Color-Coded Dual-Drive Split Bars
+      const barSys = document.getElementById('allocSystemBar');
+      const barDat = document.getElementById('allocDataBar');
+      if (barSys) barSys.style.width = pctSystem + '%';
+      if (barDat) barDat.style.width = pctData + '%';
+
+      // Update Slider Input & Value Displays
+      const slider = document.getElementById('allocSlider');
+      if (slider && slider.value != val) slider.value = val;
+      const disp = document.getElementById('sliderValueDisplay');
+      if (disp) disp.innerText = val;
+      const sysDisp = document.getElementById('systemRootfsDisplay');
+      if (sysDisp) sysDisp.innerText = val;
+      const dataDisp = document.getElementById('userDataDisplay');
+      if (dataDisp) dataDisp.innerText = freeData;
+      const totDisp = document.getElementById('totalUfsDisplay');
+      if (totDisp) totDisp.innerText = totalUfs.toFixed(1);
+    }
+
+    function setAllocSize(size) {
+      updateAllocSlider(size);
+    }
+
+    // 7. Hardware Actions: Torch Toggle
+    async function toggleTorch() {
+      currentTorch = !currentTorch;
+      const badge = document.getElementById('torchStatusBadge');
+      if (currentTorch) {
+        if (badge) badge.innerText = 'ON';
+        if (badge) badge.className = 'text-[10px] font-mono text-amber-300 font-bold';
+      } else {
+        if (badge) badge.innerText = 'OFF';
+        if (badge) badge.className = 'text-[10px] font-mono text-appMuted';
+      }
+      try {
+        await fetch(`/api/torch?state=${currentTorch ? 1 : 0}`);
+      } catch (e) { }
+    }
+
+    // 8. Hardware Actions: Haptic Pulse
+    async function triggerHaptic() {
+      try {
+        await fetch('/api/haptic');
+      } catch (e) { }
+    }
+
+    // 9. Device Reboot Trigger
+    async function triggerReboot(target) {
+      try {
+        await fetch(`/api/reboot?mode=${target}`);
+      } catch (e) { }
+    }
+
+    // 10. External Service Launcher
+    function launchExternalService(url) {
+      window.open(url, '_blank');
+    }
+
+    // 11. Real-Time Hardware Flashing Engine & Log Streamer
+    let flashPollInterval = null;
+
+    async function startFlashProcess() {
+      const btn = document.getElementById('btnStartDeploy');
+      const btnTxt = document.getElementById('btnStartDeployTxt');
+      const badge = document.getElementById('flashStatusBadge');
+      const logBuffer = document.getElementById('flashLogBuffer');
+      const logWindow = document.getElementById('flashLogWindow');
+
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+      btnTxt.innerText = "Flashing...";
+      badge.innerText = "Flashing";
+      badge.className = "text-[10px] font-mono px-2 py-0.5 rounded text-amber-400 animate-pulse";
+
+      const imagePath = currentSelectedImagePath || document.getElementById('flashSelectedPath').innerText.trim() || selectedTargetOs;
+      const allocGb = parseInt(document.getElementById('allocSlider').value) || 14;
+      const wipe = document.getElementById('toggleClean') ? document.getElementById('toggleClean').checked : true;
+      const osName = (document.getElementById('flashSelectedName')?.innerText || selectedTargetOs || 'Linux ARM64').trim();
+      const seedUser = (document.getElementById('seedUserInput')?.value || 'ubuntu').trim() || 'ubuntu';
+      const seedPass = document.getElementById('seedPassInput')?.value || 'ubuntu';
+      const seedHost = (document.getElementById('seedHostInput')?.value || 'galaxy-s8').trim() || 'galaxy-s8';
+      const seedWifiSsid = (document.getElementById('seedWifiSsidInput')?.value || '').trim();
+      const seedWifiPass = document.getElementById('seedWifiPassInput')?.value || '';
+
+      logBuffer.innerHTML = `<div class="text-sky-400 font-medium">[SYSTEM] Initializing unmodified OS deployment: ${escapeHtml(imagePath)} (${allocGb} GB)...</div>`;
+
+      try {
+        const startRes = await fetch('/api/flash', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_path: imagePath,
+            alloc_gb: allocGb,
+            wipe: wipe,
+            os_name: osName,
+            username: seedUser,
+            password: seedPass,
+            hostname: seedHost,
+            wifi_ssid: seedWifiSsid,
+            wifi_password: seedWifiPass
+          })
+        });
+        const startData = await startRes.json();
+        if (!startData.started) {
+          const reason = startData.error || startData.reason || 'Flash job rejected.';
+          logBuffer.innerHTML += `<div class="text-rose-400">[ERROR] ${escapeHtml(reason)}</div>`;
+          btn.disabled = false;
+          btn.classList.remove('opacity-70');
+          btnTxt.innerText = "Retry Flash";
+          badge.innerText = "Failed";
+          badge.className = "text-[10px] font-mono px-2 py-0.5 rounded text-rose-400";
+          return;
+        }
+      } catch (err) {
+        logBuffer.innerHTML += `<div class="text-rose-400">[ERROR] Could not trigger flash engine: ${escapeHtml(String(err))}</div>`;
+      }
+
+      if (flashPollInterval) clearInterval(flashPollInterval);
+
+      let lastLogCount = 0;
+      flashPollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/flash/status');
+          if (!res.ok) return;
+          const data = await res.json();
+
+          // Update Progress Bar & Telemetry (backend sends integer 0..100)
+          const pct = Math.min(100, Math.max(0, Math.round(Number(data.progress || 0))));
+          document.getElementById('flashProgressBar').style.width = pct + '%';
+          document.getElementById('flashPercent').innerText = pct + '%';
+          const stepText = data.step || ((data.logs && data.logs.length) ? data.logs[data.logs.length - 1] : data.status);
+          if (stepText) {
+            document.getElementById('flashStepDesc').innerText = stepText;
+          }
+
+          // Stream real-time logs
+          if (data.logs && data.logs.length > lastLogCount) {
+            for (let i = lastLogCount; i < data.logs.length; i++) {
+              const line = data.logs[i];
+              const div = document.createElement('div');
+              if (line.includes("ERROR") || line.includes("[FAIL]")) {
+                div.className = "text-rose-400 font-medium";
+              } else if (line.includes("===") || line.includes("[DONE]") || line.includes("Complete") || line.includes("100%")) {
+                div.className = "text-emerald-400 font-medium";
+              } else if (line.includes("USB") || line.includes("Push") || line.includes("Extracting")) {
+                div.className = "text-cyan-300";
+              } else if (line.includes("Seed") || line.includes("Wiping") || line.includes("Deploying") || line.includes("mkfs")) {
+                div.className = "text-sky-300";
+              } else {
+                div.className = "text-slate-300";
+              }
+              div.innerText = line;
+              logBuffer.appendChild(div);
+            }
+            lastLogCount = data.logs.length;
+            logWindow.scrollTop = logWindow.scrollHeight;
+          }
+
+          const st = String(data.status || '').toUpperCase();
+          if (st === 'COMPLETE' || st === 'COMPLETED') {
+            clearInterval(flashPollInterval);
+            badge.innerText = "Completed";
+            badge.className = "text-[10px] font-mono px-2 py-0.5 rounded text-emerald-400";
+            setButtonToRebootMode();
+            showToast("Deployment complete. Click Reboot Device, then install S8 Hardware Pack once USB RNDIS boots.", "success");
+          } else if (st === 'ERROR' || st === 'FAILED' || st === 'CANCELLED') {
+            clearInterval(flashPollInterval);
+            btn.disabled = false;
+            btn.classList.remove('opacity-70');
+            btnTxt.innerText = "Retry Flash";
+            badge.innerText = "Failed";
+            badge.className = "text-[10px] font-mono px-2 py-0.5 rounded text-rose-400";
+            showToast(`Flash failed: ${data.error || 'Check logs'}`, "error");
+          }
+        } catch (err) {
+          console.warn("Flash poll tick error:", err);
+        }
+      }, 350);
+    }
+
+    function setButtonToRebootMode() {
+      const btn = document.getElementById('btnStartDeploy');
+      if (!btn) return;
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'bg-sky-500', 'hover:bg-sky-400', 'shadow-sky-500/20');
+      btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400', 'shadow-emerald-500/25', 'ring-2', 'ring-emerald-400/30');
+      btn.innerHTML = `
+        <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+        <span id="btnStartDeployTxt">Reboot Device</span>
+      `;
+      btn.onclick = triggerPostFlashReboot;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function triggerPostFlashReboot() {
+      const btn = document.getElementById('btnStartDeploy');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-70');
+        btn.innerHTML = `
+          <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+          <span>Rebooting Device...</span>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+      showToast("Reboot command sent. Expect dual haptic pulse in ~15-30s as USB RNDIS (192.168.7.2) comes online.", "info");
+
+      const logBuffer = document.getElementById('flashLogBuffer');
+      if (logBuffer) {
+        const div = document.createElement('div');
+        div.className = "text-emerald-400 font-bold";
+        div.innerText = "[SYSTEM] Reboot signal dispatched. Galaxy S8 will auto-boot and enumerate USB RNDIS SSH at 192.168.7.2.";
+        logBuffer.appendChild(div);
+        const logWindow = document.getElementById('flashLogWindow');
+        if (logWindow) logWindow.scrollTop = logWindow.scrollHeight;
+      }
+
+      try {
+        await fetch('/api/reboot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: 'system' })
+        });
+      } catch (err) {
+        console.warn("Reboot trigger warning (device may have reconnected):", err);
+      }
+    }
+
+    function resetFlashButtonState() {
+      const btn = document.getElementById('btnStartDeploy');
+      if (!btn) return;
+      btn.disabled = false;
+      btn.classList.remove('opacity-70', 'bg-emerald-500', 'hover:bg-emerald-400', 'shadow-emerald-500/25', 'ring-2', 'ring-emerald-400/30');
+      btn.classList.add('bg-sky-500', 'hover:bg-sky-400', 'shadow-sky-500/20');
+      btn.innerHTML = `
+        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+        <span id="btnStartDeployTxt">Flash Image</span>
+      `;
+      btn.onclick = startFlashProcess;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 12. Native Persistent Dual-Shell Terminal Controller
+    let currentNativeShell = 'os'; // 'os' or 'ap'
+
+    // HTML Safety & ANSI Color Parser Engine
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function ansiToHtml(text) {
+      if (!text) return "";
+      let escaped = escapeHtml(text);
+      const colorMap = {
+        '30': 'text-slate-500',
+        '31': 'text-rose-400 font-semibold',
+        '32': 'text-emerald-400 font-semibold',
+        '33': 'text-amber-400 font-semibold',
+        '34': 'text-sky-400 font-semibold',
+        '35': 'text-purple-400 font-semibold',
+        '36': 'text-cyan-400 font-semibold',
+        '37': 'text-white',
+        '90': 'text-slate-400',
+        '91': 'text-red-400',
+        '92': 'text-green-300 font-semibold',
+        '93': 'text-yellow-300 font-semibold',
+        '94': 'text-blue-300 font-semibold',
+        '95': 'text-pink-300 font-semibold',
+        '96': 'text-cyan-300 font-semibold',
+        '97': 'text-white font-bold'
+      };
+
+      escaped = escaped.replace(/\x1b\[([0-9;]+)m/g, (match, codes) => {
+        const parts = codes.split(';');
+        let classes = [];
+        for (const c of parts) {
+          if (c === '0') return '</span>';
+          if (c === '1') classes.push('font-bold');
+          if (c === '4') classes.push('underline');
+          if (colorMap[c]) classes.push(colorMap[c]);
+        }
+        if (classes.length > 0) {
+          return `<span class="${classes.join(' ')}">`;
+        }
+        return '';
+      });
+
+      escaped = escaped.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+      return escaped;
+    }
+
+    const quickCommands = {
+      os: [
+        { label: 's8ctl status', cmd: 's8ctl status' },
+        { label: 's8ctl help', cmd: 's8ctl help' },
+        { label: 'kernel', cmd: 'uname -a' },
+        { label: 'memory', cmd: 'free -h' },
+        { label: 'disks', cmd: 'df -h' },
+        { label: 'uptime', cmd: 'uptime' },
+        { label: 'sdcard', cmd: 'ls -la /media/sdcard' }
+      ],
+      ap: [
+        { label: 'dmesg', cmd: 'dmesg | tail -n 25' },
+        { label: 'partitions', cmd: 'ls -l /dev/block/platform/11120000.ufs/by-name/' },
+        { label: 'getprop', cmd: 'getprop ro.bootmode' },
+        { label: 'disks', cmd: 'df -h' },
+        { label: 'mounts', cmd: 'cat /proc/mounts' }
+      ]
+    };
+
+    function runS8ctlQuick(cmd) {
+      if (!cmd) return;
+      const input = document.getElementById('termNativeInput');
+      if (input) {
+        input.value = cmd;
+        executeNativeCommand();
+      }
+    }
+
+    function toggleS8ctlDropdown(e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      const menu = document.getElementById('s8ctlMenuDropdown');
+      const chev = document.getElementById('s8ctlChevron');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (chev) chev.classList.add('rotate-180');
+      } else {
+        menu.classList.add('hidden');
+        if (chev) chev.classList.remove('rotate-180');
+      }
+    }
+
+    function closeS8ctlDropdown() {
+      const menu = document.getElementById('s8ctlMenuDropdown');
+      const chev = document.getElementById('s8ctlChevron');
+      if (menu) menu.classList.add('hidden');
+      if (chev) chev.classList.remove('rotate-180');
+    }
+
+    function selectS8ctlCmd(cmd) {
+      closeS8ctlDropdown();
+      const select = document.getElementById('s8ctlSelect');
+      if (select) {
+        select.value = cmd;
+      }
+      runS8ctlQuick(cmd);
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('s8ctlDropdownContainer');
+      if (container && !container.contains(e.target)) {
+        closeS8ctlDropdown();
+      }
+    });
+
+    const shellSessions = {
+      os: {
+        name: 'OS Shell',
+        prompt: 'root@Galaxy-S8-Ubuntu:~#',
+        promptColor: 'text-emerald-400',
+        caretColor: 'caret-emerald-400',
+        bannerHtml: '<div class="text-sky-400 font-bold">Linux 4.4.111-S8-Noble (aarch64) • Ubuntu 24.04.5 LTS (Noble Numbat)</div><div class="text-appMuted text-[11px] mb-3">Connected to native Linux OS chroot environment (/mnt/ubuntu).</div>',
+        entries: [],
+        history: [],
+        historyIdx: -1
+      },
+      ap: {
+        name: 'AP Shell',
+        prompt: 'root@Galaxy-S8-Recovery:/sbin #',
+        promptColor: 'text-amber-400',
+        caretColor: 'caret-amber-400',
+        bannerHtml: '<div class="text-amber-400 font-bold">Samsung Exynos 8895 Base AP Recovery Environment</div><div class="text-appMuted text-[11px] mb-3">Connected to Android Recovery root shell (/sbin/sh).</div>',
+        entries: [],
+        history: [],
+        historyIdx: -1
+      }
+    };
+
+    function renderQuickPills() {
+      const container = document.getElementById('termQuickPills');
+      if (!container) return;
+      const pills = quickCommands[currentNativeShell] || [];
+      container.innerHTML = pills.map(p => `
+        <button onclick="runQuickCommand('${p.cmd}')" class="px-2.5 py-1 rounded-lg bg-appCardAlt hover:bg-sky-500/20 hover:border-sky-400/40 border border-appBorder text-[11px] font-mono text-appMuted hover:text-sky-300 transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0">
+          ${escapeHtml(p.label)}
+        </button>
+      `).join('');
+    }
+
+    function runQuickCommand(cmd) {
+      const input = document.getElementById('termNativeInput');
+      if (input) {
+        input.value = cmd;
+        executeNativeCommand();
+      }
+    }
+
+    function getTerminalPlainText() {
+      const sess = shellSessions[currentNativeShell];
+      let txt = `${sess.name}\n========================================\n\n`;
+      sess.entries.forEach(e => {
+        txt += `${e.prompt} ${e.cmd}\n`;
+        const temp = document.createElement('div');
+        temp.innerHTML = e.outputHtml || '';
+        txt += (temp.innerText || '') + '\n\n';
+      });
+      return txt;
+    }
+
+    function copyTerminalBuffer() {
+      const text = getTerminalPlainText();
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Terminal buffer copied to clipboard!", "success");
+      }).catch(() => {
+        showToast("Copied to clipboard", "info");
+      });
+    }
+
+    function exportTerminalLog() {
+      const text = getTerminalPlainText();
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `s8_terminal_${currentNativeShell}_log.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Terminal session log exported!", "success");
+    }
+
+    function clearTerminalBuffer() {
+      const sess = shellSessions[currentNativeShell];
+      sess.entries = [];
+      renderEntries();
+      focusNativeTerminal();
+    }
+
+    function switchTransport(target) {
+      if (currentTransport === target) return;
+      currentTransport = target;
+      const sess = shellSessions[currentNativeShell];
+      sess.entries.push({
+        cmd: `transport --set ${target}`,
+        prompt: 'system@s8:~#',
+        promptColor: 'text-sky-400',
+        status: 'done',
+        outputHtml: `<span class="text-sky-400 font-semibold">[Transport switched to ${target.toUpperCase()}: ${target === 'rwp' ? 'Direct Wi-Fi SSH (' + liveWifiIp + ':22)' : 'USB ADB Wire'}]</span>`
+      });
+      renderNativeTerminal();
+    }
+
+    function renderEntries() {
+      const sess = shellSessions[currentNativeShell];
+      const bufferEl = document.getElementById('termScreenBuffer');
+      if (!bufferEl) return;
+
+      bufferEl.innerHTML = sess.entries.map((e, idx) => `
+        <div class="flex flex-col gap-1" id="term-entry-${idx}">
+          <div class="flex items-center gap-2 select-text">
+            <span class="${e.promptColor} font-bold select-none font-mono text-xs">${escapeHtml(e.prompt)}</span>
+            <span class="text-white font-semibold font-mono text-xs">${escapeHtml(e.cmd)}</span>
+          </div>
+          ${e.status === 'running'
+            ? `<div class="flex items-center gap-2 text-sky-400 font-mono text-[11px] animate-pulse py-0.5">
+                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                 <span>Executing on Galaxy S8...</span>
+               </div>`
+            : `<div class="whitespace-pre-wrap leading-relaxed select-text font-mono text-slate-200 text-xs">${e.outputHtml}</div>`
+          }
+        </div>
+      `).join('');
+    }
+
+    function renderNativeTerminal() {
+      const sess = shellSessions[currentNativeShell];
+      const bannerEl = document.getElementById('termHeaderBanner');
+      const promptEl = document.getElementById('termInlinePrompt');
+      const inputEl = document.getElementById('termNativeInput');
+      const btnOs = document.getElementById('btnShellOs');
+      const btnAp = document.getElementById('btnShellAp');
+      const btnUsb = document.getElementById('btnTransUsb');
+      const btnRwp = document.getElementById('btnTransRwp');
+      const targetDisp = document.getElementById('termTargetDisplay');
+
+      if (bannerEl) bannerEl.innerHTML = sess.bannerHtml;
+      if (promptEl) {
+        promptEl.innerText = sess.prompt;
+        promptEl.className = `${sess.promptColor} font-bold select-none shrink-0 font-mono text-xs`;
+      }
+      if (inputEl) {
+        inputEl.className = `flex-1 bg-transparent border-none outline-none text-white font-mono text-xs p-0 m-0 ${sess.caretColor} focus:ring-0 focus:outline-none`;
+        inputEl.value = '';
+      }
+
+      // Render block entries
+      renderEntries();
+
+      // Update Shell Switcher active styling
+      if (currentNativeShell === 'os') {
+        if (btnOs) btnOs.className = "px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-400/30 transition-all shadow-sm text-[11px]";
+        if (btnAp) btnAp.className = "px-3 py-1 rounded-lg text-appMuted hover:text-white transition-all font-semibold text-[11px]";
+      } else {
+        if (btnAp) btnAp.className = "px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-400/30 transition-all shadow-sm text-[11px]";
+        if (btnOs) btnOs.className = "px-3 py-1 rounded-lg text-appMuted hover:text-white transition-all font-semibold text-[11px]";
+      }
+
+      // Update Transport Switcher active styling
+      if (currentTransport === 'usb') {
+        if (btnUsb) btnUsb.className = "px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/30 transition-all text-[11px] shadow-sm flex items-center gap-1.5";
+        if (btnRwp) btnRwp.className = "px-2.5 py-1 rounded-lg text-appMuted hover:text-white transition-all font-semibold text-[11px] flex items-center gap-1.5";
+        if (targetDisp) targetDisp.innerText = "USB ADB (ce10171ab3e9620804)";
+      } else {
+        if (btnRwp) btnRwp.className = "px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-400/30 transition-all text-[11px] shadow-sm flex items-center gap-1.5";
+        if (btnUsb) btnUsb.className = "px-2.5 py-1 rounded-lg text-appMuted hover:text-white transition-all font-semibold text-[11px] flex items-center gap-1.5";
+        if (targetDisp) targetDisp.innerText = `RWP Wi-Fi (${liveWifiIp}:22)`;
+      }
+
+      lucide.createIcons();
+      scrollNativeTerminal();
+      focusNativeTerminal();
+    }
+
+    function switchNativeShell(target) {
+      if (currentNativeShell === target) return;
+      currentNativeShell = target;
+      renderNativeTerminal();
+    }
+
+    function focusNativeTerminal() {
+      const input = document.getElementById('termNativeInput');
+      if (input) input.focus();
+    }
+
+    function scrollNativeTerminal() {
+      const area = document.getElementById('nativeTerminalArea');
+      if (area) {
+        setTimeout(() => { area.scrollTop = area.scrollHeight; }, 10);
+      }
+    }
+
+    function handleNativeKey(e) {
+      const sess = shellSessions[currentNativeShell];
+      const input = document.getElementById('termNativeInput');
+
+      // Keybinding: Ctrl+L or Cmd+L clears screen
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        clearTerminalBuffer();
+        return;
+      }
+
+      // Keybinding: Ctrl+C cancels current line
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        if (window.getSelection().toString().length === 0) {
+          e.preventDefault();
+          sess.entries.push({
+            cmd: input.value,
+            prompt: sess.prompt,
+            promptColor: sess.promptColor,
+            status: 'done',
+            outputHtml: '<span class="text-rose-400 font-bold">^C</span>'
+          });
+          input.value = '';
+          sess.historyIdx = -1;
+          renderEntries();
+          scrollNativeTerminal();
+          return;
+        }
+      }
+
+      // Keybinding: Tab auto-completion
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const val = input.value.trim();
+        const candidates = currentNativeShell === 'os'
+          ? ['s8ctl status', 's8ctl cpu performance', 'uname -a', 'free -h', 'df -h', 'uptime', 'ls -la /media/sdcard', 'cat /proc/cpuinfo', 'reboot']
+          : ['dmesg | tail -n 25', 'ls -l /dev/block/platform/11120000.ufs/by-name/', 'getprop ro.bootmode', 'df -h', 'cat /proc/mounts', 'clear'];
+        const match = candidates.find(c => c.startsWith(val));
+        if (match) input.value = match;
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        executeNativeCommand();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (sess.history.length > 0 && sess.historyIdx < sess.history.length - 1) {
+          sess.historyIdx++;
+          input.value = sess.history[sess.history.length - 1 - sess.historyIdx];
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (sess.historyIdx > 0) {
+          sess.historyIdx--;
+          input.value = sess.history[sess.history.length - 1 - sess.historyIdx];
+        } else if (sess.historyIdx === 0) {
+          sess.historyIdx = -1;
+          input.value = '';
+        }
+      }
+    }
+
+    async function executeNativeCommand() {
+      const activeShellKey = currentNativeShell;
+      const sess = shellSessions[activeShellKey];
+      const input = document.getElementById('termNativeInput');
+      const cmd = input.value.trim();
+      input.value = '';
+      sess.historyIdx = -1;
+
+      if (!cmd) return;
+
+      // Special Command: clear / cls
+      if (cmd.toLowerCase() === 'clear' || cmd.toLowerCase() === 'cls') {
+        clearTerminalBuffer();
+        return;
+      }
+
+      // Record in history
+      sess.history.push(cmd);
+      if (sess.history.length > 100) sess.history.shift();
+
+      // Create new structured entry
+      const entryObj = {
+        cmd: cmd,
+        prompt: sess.prompt,
+        promptColor: sess.promptColor,
+        status: 'running',
+        outputHtml: ''
+      };
+      sess.entries.push(entryObj);
+
+      if (currentNativeShell === activeShellKey) {
+        renderEntries();
+        scrollNativeTerminal();
+      }
+
+      try {
+        const resp = await fetch(`/api/exec?cmd=${encodeURIComponent(cmd)}&env=${activeShellKey}&transport=${currentTransport}&ip=${encodeURIComponent(liveWifiIp)}`);
+        const data = await resp.json();
+        const out = data.output || "";
+        entryObj.outputHtml = out ? ansiToHtml(out) : `<span class="text-appMuted">[No output returned for: ${escapeHtml(cmd)}]</span>`;
+      } catch (err) {
+        entryObj.outputHtml = `<span class="text-rose-400">[ERROR] Command endpoint unreachable (${escapeHtml(String(err.message || err))}).</span>\n`;
+      } finally {
+        entryObj.status = 'done';
+        if (currentNativeShell === activeShellKey) {
+          renderEntries();
+          scrollNativeTerminal();
+          focusNativeTerminal();
+        }
+      }
+    }
+
+    // 13. Telemetry Polling (Automatic USB RNDIS / RWP Wi-Fi IP & Hardware Pack Synchronization)
+    let _distroPollTimer = null;
+
+    function updateHwPackBanner(data) {
+      if (window._hwInstallRunning) return;
+      const badge = document.getElementById('hwInjectStatusBadge');
+      const summary = document.getElementById('hwInjectSummary');
+      if (!badge || !summary) return;
+
+      if (!data.connected) {
+        badge.innerText = "OFFLINE";
+        badge.className = "text-[10px] font-mono text-appMuted font-bold bg-appCardAlt px-2 py-0.5 rounded border border-appBorder";
+        summary.innerText = "Boot the phone into Linux (USB RNDIS 192.168.7.2 or Wi-Fi), then click INSTALL S8 PACK.";
+        return;
+      }
+      if (data.hw_pack_installed) {
+        badge.innerText = data.hw_pack_version ? `INSTALLED v${data.hw_pack_version}` : "INSTALLED";
+        badge.className = "text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-400/20";
+        summary.innerText = `Pack active via ${data.transport || 'ssh'} | SSH: ${data.ssh_daemon || 'active'} | Buttons: ${data.buttons_active ? 'active' : 'standby'} | MicroSD: ${data.microsd_status || 'Unknown'}`;
+      } else if (data.state === 'recovery') {
+        badge.innerText = "TWRP RECOVERY";
+        badge.className = "text-[10px] font-mono text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-400/20";
+        summary.innerText = "Device in TWRP Recovery. Flash an unmodified OS on Flash OS, reboot, then install S8 Hardware Pack.";
+      } else {
+        badge.innerText = "NOT INSTALLED";
+        badge.className = "text-[10px] font-mono text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-400/20";
+        summary.innerText = `Stock OS online via ${data.transport || 'ssh'} (${data.rndis_ip || '192.168.7.2'}). Click INSTALL S8 PACK to activate audio, buttons & Wi-Fi.`;
+      }
+    }
+
+    async function pollDeviceTelemetry() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        setConnectionState(!!data.connected);
+
+        if (data.os && data.os !== 'None') {
+          updateInstalledOsStatus(data.os);
+        } else {
+          updateInstalledOsStatus('Awaiting device...');
+        }
+
+        if (data.userdata_total_gb && (data.userdata_total_gb !== totalUfsCapacity || !window._capacitySet)) {
+          window._capacitySet = true;
+          setDeviceStorageCapacity(data.userdata_total_gb, data.ufs_variant);
+        }
+
+        const wifiEl = document.getElementById('liveWifiIp');
+        const wifiDot = document.getElementById('liveWifiDot');
+        const wifiBadge = document.getElementById('liveWifiStateBadge');
+        if (data.wifi_ip && data.wifi_ip !== 'Offline') {
+          liveWifiIp = data.wifi_ip;
+          if (wifiEl) wifiEl.innerText = liveWifiIp;
+          if (wifiDot) wifiDot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+          if (wifiBadge) {
+            wifiBadge.innerText = "ONLINE";
+            wifiBadge.className = "text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20";
+          }
+          if (currentTransport === 'rwp') {
+            const targetDisp = document.getElementById('termTargetDisplay');
+            if (targetDisp) targetDisp.innerText = `RWP Wi-Fi (${liveWifiIp}:22)`;
+          }
+        } else {
+          if (wifiEl) wifiEl.innerText = data.rndis_ip && data.rndis_ip !== '--' ? `USB RNDIS (${data.rndis_ip})` : 'Offline';
+          if (wifiDot) wifiDot.className = `w-2 h-2 rounded-full ${data.connected ? 'bg-sky-400' : 'bg-appMuted'}`;
+          if (wifiBadge) {
+            wifiBadge.innerText = data.connected ? (data.transport || 'USB').toUpperCase() : 'OFFLINE';
+            wifiBadge.className = "text-[10px] text-appMuted font-semibold bg-appCard px-2 py-0.5 rounded border border-appBorder";
+          }
+        }
+
+        // Bind genuine Bento Dashboard telemetry (resetting when offline)
+        const cpuEl = document.getElementById('dashCpuFreq');
+        if (cpuEl) cpuEl.innerText = data.connected ? (data.cpu || 'Exynos 8895') : '-- MHz';
+
+        const ramEl = document.getElementById('dashRamFree');
+        if (ramEl) ramEl.innerText = data.connected ? `${data.ram_free || '--'} Free` : '-- GB Free';
+
+        const sdEl = document.getElementById('dashSdCardStatus');
+        if (sdEl) sdEl.innerText = data.connected ? (data.microsd_status || 'Unknown') : 'Offline';
+
+        const pct = data.connected ? (parseInt(data.battery, 10) || 0) : 0;
+        const batEl = document.getElementById('dashBatteryPct');
+        if (batEl) batEl.innerText = data.connected ? `${pct}%` : '--%';
+        const ring = document.getElementById('dashBatteryRing');
+        if (ring) {
+          ring.setAttribute('stroke-dasharray', `${pct}, 100`);
+        }
+
+        const maMatch = String(data.battery || '').match(/(-?\d+\s*mA)/i);
+        const curEl = document.getElementById('dashChargeCurrent');
+        if (curEl) curEl.innerText = data.connected ? (maMatch ? maMatch[1] : 'USB') : '-- mA';
+
+        const chargeEl = document.getElementById('dashChargeStatus');
+        if (chargeEl) {
+          const label = data.connected ? (data.battery || 'Active') : 'Awaiting Telemetry';
+          chargeEl.innerHTML = `<span class="w-2 h-2 rounded-full ${data.connected ? 'bg-emerald-400 animate-pulse' : 'bg-appMuted'}"></span><span class="truncate">${escapeHtml(label)}</span>`;
+        }
+
+        const liveTemp = data.connected ? (data.temp || '--') : '--°C';
+        const tempEl = document.getElementById('dashBatTemp');
+        if (tempEl) tempEl.innerText = data.connected ? (data.temp || '--') : '--';
+        for (const tid of ['dashTempM2', 'dashTempA53', 'dashTempGpu']) {
+          const el = document.getElementById(tid);
+          if (el) el.innerText = liveTemp;
+        }
+        const socTempEl = document.getElementById('dashTempSoc');
+        if (socTempEl) socTempEl.innerText = data.connected ? `SoC: ${liveTemp}` : 'SoC: --';
+        const govEl = document.getElementById('dashGovernorStatus');
+        if (govEl) {
+          govEl.innerText = data.connected ? (data.hw_pack_installed ? `Pack v${data.hw_pack_version || '1.0.0'} Active` : 'Seed Mode (Install Pack)') : 'Awaiting device';
+          govEl.className = `text-xs font-bold mt-0.5 ${data.connected ? 'text-emerald-400' : 'text-appMuted'}`;
+        }
+
+        const dpEl = document.getElementById('dashDpStatus');
+        if (dpEl) {
+          const dpText = data.connected ? (data.dp_monitor === 'Connected' ? 'DP: Connected' : 'DP: Standby') : 'DP: Offline';
+          dpEl.innerText = dpText;
+        }
+
+        updateHwPackBanner(data);
+      } catch (e) { }
+    }
+    setInterval(pollDeviceTelemetry, 3000);
+    pollDeviceTelemetry();
+    updateAllocSlider(16);
+    updateInstalledOsStatus('Awaiting device...');
+
+    // 14. Official Distro Downloader & SHA-256 Verifier
+    async function downloadDistro(distroId) {
+      const wrap = document.getElementById('distroDownloadProgressWrap');
+      const label = document.getElementById('distroDownloadLabel');
+      const pctEl = document.getElementById('distroDownloadPct');
+      const bar = document.getElementById('distroDownloadBar');
+      if (wrap) wrap.classList.remove('hidden');
+      if (label) label.innerText = `Starting official mirror download (${distroId})...`;
+      if (pctEl) pctEl.innerText = '0%';
+      if (bar) bar.style.width = '0%';
+
+      try {
+        const res = await fetch('/api/distros/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: distroId })
+        });
+        const data = await res.json();
+        if (!data.started) {
+          showToast(data.message || 'Could not start distro download.', 'error');
+          if (label) label.innerText = data.message || 'Download blocked.';
+          return;
+        }
+        if (_distroPollTimer) clearInterval(_distroPollTimer);
+        _distroPollTimer = setInterval(async () => {
+          try {
+            const stRes = await fetch('/api/distros/download/status');
+            const st = await stRes.json();
+            const pct = Math.min(100, Math.max(0, Math.round(Number(st.progress || 0))));
+            if (pctEl) pctEl.innerText = `${pct}%`;
+            if (bar) bar.style.width = `${pct}%`;
+            if (label) label.innerText = st.message || `Downloading ${st.filename || distroId}...`;
+            if (!st.active) {
+              clearInterval(_distroPollTimer);
+              if (st.error) {
+                showToast(`Download failed: ${st.error}`, 'error');
+              } else if (st.progress >= 100) {
+                showToast(`Official image ready: ${st.filename || distroId}`, 'success');
+              }
+            }
+          } catch (e) { }
+        }, 600);
+      } catch (err) {
+        showToast(`Download request failed: ${err}`, 'error');
+      }
+    }
+
+    async function verifyDistro(distroId) {
+      showToast(`Computing SHA-256 for ${distroId}...`, 'info');
+      try {
+        const res = await fetch('/api/distros/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: distroId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Verified OK: ${data.sha256 ? data.sha256.slice(0, 16) + '...' : data.message}`, 'success');
+        } else {
+          showToast(`Verification failed: ${data.message || 'Mismatch'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Verify error: ${err}`, 'error');
+      }
+    }
+
+    // 15. Wi-Fi Scan & Connect (Live S8 Hardware)
+    async function scanWifiLive() {
+      const btn = document.getElementById('wifiScanBtn');
+      btn.innerText = "...";
+      try {
+        const resp = await fetch('/api/wifi/scan');
+        const data = await resp.json();
+        const items = data.networks || data.ssids || [];
+        const sel = document.getElementById('wifiSsidSelect');
+        if (sel && items.length > 0) {
+          sel.innerHTML = '';
+          items.forEach(item => {
+            const opt = document.createElement('option');
+            if (typeof item === 'object' && item !== null) {
+              opt.value = item.ssid || '';
+              const band = item.band ? ` | ${item.band}` : '';
+              const sig = (item.signal !== undefined) ? ` | ${item.signal} dBm` : '';
+              const sec = item.security ? ` | ${item.security}` : '';
+              opt.innerText = `${item.ssid}${band}${sig}${sec}`;
+            } else {
+              opt.value = String(item);
+              opt.innerText = String(item);
+            }
+            if (opt.value) sel.appendChild(opt);
+          });
+          showToast(`Found ${items.length} Wi-Fi network(s).`, 'success');
+        } else {
+          showToast('No Wi-Fi networks returned. Ensure S8 Hardware Pack is installed.', 'info');
+        }
+      } catch (e) {
+        showToast(`Wi-Fi scan error: ${e}`, 'error');
+      }
+      btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> SCAN';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function connectWifiLive() {
+      const ssid = (document.getElementById('wifiSsidSelect')?.value || '').trim();
+      const pass = document.getElementById('wifiPassInput')?.value || '';
+      const btn = document.getElementById('wifiConnectBtn');
+      if (!ssid) {
+        showToast('Select or scan a Wi-Fi SSID first.', 'error');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerText = "CONNECTING...";
+      try {
+        const res = await fetch('/api/wifi/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ssid, password: pass })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.innerText = "WIFI CONNECTED";
+          showToast(data.message || `Connected to ${ssid}`, 'success');
+          pollDeviceTelemetry();
+        } else {
+          btn.innerText = "CONNECT FAILED";
+          showToast(data.message || `Could not connect to ${ssid}`, 'error');
+        }
+      } catch (e) {
+        btn.innerText = "ERROR";
+        showToast(`Wi-Fi connect error: ${e}`, 'error');
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { btn.innerText = "APPLY & CONNECT WI-FI"; }, 3000);
+      }
+    }
+
+    // 16. Device Identity & Security Handlers
+    async function applyHostname() {
+      const input = document.getElementById('configHostnameInput');
+      const badge = document.getElementById('configFeedbackBadge');
+      const name = (input.value || '').trim();
+      if (!name) return;
+      badge.innerText = "UPDATING...";
+      try {
+        const res = await fetch('/api/config/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hostname: name })
+        });
+        const data = await res.json();
+        badge.innerText = data.success ? `HOSTNAME: ${data.hostname}` : "FAILED";
+        showToast(data.success ? `Hostname updated to ${data.hostname}` : (data.message || 'Hostname failed'), data.success ? 'success' : 'error');
+      } catch (e) {
+        badge.innerText = "ERROR";
+      }
+      setTimeout(() => { badge.innerText = "READY"; }, 2500);
+    }
+
+    async function injectSshKey() {
+      const input = document.getElementById('configSshKeyInput');
+      const badge = document.getElementById('configFeedbackBadge');
+      const key = (input.value || '').trim();
+      if (!key) return;
+      badge.innerText = "INJECTING...";
+      try {
+        const safeKey = key.replace(/'/g, "'\\''");
+        await fetch('/api/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cmd: `mkdir -p /root/.ssh && echo '${safeKey}' >> /root/.ssh/authorized_keys && chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys`,
+            env: 'os'
+          })
+        });
+        badge.innerText = "SSH KEY ADDED";
+        input.value = "";
+      } catch (e) {
+        badge.innerText = "ERROR";
+      }
+      setTimeout(() => { badge.innerText = "READY"; }, 2500);
+    }
+
+    async function setSystemPassword() {
+      const input = document.getElementById('configPassInput');
+      const badge = document.getElementById('configFeedbackBadge');
+      const pass = (input.value || '').trim();
+      if (!pass) return;
+      badge.innerText = "SETTING...";
+      try {
+        const safePass = pass.replace(/'/g, "'\\''");
+        await fetch('/api/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cmd: `printf 'root:%s\\n' '${safePass}' | chpasswd 2>/dev/null || echo -e '${safePass}\\n${safePass}' | passwd root`,
+            env: 'os'
+          })
+        });
+        badge.innerText = "PASSWORD UPDATED";
+        input.value = "";
+      } catch (e) {
+        badge.innerText = "ERROR";
+      }
+      setTimeout(() => { badge.innerText = "READY"; }, 2500);
+    }
+
+    async function triggerHardwareSuiteInject() {
+      const btn = document.getElementById('btnInjectHardwareSuite');
+      const badge = document.getElementById('hwInjectStatusBadge');
+      const summary = document.getElementById('hwInjectSummary');
+      const installVnc = !!document.getElementById('chkInstallVncDesktop')?.checked;
+
+      window._hwInstallRunning = true;
+      btn.disabled = true;
+      badge.innerText = "INSTALLING...";
+      badge.className = "text-[10px] font-mono text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-400/20";
+      summary.innerText = installVnc
+        ? "Installing galaxy-s8-hw + VNC/noVNC desktop bridge over USB RNDIS..."
+        : "Installing galaxy-s8-hw (PMIC, Wi-Fi, Audio, Buttons, DisplayPort, udev)...";
+
+      try {
+        const res = await fetch('/api/hardware/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ install_vnc: installVnc })
+        });
+        const data = await res.json();
+        const logText = String(data.log || '').trim();
+        const lines = logText ? logText.splitlines ? logText.splitlines() : logText.split(/\r?\n/) : [];
+        const tail = lines.length ? lines[lines.length - 1] : '';
+        if (data.success) {
+          badge.innerText = data.version ? `INSTALLED v${data.version}` : "INSTALLED OK";
+          badge.className = "text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-400/20";
+          summary.innerText = tail || "galaxy-s8-hw active: audio, buttons, Wi-Fi, fast charge, and DisplayPort enabled.";
+          showToast(`S8 Hardware Pack v${data.version || '1.0.0'} installed.`, 'success');
+        } else {
+          badge.innerText = "FAILED";
+          badge.className = "text-[10px] font-mono text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-400/20";
+          summary.innerText = tail || "Could not install S8 Hardware Pack. Check USB RNDIS (192.168.7.2) or Wi-Fi connection.";
+          showToast(summary.innerText, 'error');
+        }
+      } catch (e) {
+        badge.innerText = "ERROR";
+        summary.innerText = String(e);
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => {
+          window._hwInstallRunning = false;
+          pollDeviceTelemetry();
+        }, 2500);
+      }
+    }
+
+    // Initialize native dual-shell terminal
+    renderNativeTerminal();
+  </script>
+</body>
+
+</html>

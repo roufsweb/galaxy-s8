@@ -29,6 +29,18 @@ The **Galaxy S8 Native Linux Platform (`galaxy-s8`)** is built upon the foundati
 
 ## 2. Operating System, Kernel & Core Subsystems
 
+* **boerck (`ohjjj1007@naver.com` / [boerck](https://github.com/boerck))**
+  * Original developer of the Samsung Galaxy S8 Korean variant (`SM-G950N` / `dreamltekor`) KVM kernel tree (`android_kernel_samsung_dreamltekor_kvm`), pioneering ARM64 hardware-assisted virtualization on Exynos 8895, dtbtool packaging, and GCC 4.9 toolchain integration that our customized DEFEX-free native Linux kernel builds upon.
+
+* **John Cadduono ([jcadduono](https://github.com/jcadduono))**
+  * Exynos 8895 kernel pioneer, author of `android_kernel_samsung_universal8895`, Exynos `dtbtool` Linux build system integration, and official TWRP recovery architecture for Galaxy S8 Exynos devices.
+
+* **Osm0sis ([osm0sis](https://github.com/osm0sis))**
+  * Author of Android Image Kitchen (`AIK-Linux`), used for precision ramdisk unpacking, kernel header manipulation, and boot image assembly.
+
+* **The Exynos 8895 Custom Kernel & XDA Community**
+  * Independent researchers, ROM and kernel developers (including Jesec, Ananjaser1211, Corsicanu, Noxxxious, and Ace42) whose reverse engineering and research documented Exynos 8895 hardware quirks, PMIC power thresholds, and boot mechanisms.
+
 * **The Linux Kernel Community & Linus Torvalds**
   * The Linux kernel codebase, POSIX driver model, ALSA audio framework, evdev input subsystem, and cgroups container infrastructure.
 

@@ -1,6 +1,6 @@
-# Galaxy S8 Automated Test & Verification Suites
+# Galaxy S8 Native Linux Test & Verification Suite
 
-This directory contains benchmark suites, hardware interface verifiers, and end-to-end browser automation scripts used to test every subsystem on the Samsung Galaxy S8 Linux server.
+Unified testing framework covering hardware peripherals, system benchmarks, homelab cloud services, and unit logic.
 
 ---
 
@@ -8,39 +8,43 @@ This directory contains benchmark suites, hardware interface verifiers, and end-
 
 ```
 tests/
-├── benchmarks/        # Multi-threaded CPU, memory, GPU, and I/O benchmark harnesses
-├── hardware/          # Direct kernel ioctl, ION buffer, VSYNC, and ALSA hardware tests
-└── ui_verification/   # Playwright-driven end-to-end browser automation suites
+├── hardware/             # Physical device, DisplayPort, ABOX audio, and VSYNC tests
+│   ├── test_dp_colors.c          # DisplayPort RGB color test
+│   ├── test_dp_ion_pattern.c     # /dev/ion DMA buffer pattern generator
+│   ├── test_vsync.c              # FBIO_WAITFORVSYNC timing verification
+│   └── test_audio_devs.py        # ALSA Calliope DSP & Maxim amplifier checks
+├── benchmarks/           # CPU, GPU, memory bandwidth, and thermal torture tests
+│   ├── benchmark_suite.py        # Comprehensive Sysbench, memory, and disk suite
+│   └── test_perf.c               # Native C CPU torture loop
+├── services/             # Docker homelab services & Web UI automated validation
+│   ├── test_casaos_ui.py         # CasaOS cloud dashboard verification (:8080)
+│   ├── test_portainer_ui.py      # Portainer CE container manager (:9000)
+│   ├── test_codeserver_ui.py     # Code-Server / VS Code browser editor (:8082)
+│   ├── test_uptimekuma_ui.py     # Uptime Kuma monitoring dashboard (:3001)
+│   ├── test_filebrowser_ui.py    # FileBrowser MicroSD NAS interface (:8088)
+│   └── verify_ollama_ui.py       # Ollama LLM local inference API (:11434)
+└── unit/                 # Application architecture and telemetry unit tests
+    ├── test_app_structure.py     # Path resolution, config, and binary audits
+    └── test_poller.py            # Hardware telemetry parser validation
 ```
 
 ---
 
-## Benchmark Harnesses (`tests/benchmarks/`)
+## How to Run Tests
 
-* `benchmark_suite.py`: Multi-metric hardware evaluation measuring:
-  * Single-core and multi-core integer / floating point CPU performance.
-  * Memory bandwidth (read, write, copy) via sequential and non-contiguous memory access.
-  * MicroSD and internal UFS storage sequential write and cached read throughput.
-  * Network socket latency and loopback throughput.
-* `test_perf.c`: Direct C benchmark testing compiler vectorization and cache latency on Exynos M2 and Cortex-A53 cores.
+### Running Unit Tests
+```bash
+python -m unittest discover tests/unit
+```
 
----
+### Running Service Verification Tests (Against Live Galaxy S8)
+```bash
+python -m unittest tests/services/test_casaos_ui.py
+python -m unittest tests/services/test_portainer_ui.py
+```
 
-## Hardware Interface Tests (`tests/hardware/`)
-
-* `test_dp_colors.c` & `test_dp_ion_pattern.c`: Direct Exynos DECON2 framebuffer test patterns verifying 32-bit ARGB8888 color accuracy, stride alignment, and double buffering.
-* `test_vsync.c`: Verifies kernel `FBIO_WAITFORVSYNC` blocking ioctl on `/dev/graphics/fb2` to prevent frame tearing during DisplayPort video output.
-* `test_audio_devs.py`: Verifies ALSA soundcard enumerations for `hw:0,0` (Speaker) and `hw:0,9` (Digital Mic 1).
-
----
-
-## UI Automation & Verification Suites (`tests/ui_verification/`)
-
-Automated with Playwright to verify full functionality from the browser perspective:
-* `test_casaos_ui.py` & `test_casaos_human_flow.py`: Verifies CasaOS dashboard (:8080) loading, system telemetry widgets, and app store catalogs.
-* `test_portainer_ui.py` & `test_portainer_containers.py`: Automates Portainer CE (:9000) login, container inspection, CPU/RAM graph verification, and image pulling.
-* `test_uptimekuma_ui.py`: Verifies Uptime Kuma (:3001) setup, creates live HTTP monitors (CasaOS, Portainer, Ollama, FileBrowser), and asserts 100% green status.
-* `test_filebrowser_ui.py` & `test_sdcard_filebrowser.py`: Verifies FileBrowser (:8088) login, navigates into `/media/sdcard`, and asserts full read/write file access to the external MicroSD card.
-* `verify_ollama_ui.py`: Sends JSON prompt payloads to Ollama LLM REST API (:11434), streaming token responses and verifying inference accuracy.
-* `test_codeserver_ui.py` & `test_codeserver_editor.py`: Automates Code-Server (:8082) login, creates and edits source files in the Monaco editor, and validates workspace saving.
-
+### Compiling and Running Hardware Tests on Device
+```bash
+adb -s ce10171ab3e9620804 push tests/hardware/test_vsync.c /data/local/tmp/
+adb -s ce10171ab3e9620804 shell "gcc -O2 /data/local/tmp/test_vsync.c -o /data/local/tmp/test_vsync && /data/local/tmp/test_vsync"
+```

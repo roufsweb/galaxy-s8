@@ -1,0 +1,18 @@
+[Unit]
+Description=Galaxy S8 TigerVNC X11 Server (:1)
+After=s8-hardware.service
+ConditionPathExists=/usr/bin/Xtigervnc
+
+[Service]
+Type=simple
+SupplementaryGroups=aid_inet aid_net_raw aid_net_admin
+Environment=HOME=/root
+Environment=USER=root
+ExecStartPre=/bin/sh -c 'mkdir -p /tmp/.X11-unix /root/.vnc && chmod 1777 /tmp/.X11-unix && rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 && if [ ! -f /root/.vnc/passwd ] && command -v vncpasswd >/dev/null 2>&1; then printf "ubuntu\nubuntu\n" | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd; fi'
+ExecStart=/usr/bin/Xtigervnc :1 -geometry 1920x1080 -depth 24 -rfbport 5901 -PasswordFile /root/.vnc/passwd -AlwaysShared -AcceptKeyEvents -AcceptPointerEvents -SecurityTypes VncAuth
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+
