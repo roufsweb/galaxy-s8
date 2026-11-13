@@ -1143,5 +1143,45 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Virtual Environment Matrix: **`11/11 Distros PASS` (`22/22` total tests across `wsl-qemu` and `s8-device`)**
   - Device Userdata Free Space: **`34 GB` available on `/mnt/android_data`**
 
+---
+
+### Task 63: Physical Hardware Audio/Torch Verification & Live Stress Torture Suite
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  - Verified physical operation of Cirrus Logic CS47L92 Digital Microphone 1 (`hw:0,9`), Maxim MAX98506 loudspeaker (`hw:0,0`), CS47L92 Receiver earpiece speaker, and rear camera flash torch (`torch-sec1`).
+  - Explained camera hardware reality (`CONFIG_VIDEO_EXYNOS_FIMC_IS2=n`, proprietary ISP null-pointer kernel panic prevention per Rule 2 and Finding 112, and USB UVC camera alternatives).
+  - Executed project-wide file, folder, and naming convention audit and calculated exact compliance ratios.
+  - Implemented and executed live hardware stress torture suite (`tests/hardware/test_random_stress_torture.py`) covering octa-core CPU load, thermal curve, storage block I/O, actuator jitter, and RWP rapid burst.
+* **Actions Taken & Verified:**
+  1. **Physical Microphone Real Ambient Audio Capture:**
+     - Recorded 3.0s real room ambient audio via DMIC1 (`hw:0,9` WDMA1, 48 kHz stereo 16-bit PCM).
+     - Verified 287,174 / 288,000 non-zero samples (99.7% active acoustic variation), RMS 318.28, peak 4349.
+     - Generated acoustic waveform and frequency spectrogram plot (`docs/assets/screenshots/s8_microphone_waveform_proof.png`) and dispatched both visual proof and raw `.wav` audio directly to Telegram (`@roufsantigravitybot`).
+  2. **Physical Loudspeaker, Earpiece & Torch Actuation:**
+     - Released PulseAudio device lock by stopping `hassio_audio` container.
+     - Played 440 Hz reference sine wave on main loudspeaker (`hw:0,0`) and 1000 Hz reference tone on CS47L92 Receiver (`HPOUT3`).
+     - Actuated rear camera LED torch (`/sys/class/leds/torch-sec1/brightness` 10 -> 0).
+  3. **Project Hygiene & Compliance Audit (`scripts/project_audit.py`):**
+     - Audited root directory hygiene: 33 items, 100.0% clean per `folder-and-file-management`. Moved runtime logs into `scratch/logs/`.
+     - Audited naming conventions: 423 / 423 tracked files (100.0% compliant per `product-namespace-and-naming`).
+     - Overall repository compliance score: 100.0%. Rebuilt master project index (1,207 assets indexed).
+  4. **Live Physical Hardware Stress & Torture Suite (`tests/hardware/test_random_stress_torture.py`):**
+     - Octa-core 8-thread SHA256 torture: SoC temperature delta +1.0 C (37.0 C baseline -> 38.0 C peak -> 38.0 C cooldown).
+     - Dynamic governor scaling: A53 cores scaled from 455 to 949 MHz under heavy load.
+     - Storage torture: 16 MB written to MicroSD card at 4.3 MB/s; UFS 2.1 sustained 109 MB/s.
+     - Actuator jitter: 5 rapid haptic + torch pulse cycles completed with zero bus hangs.
+     - RWP protocol burst: 30 / 30 rapid back-to-back POST calls passed (100.0% success, 42.70ms avg, 63.00ms p95).
+     - Kernel fault-tolerance: `panic_on_oops = 0`, 0 unsafe V4L2 nodes, 12,890s continuous uptime (>3.5 hours).
+  5. **Automated Verification Suites Passing (100% Green):**
+     - Desktop App 4-Layer Suite: 43 / 43 tests PASS.
+     - Multi-Distro Virtual Environments: 6 / 6 tests PASS.
+     - 25-Point Hardware Matrix: 25 / 25 subsystems PASS.
+     - Full Non-Regression E2E: 6 / 6 tests PASS.
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
+  - Uptime: **`> 3.5 Hours Continuous`**
+  - Project Compliance Score: **`100.0%` (0 violations)**
+
+
 
 
