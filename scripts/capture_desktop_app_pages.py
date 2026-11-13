@@ -60,19 +60,6 @@ def capture_all_pages():
             page.screenshot(path=str(p1_path), full_page=False)
             captured["page1_flash"] = p1_path
             
-            # 2. Open Official OS Catalog Modal
-            print("[*] Capturing Modal: Official OS Catalog...")
-            page.click("#btnOpenCatalog")
-            page.wait_for_selector("#distroModal:not(.hidden)", timeout=5000)
-            page.wait_for_timeout(500)
-            
-            p_cat_path = OUT_DIR / "s8_imager_modal_catalog.png"
-            page.screenshot(path=str(p_cat_path), full_page=False)
-            captured["modal_catalog"] = p_cat_path
-            
-            page.click("button[onclick='closeDistroModal()']")
-            page.wait_for_timeout(300)
-            
             # 3. Page 2: Hardware Dashboard
             print("[*] Capturing Page 2: Hardware Dashboard...")
             page.click("#navBtnDashboard")

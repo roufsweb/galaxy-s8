@@ -148,7 +148,7 @@ def _send_telegram_media(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:
             if resp.status == 200:
                 print(f"[+] Telegram {label} dispatched successfully: {p.name}")
                 return True
