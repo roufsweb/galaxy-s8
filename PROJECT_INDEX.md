@@ -122,11 +122,11 @@
 | :--- | :--- | :--- |
 | [`desktop-app/README.md`](file:///E:/rouf/galaxy-s8/desktop-app/README.md) | 7.9384765625 KB | Repository master README and project setup documentation. |
 | [`docs/AP_AND_KERNEL_BUILD_GUIDE.md`](file:///E:/rouf/galaxy-s8/docs/AP_AND_KERNEL_BUILD_GUIDE.md) | 20.1318359375 KB | Authoritative master guide for kernel compilation and Odin AP package assembly. |
-| [`FINDINGS.md`](file:///E:/rouf/galaxy-s8/FINDINGS.md) | 175.5263671875 KB | Empirical hardware, kernel, power management, and userland findings ledger. |
+| [`FINDINGS.md`](file:///E:/rouf/galaxy-s8/FINDINGS.md) | 177.3974609375 KB | Empirical hardware, kernel, power management, and userland findings ledger. |
 | [`GEMINI.md`](file:///E:/rouf/galaxy-s8/GEMINI.md) | 36.7685546875 KB | Master operational rulebook and verified anti-hallucination hardware constraints. |
-| [`HISTORY.md`](file:///E:/rouf/galaxy-s8/HISTORY.md) | 99.6005859375 KB | Chronological task execution history, test proofs, and verified procedure logs. |
+| [`HISTORY.md`](file:///E:/rouf/galaxy-s8/HISTORY.md) | 101.1953125 KB | Chronological task execution history, test proofs, and verified procedure logs. |
 | [`kernel/README.md`](file:///E:/rouf/galaxy-s8/kernel/README.md) | 4.763671875 KB | Repository master README and project setup documentation. |
-| [`PROJECT_INDEX.md`](file:///E:/rouf/galaxy-s8/PROJECT_INDEX.md) | 165.501953125 KB | Autonomous comprehensive index of all project assets, tools, and scripts. |
+| [`PROJECT_INDEX.md`](file:///E:/rouf/galaxy-s8/PROJECT_INDEX.md) | 166.8369140625 KB | Autonomous comprehensive index of all project assets, tools, and scripts. |
 | [`README.md`](file:///E:/rouf/galaxy-s8/README.md) | 37.619140625 KB | Repository master README and project setup documentation. |
 | [`releases/README.md`](file:///E:/rouf/galaxy-s8/releases/README.md) | 3.1728515625 KB | Repository master README and project setup documentation. |
 | [`scripts/README.md`](file:///E:/rouf/galaxy-s8/scripts/README.md) | 901 B | Repository master README and project setup documentation. |
@@ -327,7 +327,7 @@
 | [`scratch/su`](file:///E:/rouf/galaxy-s8/scratch/su) | 616 B | Project asset. |
 | [`scratch/su.s`](file:///E:/rouf/galaxy-s8/scratch/su.s) | 1.3505859375 KB | Project asset. |
 | [`scratch/supervisor_config.json`](file:///E:/rouf/galaxy-s8/scratch/supervisor_config.json) | 282 B | Project asset. |
-| [`scratch/telegram_listener_state.json`](file:///E:/rouf/galaxy-s8/scratch/telegram_listener_state.json) | 53 B | Project asset. |
+| [`scratch/telegram_listener_state.json`](file:///E:/rouf/galaxy-s8/scratch/telegram_listener_state.json) | 54 B | Project asset. |
 | [`scratch/test_init.rc`](file:///E:/rouf/galaxy-s8/scratch/test_init.rc) | 3.8515625 KB | Project asset. |
 | [`scratch/test_ldconfig.rc`](file:///E:/rouf/galaxy-s8/scratch/test_ldconfig.rc) | 52 B | Project asset. |
 | [`scratch/test_sh`](file:///E:/rouf/galaxy-s8/scratch/test_sh) | 1.1 MB | Project asset. |
@@ -473,7 +473,7 @@
 | [`desktop-app/tests/test_unit_core.py`](file:///E:/rouf/galaxy-s8/desktop-app/tests/test_unit_core.py) | 13.0654296875 KB | Project asset. |
 | [`desktop-app/tests/test_uptimekuma_ui.py`](file:///E:/rouf/galaxy-s8/desktop-app/tests/test_uptimekuma_ui.py) | 2.9619140625 KB | Project asset. |
 | [`desktop-app/tests/verify_ollama_ui.py`](file:///E:/rouf/galaxy-s8/desktop-app/tests/verify_ollama_ui.py) | 2.5341796875 KB | Project asset. |
-| [`desktop-app/ui/index.html`](file:///E:/rouf/galaxy-s8/desktop-app/ui/index.html) | 130.2783203125 KB | High-density Bento grid HTML/JS user interface for S8 Imager desktop app. |
+| [`desktop-app/ui/index.html`](file:///E:/rouf/galaxy-s8/desktop-app/ui/index.html) | 123.05859375 KB | High-density Bento grid HTML/JS user interface for S8 Imager desktop app. |
 
 ## Skills & Operational Runbooks (89 items)
 
@@ -1183,7 +1183,7 @@
 | [`scratch/xstartup_xfce.sh`](file:///E:/rouf/galaxy-s8/scratch/xstartup_xfce.sh) | 616 B | Project asset. |
 | [`scripts/auto_log_collector.py`](file:///E:/rouf/galaxy-s8/scripts/auto_log_collector.py) | 6.1181640625 KB | Project asset. |
 | [`scripts/build_universal_ap.py`](file:///E:/rouf/galaxy-s8/scripts/build_universal_ap.py) | 40.9541015625 KB | Project asset. |
-| [`scripts/capture_desktop_app_pages.py`](file:///E:/rouf/galaxy-s8/scripts/capture_desktop_app_pages.py) | 4.7138671875 KB | Project asset. |
+| [`scripts/capture_desktop_app_pages.py`](file:///E:/rouf/galaxy-s8/scripts/capture_desktop_app_pages.py) | 4.2734375 KB | Project asset. |
 | [`scripts/capture_flash_dom_shots.py`](file:///E:/rouf/galaxy-s8/scripts/capture_flash_dom_shots.py) | 3.2861328125 KB | Project asset. |
 | [`scripts/ci_cd_validator.py`](file:///E:/rouf/galaxy-s8/scripts/ci_cd_validator.py) | 470 B | Automated 4-layer CI/CD quality gate & test runner for S8 Imager. |
 | [`scripts/cleanup_project.py`](file:///E:/rouf/galaxy-s8/scripts/cleanup_project.py) | 6.6455078125 KB | Automated workspace cleanup tool purging temporary artifacts and scratch images. |
@@ -1244,10 +1244,10 @@
 | [`docs/assets/screenshots/s8_imager_flash_os.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_flash_os.png) | 83.8876953125 KB | Project asset. |
 | [`docs/assets/screenshots/s8_imager_modal_donate.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_modal_donate.png) | 103.8603515625 KB | Project asset. |
 | [`docs/assets/screenshots/s8_imager_os_catalog.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_os_catalog.png) | 107.443359375 KB | Project asset. |
-| [`docs/assets/screenshots/s8_imager_page1_flash.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page1_flash.png) | 82.521484375 KB | Project asset. |
-| [`docs/assets/screenshots/s8_imager_page2_dashboard.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page2_dashboard.png) | 117.6572265625 KB | Project asset. |
-| [`docs/assets/screenshots/s8_imager_page3_terminal.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page3_terminal.png) | 91.716796875 KB | Project asset. |
-| [`docs/assets/screenshots/s8_imager_page4_config.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page4_config.png) | 140.6025390625 KB | Project asset. |
+| [`docs/assets/screenshots/s8_imager_page1_flash.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page1_flash.png) | 76.7861328125 KB | Project asset. |
+| [`docs/assets/screenshots/s8_imager_page2_dashboard.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page2_dashboard.png) | 107.318359375 KB | Project asset. |
+| [`docs/assets/screenshots/s8_imager_page3_terminal.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page3_terminal.png) | 88.388671875 KB | Project asset. |
+| [`docs/assets/screenshots/s8_imager_page4_config.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_page4_config.png) | 137.623046875 KB | Project asset. |
 | [`docs/assets/screenshots/s8_imager_terminal.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_imager_terminal.png) | 57.33984375 KB | Project asset. |
 | [`docs/assets/screenshots/s8_microphone_waveform_proof.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_microphone_waveform_proof.png) | 586.8408203125 KB | Project asset. |
 | [`docs/assets/screenshots/s8_stress_test_telemetry.png`](file:///E:/rouf/galaxy-s8/docs/assets/screenshots/s8_stress_test_telemetry.png) | 187.2373046875 KB | Project asset. |

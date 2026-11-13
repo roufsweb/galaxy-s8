@@ -154,18 +154,8 @@
       </nav>
     </div>
 
-    <!-- Bottom Sidebar Controls: Support Project & Collapse / Expand -->
+    <!-- Bottom Sidebar Control: Collapse / Expand -->
     <div class="w-full pt-1.5 border-t border-appBorder/40 flex flex-col gap-1">
-      <button onclick="openDonateModal()"
-        class="sidebar-bottom-btn flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-2xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 transition-all active:scale-[0.98] group"
-        title="Support Project (ETH / MetaMask)">
-        <div
-          class="w-7 h-7 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 text-amber-400 group-hover:scale-105 transition-transform">
-          <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
-        </div>
-        <span class="sidebar-label text-xs font-semibold whitespace-nowrap">Buy Me a Coffee</span>
-      </button>
-
       <button id="sidebarToggleBtn" onclick="toggleSidebar()"
         class="sidebar-bottom-btn flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-2xl text-appMuted hover:text-white hover:bg-appCardAlt border border-appBorder/40 transition-all"
         title="Toggle Sidebar">
@@ -222,8 +212,8 @@
               <span id="flashTargetArch" class="text-[9px] font-mono text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-400/20">
                 ARM64 (aarch64)
               </span>
-              <span id="flashTargetBadge" class="text-[9px] font-mono text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded border border-sky-400/20">
-                UBUNTU 24.04 LTS
+              <span id="flashTargetBadge" class="text-[9px] font-mono text-appMuted font-bold bg-appCard px-2 py-0.5 rounded border border-appBorder">
+                AWAITING IMAGE
               </span>
             </div>
           </div>
@@ -241,10 +231,10 @@
             <div class="flex-1 bg-slate-950/70 border border-appBorder/50 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 overflow-hidden text-[11px] font-mono">
               <div class="flex items-center gap-1.5 min-w-0">
                 <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
-                <span id="flashSelectedName" class="text-white font-medium truncate" title="ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz">
-                  ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz
+                <span id="flashSelectedName" class="text-appMuted font-medium truncate" title="No image selected">
+                  No image selected. Click 'Select Image File...'
                 </span>
-                <span id="flashSelectedPath" class="hidden">distros/ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz</span>
+                <span id="flashSelectedPath" class="hidden"></span>
               </div>
               <button onclick="copyImagePath()" class="text-appMuted hover:text-white shrink-0 p-0.5" title="Copy path">
                 <i data-lucide="copy" class="w-3 h-3"></i>
@@ -256,12 +246,12 @@
           <div class="flex items-center justify-between text-[10px] font-mono bg-appBg/50 rounded-xl px-3 py-1 border border-appBorder/40">
             <div class="flex items-center gap-1.5 text-appMuted">
               <span>Size:</span>
-              <span id="flashImageSize" class="text-slate-200 font-semibold">3.07 GB (xz) &rarr; 9.4 GB Raw</span>
+              <span id="flashImageSize" class="text-slate-200 font-semibold">--</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <span class="text-appMuted">Source:</span>
-              <span id="flashChecksumStatus" class="text-emerald-400 font-semibold flex items-center gap-1">
-                <i data-lucide="shield-check" class="w-3 h-3"></i> Official Canonical ARM64
+              <span class="text-appMuted">Status:</span>
+              <span id="flashChecksumStatus" class="text-appMuted font-semibold flex items-center gap-1">
+                <i data-lucide="disc" class="w-3 h-3"></i> Awaiting ARM64 image file
               </span>
             </div>
           </div>
@@ -439,11 +429,6 @@
             <span id="dashSdCardStatus" class="text-[9px] text-appMuted bg-appCard px-1.5 py-0.5 rounded border border-appBorder shrink-0">Checking...</span>
           </div>
         </div>
-
-        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
-          <span>Host SoC Architecture</span>
-          <span class="text-sky-400 font-semibold">Exynos 8895 @ 60Hz</span>
-        </div>
       </section>
 
       <!-- Column 2: Battery & MAX77865 Power PMIC (4 cols) -->
@@ -510,11 +495,6 @@
             <span class="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">Rp Pull-up</span>
           </div>
         </div>
-
-        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
-          <span>Continuous fast charging</span>
-          <span class="text-emerald-400 font-semibold">1500mA Constant</span>
-        </div>
       </section>
 
       <!-- Column 3: Thermal Zones & Health Subsystem (4 cols) -->
@@ -567,11 +547,6 @@
             </div>
             <span id="dashTempSoc" class="text-[9px] text-appMuted shrink-0">SoC: --</span>
           </div>
-        </div>
-
-        <div class="text-[10px] font-mono text-appDim border-t border-appBorder/50 pt-2 flex items-center justify-between">
-          <span>Active hardware governor</span>
-          <span class="text-emerald-400 font-semibold">100% Unthrottled</span>
         </div>
       </section>
 
@@ -1005,80 +980,7 @@
 
   </main>
 
-  <!-- ================================================================= -->
-  <!-- MODAL: SUPPORT THE PROJECT / BUY ME A COFFEE (Ethereum / MetaMask)-->
-  <!-- ================================================================= -->
-  <div id="donateModal" class="fixed inset-0 modal-backdrop hidden items-center justify-center p-6 z-50">
-    <div
-      class="w-full max-w-md bg-appCard border border-appBorder rounded-3xl shadow-2xl p-6 flex flex-col gap-4 relative animate-in fade-in zoom-in-95 duration-200">
-      <!-- Close Button -->
-      <button onclick="closeDonateModal()"
-        class="absolute top-4 right-4 text-appMuted hover:text-white p-1.5 rounded-xl bg-appCardAlt hover:bg-appBorder transition-colors">
-        <i data-lucide="x" class="w-4 h-4"></i>
-      </button>
 
-      <!-- Header Icon & Title -->
-      <div class="flex items-center gap-3">
-        <div
-          class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/20 via-orange-500/20 to-amber-600/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10 shrink-0">
-          <i data-lucide="coffee" class="w-6 h-6 stroke-[2.2]"></i>
-        </div>
-        <div>
-          <h2 class="text-base font-bold text-white flex items-center gap-2">
-            Buy Me a Coffee
-            <span
-              class="text-[9px] font-mono font-bold text-purple-300 bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 rounded-full">ETH</span>
-          </h2>
-          <p class="text-xs text-appMuted">Support open-source S8 Linux development</p>
-        </div>
-      </div>
-
-      <!-- Description / Zero-Expectations Note -->
-      <div
-        class="text-xs text-slate-300 leading-relaxed bg-appBg/60 p-3.5 rounded-2xl border border-appBorder/50 flex flex-col gap-1.5">
-        <div class="font-semibold text-white flex items-center gap-1.5">
-          <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400 fill-rose-400/30"></i>
-          100% Voluntary Community Support
-        </div>
-        <p class="text-appMuted text-[11px]">
-          If this project helped you bring your Galaxy S8 to life as a desktop computer or server, donations are deeply
-          appreciated. There are no perks, tiers, or promises—just pure gratitude for supporting independent
-          engineering!
-        </p>
-      </div>
-
-      <!-- Ethereum & MetaMask Wallet Container -->
-      <div class="bg-appCardAlt border border-appBorder rounded-2xl p-3.5 flex flex-col gap-2.5">
-        <div class="flex items-center justify-between text-[11px] font-mono">
-          <span class="text-slate-300 font-semibold flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-purple-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
-            </svg>
-            Ethereum (MetaMask / Web3)
-          </span>
-          <span
-            class="text-emerald-400 text-[10px] font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">ERC-20</span>
-        </div>
-
-        <div class="bg-[#0C0E14] border border-appBorder rounded-xl p-2.5 flex items-center justify-between gap-2">
-          <code id="ethWalletAddr"
-            class="font-mono text-xs text-amber-300 truncate select-all">0x609e0AB78d5174F72fF8709564f8337DebEa5BD7</code>
-          <button id="copyWalletBtn" onclick="copyWalletAddress()"
-            class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-amber-500/20">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer Info -->
-      <div class="flex items-center justify-between text-[10px] text-appDim font-mono pt-1">
-        <span>Network: Ethereum Mainnet</span>
-        <span>Built by <a href="https://github.com/roufsweb" target="_blank"
-            class="text-sky-400 hover:underline">roufsweb</a></span>
-      </div>
-    </div>
-  </div>
 
   <!-- ================================================================= -->
   <!-- JAVASCRIPT: MULTI-PAGE ROUTER, REST API & INTERACTION CONTROLS     -->
@@ -1201,11 +1103,10 @@
       applySidebarState();
     }
 
-    // Global Escape Key Listener for Modals
+    // Global Escape Key Listener for Modals (if any active modal)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        closeDistroModal();
-        closeDonateModal();
+        // Modal dismiss hook
       }
     });
 
@@ -1234,44 +1135,8 @@
       setConnectionState(!isConnected);
     }
 
-    // 4. Modals Control
-    function openDistroModal() {
-      document.getElementById('distroModal').classList.remove('hidden');
-      document.getElementById('distroModal').classList.add('flex');
-    }
-    function closeDistroModal() {
-      document.getElementById('distroModal').classList.add('hidden');
-      document.getElementById('distroModal').classList.remove('flex');
-    }
-
-    function openDonateModal() {
-      const modal = document.getElementById('donateModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      lucide.createIcons();
-    }
-    function closeDonateModal() {
-      const modal = document.getElementById('donateModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-    function copyWalletAddress() {
-      const addr = "0x609e0AB78d5174F72fF8709564f8337DebEa5BD7";
-      navigator.clipboard.writeText(addr);
-      const btn = document.getElementById('copyWalletBtn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Copied!';
-      btn.className = "px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-emerald-500/20";
-      lucide.createIcons();
-      setTimeout(() => {
-        btn.innerHTML = orig;
-        btn.className = "px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold font-mono shrink-0 transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-amber-500/20";
-        lucide.createIcons();
-      }, 1800);
-    }
-
-    // 5. Universal OS File Selection & Explorer Integration
-    let currentSelectedImagePath = "distros/ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz";
+    // 4. Universal OS File Selection & Explorer Integration
+    let currentSelectedImagePath = "";
 
     function showToast(msg, type = "info") {
       let toast = document.getElementById('globalAppToast');
@@ -1347,6 +1212,14 @@
         targetBadge.innerText = `${format || 'ARM64'} • ${sizeMb ? sizeMb + ' MB' : 'READY'}`;
         targetBadge.className = "text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
       }
+      const sizeEl = document.getElementById('flashImageSize');
+      if (sizeEl) sizeEl.innerText = sizeMb ? `${sizeMb} MB` : 'Local File';
+      const statusEl = document.getElementById('flashChecksumStatus');
+      if (statusEl) {
+        statusEl.className = "text-emerald-400 font-semibold flex items-center gap-1";
+        statusEl.innerHTML = '<i data-lucide="shield-check" class="w-3 h-3"></i> Valid Local Image';
+        if (window.lucide) lucide.createIcons();
+      }
       checkOsMatch();
       showToast(`Selected OS Image: ${name}`, "success");
     }
@@ -1377,25 +1250,18 @@
         targetBadge.innerText = badgeText;
         targetBadge.className = "text-[9px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
       }
-      document.getElementById('flashSelectedPath').innerText = `Local File • ${sizeStr} • ${file.name}`;
+      const sizeEl = document.getElementById('flashImageSize');
+      if (sizeEl) sizeEl.innerText = sizeStr;
+      const statusEl = document.getElementById('flashChecksumStatus');
+      if (statusEl) {
+        statusEl.className = "text-emerald-400 font-semibold flex items-center gap-1";
+        statusEl.innerHTML = '<i data-lucide="shield-check" class="w-3 h-3"></i> Local File Loaded';
+        if (window.lucide) lucide.createIcons();
+      }
+      document.getElementById('flashSelectedPath').innerText = file.name;
       selectedTargetOs = file.name;
       checkOsMatch();
       showToast(`Selected custom image: ${file.name} (${sizeStr})`, "success");
-    }
-
-    function selectDistro(shortName, fullName, path, badgeText) {
-      resetFlashButtonState();
-      currentSelectedImagePath = path;
-      document.getElementById('flashSelectedName').innerText = fullName;
-      document.getElementById('flashSelectedPath').innerText = path;
-      const targetBadge = document.getElementById('flashTargetBadge');
-      if (targetBadge) {
-        targetBadge.innerText = badgeText || 'ARM64';
-        targetBadge.className = "text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-semibold shrink-0";
-      }
-      selectedTargetOs = fullName;
-      checkOsMatch();
-      closeDistroModal();
     }
 
     function updateInstalledOsStatus(osName) {

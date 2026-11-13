@@ -1894,3 +1894,24 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
 
 
 
+
+---
+
+## Finding 132 -- Elimination of UI Mock Data, Hallucinated Footers & Ethereum Donation Modal (`desktop-app/ui/index.html`)
+* **Severity:** Production UI Restraint & Verification Integrity
+* **Discovery Date:** 2026-11-13
+* **Context & Root Cause:**
+  - Visual inspection across all 4 pages revealed leftover decorative mockup strings that violated the `production-ui-design-guard` and Rules 19/20:
+    1. Page 1 OS Flash card had hardcoded strings (`Ubuntu 24.04 LTS`, `3.07 GB xz -> 9.4 GB Raw`, `Source: Official Canonical ARM64`) even before an image was chosen.
+    2. Page 2 Dashboard had three decorative card footers with hallucinated or redundant claims:
+       - `Host SoC Architecture: Exynos 8895 @ 60Hz` (hallucination: 60Hz is a display refresh rate, not an SoC clock).
+       - `Continuous fast charging: 1500mA Constant` (static filler: battery ring already displays live mA telemetry).
+       - `Active hardware governor: 100% Unthrottled` (static filler: governor badge already displays active governor).
+    3. Sidebar included a `Buy Me a Coffee` button opening a 75-line `donateModal` with an Ethereum MetaMask wallet container.
+* **Remediation & Visual Verification:**
+  1. Purged `donateModal` and sidebar `Buy Me a Coffee` button.
+  2. Purged dead modal functions `openDonateModal()`, `closeDonateModal()`, and `copyWalletAddress()`.
+  3. Replaced static mock values with dynamic state: `#flashTargetBadge` defaults to `AWAITING IMAGE`, `#flashImageSize` defaults to `--`, and `#flashChecksumStatus` defaults to `Awaiting ARM64 image file`.
+  4. Removed the 3 fake card footers on Dashboard cards 1, 2, and 3.
+  5. Updated `scripts/capture_desktop_app_pages.py` to capture the 4 pure production pages without dead modal queries.
+  6. Verified all 43 tests pass (`OK`). Regenerated `s8_imager_page1_flash.png` and `s8_imager_page2_dashboard.png` and dispatched visual proof to Telegram.

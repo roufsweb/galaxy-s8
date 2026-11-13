@@ -1209,3 +1209,22 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
 
 
 
+
+---
+
+### Task 65: Purge of Decorative Mockups, Fake Footers & Ethereum Donation Modal
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  - Carried out the second pass of visual inspection and necessity analysis on the S8 Imager UI.
+  - Eliminated decorative filler: hardcoded Ubuntu initial strings on Page 1, Ethereum donation modal and sidebar coffee button, and three fake card footers on the Page 2 dashboard (`Exynos 8895 @ 60Hz`, `1500mA Constant`, `100% Unthrottled`).
+  - Updated screenshot engine to capture pure production pages without dead modal queries.
+* **Actions Taken & Verified:**
+  1. **Purged Support Modal & Sidebar Button:** Removed `donateModal` and sidebar `Buy Me a Coffee` button. Cleaned up dead modal functions `openDonateModal()`, `closeDonateModal()`, and `copyWalletAddress()`.
+  2. **Dynamic File Selection State:** Replaced hardcoded initial strings on Page 1 with dynamic placeholders (`AWAITING IMAGE`, `--`, dynamic checksum/file size).
+  3. **Purged Fake Card Footers:** Removed 3 decorative footer bars from Dashboard cards 1, 2, and 3.
+  4. **Screenshot Engine & Visual Verification:** Updated `scripts/capture_desktop_app_pages.py` to capture the 4 pure production pages. Recaptured all 4 views and dispatched visual proofs to Telegram.
+  5. **Automated Testing:** Ran full 4-layer test suite: 43/43 tests PASS in 32.5s.
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
+  - Uptime: **`> 3.9 Hours Continuous`**
+  - UI State: **`100% Pure Production Telemetry (0 Mockups, 0 Filler)`**

@@ -93,16 +93,7 @@ def capture_all_pages():
             page.screenshot(path=str(p4_path), full_page=False)
             captured["page4_config"] = p4_path
             
-            # 6. Modal: Buy Me a Coffee / Support Project
-            print("[*] Capturing Modal: Buy Me a Coffee...")
-            page.click("button[onclick='openDonateModal()']")
-            page.wait_for_selector("#donateModal:not(.hidden)", timeout=5000)
-            page.wait_for_timeout(500)
-            
-            p_don_path = OUT_DIR / "s8_imager_modal_donate.png"
-            page.screenshot(path=str(p_don_path), full_page=False)
-            captured["modal_donate"] = p_don_path
-            
+            # Done - 4 pure production pages captured
             browser.close()
             
     finally:
