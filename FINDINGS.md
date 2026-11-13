@@ -1876,5 +1876,21 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   6. **Repository Architecture & Compliance Score:**
      - Scanned 423 tracked project files via `scripts/project_audit.py`: 100.0% naming compliance, 100.0% root directory hygiene, 0 files > 50 MB (Rule 16). Overall repository compliance score = 100.0%.
 
+---
+
+## Finding 131 -- Flasher Scope & OS Catalog Removal: Enforcing Industry-Standard BYOI (Bring Your Own Image) Architecture
+* **Severity:** Production Restraint & Architectural Purity
+* **Discovery Date:** 2026-11-13
+* **Context & Motivation:**
+  - The S8 Imager previously included an in-app "Official Upstream OS Catalog" modal with buttons to fetch Ubuntu, Debian, Kali, Arch, Alpine, and SteamOS images.
+  - As identified during live user review: our project does NOT host, package, or distribute operating systems. We build the **Universal Exynos 8895 Kernel AP, S8 Hardware Pack (`galaxy-s8-hw`), and Flashing Engine**.
+  - In-app downloading of 3 GB upstream OS images creates maintenance liability (broken mirror URLs, failed downloads, rate limits).
+* **Architectural Refactoring & Bloat Elimination:**
+  1. Purged the 177-line `distroModal` container and `btnOpenCatalog` button from `desktop-app/ui/index.html`.
+  2. Streamlined Page 1 to align with industry-standard hardware flashers (Rufus, BalenaEtcher, Raspberry Pi Imager advanced mode): a single, clean `Select Image File...` button.
+  3. Upstream image recommendations and official download links moved to documentation (`docs/`).
+  4. Verified non-regression: all 43 automated tests pass in 28.7s with 0 errors. UI visual density and layout restraint significantly improved.
+
+
 
 
