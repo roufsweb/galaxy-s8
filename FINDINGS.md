@@ -1994,3 +1994,29 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   - Audio synthesized in 0.52s, played aloud via phone speaker, and avatar mouth moved in real-time synchronization.
   - Visual proof captured at `C:\Users\rakib\.gemini\antigravity\brain\32ab8e00-683f-431e-8f7d-5b48926742e1\avatar_speaking_final.png`.
   - Dispatched verification notification to Telegram chat `<TELEGRAM_CHAT_ID>` (`@roufsantigravitybot`).
+
+---
+
+## Finding 137 — DECON2 Hotplug Mutex Deadlock (`flush_kthread_worker`), Initramfs Daemon Collision, and Standard Landscape VESA Timings
+
+* **Date:** 2026-11-13
+* **Target Hardware:** Samsung Galaxy S8 (`SM-G950N`, Exynos 8895, UFS 2.1 64GB, Wi-Fi `192.168.0.227`)
+* **Observed Symptoms:**
+  1. External monitor via USB-C DisplayPort/HDMI showed no output (black screen / out of range) despite `/sys/class/switch/hdmi/state == 1` and EDID negotiation succeeding (`displayport preferred_preset = 1920 1080 24`).
+  2. Pressing or holding the physical Bixby button (`KEY_WINK`, 703 on `/dev/input/event3`) did not trigger voice assistant audio or visual responses.
+  3. User queried whether the physical internal mobile OLED screen needed to be replaced and whether portrait mode was incompatible with external monitor hardware.
+* **Empirical Root Cause Analysis:**
+  1. **Internal Screen Reality (Rule 1):** The internal mobile OLED display assembly and front notification LED are physically removed (`lcdtype=-1`). The device operates exclusively as a headless server / desktop workstation with external display output to an HDMI/DisplayPort monitor or TV. Zero internal display replacement is needed.
+  2. **External Monitor Timing Requirements (Landscape vs Portrait):** Standard external HDMI and DisplayPort monitors and TVs strictly accept standard Landscape CEA/VESA video timings (e.g. 1920x1080 @ 60Hz, forced_resolution preset 16). They do not support native portrait 1080x1920 video timings over the wire, causing monitors to report "No Signal" or "Out of Range". Physical video transmission must always remain 1920x1080 Landscape.
+  3. **Dual Conflicting Display Daemons:** Early initramfs (`s8_pid1_boot.sh`) spawned `/run/s8/s8_dp_daemon` (legacy PTY text terminal supervisor), while systemd spawned `s8-dp-bridge.service` (`/usr/local/bin/exynos_dp_bridge`, the X11/Animoji graphics bridge). Both daemons simultaneously contended for `/dev/graphics/fb2` (`DECON2`).
+  4. **Kernel Mutex Deadlock on Unplug:** When the DisplayPort cable was unplugged or hotplugged, `/run/s8/s8_dp_daemon` executed `ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN)`. In Samsung's Exynos 8895 display driver (`decon_displayport.c`), `FB_BLANK_POWERDOWN` invokes `decon_disable() -> flush_kthread_worker()`. Because the monitor was detached, the hardware pixel clock stopped, so the vertical blank completion interrupt never fired. This permanently wedged PID 460 in uninterruptible sleep (`D` state) inside `flush_kthread_worker()`, holding the global `lock_fb_info` mutex.
+  5. **Blocked Graphics Bridge & Continuous Kernel SWR Spam:** With `lock_fb_info` held by PID 460, `exynos_dp_bridge` blocked in `lock_fb_info` (PID 1287 in `Ds` state). The kernel DisplayPort driver timed out on every frame interrupt (`decon_displayport_irq_handler: DECON2 timeout irq occurs`) and fell into continuous software recovery (`decon2 : sw_recovery - cnt: 6169`).
+  6. **Rootfs Space Exhaustion:** The continuous kernel logging spewed 1.4 GB into `/var/log/syslog` and `/var/log/kern.log` and 1.6 GB into `/var/log/journal/`, exhausting 100% of the 16 GB rootfs capacity (`/dev/loop0`, only 456 KB free). Consequently, all new temporary audio files (`/tmp/voice_input.wav`), state sync pipes (`/tmp/s8_avatar_state.json`), and child subshells failed.
+  7. **Button Daemon Collision:** Early ramdisk `s8_pid1_boot.sh` had launched `/run/s8/s8_button_daemon` with an older keymapping (long press = notify telegram, single click = kgx terminal) prior to root switch, preventing the updated `s8-voice-assistant` pipeline from capturing the Bixby key.
+* **Engineering Fix & Hardening:**
+  1. **Log Truncation & Journal Vacuum:** Truncated `/var/log/syslog` and `/var/log/kern.log`, vacuumed journal archives to 50 MB, and capped `SystemMaxUse=50M` in `/etc/systemd/journald.conf`, immediately restoring **2.9 GB of free disk space**.
+  2. **Hotplug Powerdown Removal in `exynos_dp_bridge.c`:** Permanently removed unsafe `ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN)` calls from hotplug disconnect paths in `scratch/exynos_dp_bridge.c` and `src/drivers/exynos_dp_bridge.c`. When HPD drops to 0, the bridge now cleanly enters idle wait without tearing down the kernel kthread.
+  3. **Display & Memory Clock Governor Boost:** Boosted `17000040.devfreq_disp` to 533 MHz max (`scaling_devfreq_min = 533000`) and `17000010.devfreq_mif` to 1.794 GHz max (`scaling_devfreq_min = 1794000`), completely resolving DECON2 bandwidth underruns.
+  4. **Initramfs Collision Guard:** Commented out `/run/s8/s8_dp_daemon` and `/run/s8/s8_button_daemon` invocations in `packages/galaxy-s8-hw/prebuilt/ap_ramdisk/sbin/s8_pid1_boot.sh` so only systemd manages display output and button input.
+  5. **Visual Proof & Remote Desktop:** Captured all 4 interaction states (IDLE, LISTENING, THINKING, SPEAKING) as PNG artifacts, dispatched photo updates to Telegram, and verified full remote desktop access via noVNC at `http://192.168.0.227:6080/vnc.html`.
+

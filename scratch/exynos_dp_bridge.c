@@ -519,10 +519,11 @@ int main(int argc, char **argv) {
   clock_gettime(CLOCK_MONOTONIC, &t_fps_start);
 
   if (read_int_file("/sys/class/switch/hdmi/state", 0) == 0 && !force_mode) {
-    ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN);
     printf("[exynos_dp_bridge] USB-C DisplayPort currently unplugged (HPD=0); "
-           "DECON2 armed in FB_BLANK_POWERDOWN.\n");
+           "DECON2 armed in idle wait.\n");
   }
+
+  int probe_counter = 0;
 
   while (1) {
     int hpd = force_mode ? 1 : read_int_file("/sys/class/switch/hdmi/state", 0);
@@ -530,13 +531,21 @@ int main(int argc, char **argv) {
     if (hpd <= 0) {
       if (dp_active) {
         printf("[exynos_dp_bridge] USB-C DisplayPort unplugged (HPD=0) — "
-               "powering down DECON2.\n");
-        ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN);
+               "idle waiting for reconnect.\n");
         dp_active = false;
+      }
+      /* Rule 14 & 15: Automatically force Alternate Mode negotiation every 2s */
+      if (++probe_counter >= 20) {
+        probe_counter = 0;
+        system("echo source > /sys/class/typec/port0/port_type 2>/dev/null; "
+               "echo 1 > /sys/class/sec/ccic/role_swap 2>/dev/null; "
+               "echo \"0 0\" > /sys/class/dp_sec/dp_sbu_sw_sel 2>/dev/null; "
+               "echo 22 > /sys/class/dp_sec/link 2>/dev/null");
       }
       usleep(100000);
       continue;
     }
+    probe_counter = 0;
 
     struct timespec t_frame_start;
     clock_gettime(CLOCK_MONOTONIC, &t_frame_start);
@@ -680,10 +689,17 @@ int main(int argc, char **argv) {
         dft_idma = IDMA_VG0;
         ret = submit_frame(fb_fd, target_dma_fd, dft_win, dft_idma, dp_w, dp_h);
       }
+      if (read_int_file("/sys/class/switch/hdmi/state", 0) <= 0) {
+        printf("[exynos_dp_bridge] Connection lost during frame submission (HPD=0). Pausing render.\n");
+        dp_active = false;
+        usleep(100000);
+        continue;
+      }
       if (frame_count % 60 == 0) {
         printf("[exynos_dp_bridge] submit_frame error: ret=%d, errno=%d (%s)\n",
                ret, errno, strerror(errno));
       }
+      usleep(16000);
     }
 
     cur_buf = 1 - cur_buf;

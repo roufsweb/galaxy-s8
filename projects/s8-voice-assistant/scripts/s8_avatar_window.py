@@ -93,8 +93,12 @@ def main():
             print(f"[!] Avatar state error: {e}", flush=True)
         return True
 
-    # Check state file every 40ms (25 FPS sync)
-    GLib.timeout_add(40, check_state)
+    def on_load_changed(view, event):
+        if event == WebKit2.LoadEvent.FINISHED:
+            print("[*] Avatar HTML loaded successfully. Starting state sync timer...", flush=True)
+            GLib.timeout_add(50, check_state)
+
+    web_view.connect("load-changed", on_load_changed)
     
     print(f"[*] Native WebKitGTK Avatar window running on {os.environ.get('DISPLAY')}...")
     Gtk.main()

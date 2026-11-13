@@ -273,6 +273,16 @@ if [ -x /usr/local/bin/s8_button_daemon ] && ! pgrep -x s8_button_daemon >/dev/n
     (while true; do /usr/local/bin/s8_button_daemon; sleep 1; done) </dev/null >/var/log/s8_button_daemon.log 2>&1 &
 fi
 
+# 7c1. Local AI LLaMA Server Daemon (Qwen 2.5 1.5B resident on port 8085)
+if [ -x /usr/local/bin/llama-server ] && ! pgrep -f 'llama-server.*8085' >/dev/null 2>&1; then
+    nohup /usr/local/bin/llama-server -m /mnt/android_data/s8-voice-assistant/models/qwen2.5-1.5b-instruct-q4_k_m.gguf -c 1024 -t 4 --host 127.0.0.1 --port 8085 </dev/null >/var/log/llama_server.log 2>&1 &
+fi
+
+# 7c2. Full-Screen Animoji Talking Face Avatar Window on Display :1
+if [ -x /usr/local/bin/s8_avatar_window.py ] && ! pgrep -f s8_avatar_window.py >/dev/null 2>&1; then
+    DISPLAY=:1 nohup python3 -u /usr/local/bin/s8_avatar_window.py </dev/null >/var/log/s8_avatar.log 2>&1 &
+fi
+
 # 7d. Start S8 macOS Control Center & Wi-Fi Tray Indicator
 if [ -f /usr/local/bin/s8_status_icon.py ] && ! pgrep -f s8_status_icon >/dev/null 2>&1; then
     (while true; do python3 /usr/local/bin/s8_status_icon.py; sleep 2; done) </dev/null >/var/log/s8_status_icon.log 2>&1 &
