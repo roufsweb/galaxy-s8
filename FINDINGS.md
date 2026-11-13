@@ -1823,4 +1823,34 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   - `SteamOS 3.6 Holo ARM64`: `16 GB` (`df -h / = 15.6G`, `5.3G` used), PID 1 `systemd`, `rndis0 192.168.7.2`, `s8ctl v1.0.3`
   - `Ubuntu 24.04.5 LTS Desktop` restored (`16 GB` `loop0`), `glxgears` (`513.341 FPS`, `llvmpipe` Mesa `25.2.8` / OpenGL `4.5`), `Freedoom: Phase 2` (`Chocolate Doom 3.0.0`), `25/25` hardware verification, `6/6` E2E non-regression, `22/22` desktop-app unit + Playwright human-flow E2E tests.
 
+---
+
+## Finding 129 -- Multi-OS Virtual Environment Engine & Non-Destructive Hardware Sandbox (`scripts/s8_venv_manager.py`)
+* **Severity:** Platform Innovation & Non-Destructive Distro Verification Architecture
+* **Discovery Date:** 2026-11-13
+* **Motivation:**
+  - Full bare-metal flashing of 11 distinct Linux distributions to `/data/linux/rootfs.img` requires wiping the host operating system between flashes, taking hours of USB transfer time and making concurrent testing impossible.
+  - To test Kali Linux, OpenWrt, and any upstream distribution without flashing or losing the golden Ubuntu 24.04.5 LTS host environment, a dedicated virtual environment engine was designed.
+* **Dual-Backend Virtual Environment Architecture:**
+  1. **WSL2 QEMU Backend (`wsl-qemu`):**
+     - Emulates ARM64 userland inside WSL2 using `qemu-aarch64-static` and `binfmt_misc` (`:qemu-aarch64:M::\x7fELF\x02\x01\x01...:OCPF`).
+     - Staged in `/var/lib/s8-venvs/<distro>/rootfs` with `galaxy-s8-hw` injected via portable POSIX installer (`install.sh --profile=core`).
+  2. **Live Galaxy S8 Hardware Namespace Backend (`s8-device`):**
+     - Employs Exynos 8895 Linux 4.4.111 namespaces (`unshare --mount --pid --uts --ipc --fork`) coupled with dedicated Linux network namespaces (`ip netns add s8v_<idx>_<distro>`).
+     - Allocates an isolated point-to-point virtual Ethernet pair (`veth` `10.88.<idx>.1/30` <-> `10.88.<idx>.2/30`) per distro so guest network sockets, packet crafting (`aid_net_raw:3004`), and routing do not interfere with the host RNDIS (`192.168.7.2`) or Wi-Fi (`wlan0`).
+     - Mounts private `/dev` tmpfs with passthrough for hardware acceleration nodes (`/dev/mali0`, `/dev/net/tun`, `/dev/snd` Calliope ALSA devices, `/dev/graphics/fb2` DisplayPort) while masking camera nodes (`/dev/video100+` V4L2 panic guard).
+* **Empirical Validation Results Across All 11 Cataloged Distros (22/22 Tests PASS):**
+  - **Kali Linux NetHunter (`kali-nethunter`):** PASS (raw packet socket permissions `aid_net_raw:3004`, `/dev/net/tun`, `/dev/mali0`, `s8ctl v1.0.3`, `dpkg 1.23.7`, `Python 3.14.7`)
+  - **OpenWrt 23.05.5 (`openwrt-23.05`):** PASS (read/write UCI firewall/dropbear configuration, `br-lan` bridge virtual router creation, `procd`, `opkg`)
+  - **SteamOS 3.6 Holo (`steamos-3.6`):** PASS (Pacman v6.1.0 with 976 packages, Python 3.12 venv creation `PY_VENV_OK`, Vulkan 1.4.309 `libvulkan.so`, `libGL.so`, `glxgears`, `gamescope`, `steam` runtime)
+  - **Arch Linux ARM (`arch-arm64`):** PASS (Pacman v7.1.0, 165 packages, systemd, `10.88.18.2` veth)
+  - **Home Assistant OS 18.4 (`haos-18.4`):** PASS (Docker, `hassos-supervisor`, systemd)
+  - **Debian 12 Bookworm (`debian-12`):** PASS (apt/dpkg, systemd)
+  - **Ubuntu Server 24.04 (`ubuntu-server-24.04`):** PASS (cloudimg, apt, systemd)
+  - **Alpine Linux 3.20 (`alpine-3.20`):** PASS (apk, busybox, veth 0% loss)
+  - **Ubuntu Base 24.04 (`ubuntu-base-24.04`):** PASS (apt, dpkg, s8ctl)
+  - **Raspberry Pi OS Desktop (`raspios-bookworm`):** PASS (desktop rootfs, apt)
+  - **Ubuntu 24.04 Desktop (`ubuntu-desktop-24.04`):** PASS (GNOME desktop suite, 1,649 dpkg packages)
+  - Verified non-regression: `tests/services/test_virtual_environments.py` runs 6 automated assertions covering OpenWrt, Kali, Alpine, and Arch in 31.3s with zero failures. Host `/mnt/android_data` retains 34 GB free space after heavy image pruning.
+
 

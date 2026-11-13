@@ -1,5 +1,5 @@
-#!/bin/bash
-# Portable modular installer for Galaxy S8 Hardware Pack (Ubuntu / Debian / Kali / Alpine / Arch)
+#!/bin/sh
+# Portable modular installer for Galaxy S8 Hardware Pack (Ubuntu / Debian / Kali / Alpine / Arch / OpenWrt / HAOS)
 # Usage: sudo ./install.sh [--profile=all|core|audio|wifi|desktop]
 set -e
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -18,12 +18,13 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 echo "[galaxy-s8-hw] Installing Galaxy S8 Hardware Pack (profile=$PROFILE) into / ..."
+mkdir -p /usr/local/bin /usr/local/libexec /usr/local/share /etc
 case "$PROFILE" in
     core)
         cp -a "$ROOTFS/usr/local/bin/s8ctl" /usr/local/bin/ 2>/dev/null || true
         cp -a "$ROOTFS/usr/local/bin/s8-hardware-init.sh" /usr/local/bin/ 2>/dev/null || true
         cp -a "$ROOTFS/usr/local/bin/s8-usb-gadget.sh" /usr/local/bin/ 2>/dev/null || true
-        cp -a "$ROOTFS/usr/local/libexec" /usr/local/ 2>/dev/null || true
+        cp -a "$ROOTFS/usr/local/libexec"/* /usr/local/libexec/ 2>/dev/null || true
         cp -a "$ROOTFS/etc"/* /etc/ 2>/dev/null || true
         ;;
     audio)
