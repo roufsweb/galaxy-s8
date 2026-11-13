@@ -122,12 +122,12 @@
 | :--- | :--- | :--- |
 | [`desktop-app/README.md`](file:///E:/rouf/galaxy-s8/desktop-app/README.md) | 7.9384765625 KB | Repository master README and project setup documentation. |
 | [`docs/AP_AND_KERNEL_BUILD_GUIDE.md`](file:///E:/rouf/galaxy-s8/docs/AP_AND_KERNEL_BUILD_GUIDE.md) | 20.1318359375 KB | Authoritative master guide for kernel compilation and Odin AP package assembly. |
-| [`FINDINGS.md`](file:///E:/rouf/galaxy-s8/FINDINGS.md) | 177.3974609375 KB | Empirical hardware, kernel, power management, and userland findings ledger. |
-| [`GEMINI.md`](file:///E:/rouf/galaxy-s8/GEMINI.md) | 36.7685546875 KB | Master operational rulebook and verified anti-hallucination hardware constraints. |
-| [`HISTORY.md`](file:///E:/rouf/galaxy-s8/HISTORY.md) | 101.1953125 KB | Chronological task execution history, test proofs, and verified procedure logs. |
+| [`FINDINGS.md`](file:///E:/rouf/galaxy-s8/FINDINGS.md) | 179.5322265625 KB | Empirical hardware, kernel, power management, and userland findings ledger. |
+| [`GEMINI.md`](file:///E:/rouf/galaxy-s8/GEMINI.md) | 36.7744140625 KB | Master operational rulebook and verified anti-hallucination hardware constraints. |
+| [`HISTORY.md`](file:///E:/rouf/galaxy-s8/HISTORY.md) | 102.7724609375 KB | Chronological task execution history, test proofs, and verified procedure logs. |
 | [`kernel/README.md`](file:///E:/rouf/galaxy-s8/kernel/README.md) | 4.763671875 KB | Repository master README and project setup documentation. |
-| [`PROJECT_INDEX.md`](file:///E:/rouf/galaxy-s8/PROJECT_INDEX.md) | 166.8369140625 KB | Autonomous comprehensive index of all project assets, tools, and scripts. |
-| [`README.md`](file:///E:/rouf/galaxy-s8/README.md) | 37.619140625 KB | Repository master README and project setup documentation. |
+| [`PROJECT_INDEX.md`](file:///E:/rouf/galaxy-s8/PROJECT_INDEX.md) | 166.830078125 KB | Autonomous comprehensive index of all project assets, tools, and scripts. |
+| [`README.md`](file:///E:/rouf/galaxy-s8/README.md) | 36.7724609375 KB | Repository master README and project setup documentation. |
 | [`releases/README.md`](file:///E:/rouf/galaxy-s8/releases/README.md) | 3.1728515625 KB | Repository master README and project setup documentation. |
 | [`scripts/README.md`](file:///E:/rouf/galaxy-s8/scripts/README.md) | 901 B | Repository master README and project setup documentation. |
 | [`src/README.md`](file:///E:/rouf/galaxy-s8/src/README.md) | 3.8857421875 KB | Repository master README and project setup documentation. |
@@ -327,7 +327,7 @@
 | [`scratch/su`](file:///E:/rouf/galaxy-s8/scratch/su) | 616 B | Project asset. |
 | [`scratch/su.s`](file:///E:/rouf/galaxy-s8/scratch/su.s) | 1.3505859375 KB | Project asset. |
 | [`scratch/supervisor_config.json`](file:///E:/rouf/galaxy-s8/scratch/supervisor_config.json) | 282 B | Project asset. |
-| [`scratch/telegram_listener_state.json`](file:///E:/rouf/galaxy-s8/scratch/telegram_listener_state.json) | 54 B | Project asset. |
+| [`scratch/telegram_listener_state.json`](file:///E:/rouf/galaxy-s8/scratch/telegram_listener_state.json) | 55 B | Project asset. |
 | [`scratch/test_init.rc`](file:///E:/rouf/galaxy-s8/scratch/test_init.rc) | 3.8515625 KB | Project asset. |
 | [`scratch/test_ldconfig.rc`](file:///E:/rouf/galaxy-s8/scratch/test_ldconfig.rc) | 52 B | Project asset. |
 | [`scratch/test_sh`](file:///E:/rouf/galaxy-s8/scratch/test_sh) | 1.1 MB | Project asset. |
@@ -1263,11 +1263,11 @@
 | [`docs/GEMINI_3_8_HANDOFF.md`](file:///E:/rouf/galaxy-s8/docs/GEMINI_3_8_HANDOFF.md) | 5.8251953125 KB | Project asset. |
 | [`docs/HOME_ASSISTANT.md`](file:///E:/rouf/galaxy-s8/docs/HOME_ASSISTANT.md) | 17.0888671875 KB | Project asset. |
 | [`docs/index.html`](file:///E:/rouf/galaxy-s8/docs/index.html) | 65.6728515625 KB | Project asset. |
-| [`docs/OS_MANAGEMENT_AND_FLASHING.md`](file:///E:/rouf/galaxy-s8/docs/OS_MANAGEMENT_AND_FLASHING.md) | 14.763671875 KB | Project asset. |
-| [`docs/PROJECT_FEATURE_QUEUE.md`](file:///E:/rouf/galaxy-s8/docs/PROJECT_FEATURE_QUEUE.md) | 4.3349609375 KB | Project asset. |
+| [`docs/OS_MANAGEMENT_AND_FLASHING.md`](file:///E:/rouf/galaxy-s8/docs/OS_MANAGEMENT_AND_FLASHING.md) | 14.767578125 KB | Project asset. |
+| [`docs/PROJECT_FEATURE_QUEUE.md`](file:///E:/rouf/galaxy-s8/docs/PROJECT_FEATURE_QUEUE.md) | 7.66796875 KB | Project asset. |
 | [`docs/SENSORS_GUIDE.md`](file:///E:/rouf/galaxy-s8/docs/SENSORS_GUIDE.md) | 11.1552734375 KB | Project asset. |
 | [`docs/UNIVERSAL_DISPLAY_AND_CONSOLE_ARCHITECTURE.md`](file:///E:/rouf/galaxy-s8/docs/UNIVERSAL_DISPLAY_AND_CONSOLE_ARCHITECTURE.md) | 10.6259765625 KB | Project asset. |
-| [`FUTURE_ROADMAP.md`](file:///E:/rouf/galaxy-s8/FUTURE_ROADMAP.md) | 14.421875 KB | Project asset. |
+| [`FUTURE_ROADMAP.md`](file:///E:/rouf/galaxy-s8/FUTURE_ROADMAP.md) | 14.90625 KB | Project asset. |
 | [`MEMORY.md`](file:///E:/rouf/galaxy-s8/MEMORY.md) | 2.857421875 KB | Project asset. |
 | [`MISTAKES_AND_LEARNINGS.md`](file:///E:/rouf/galaxy-s8/MISTAKES_AND_LEARNINGS.md) | 7.330078125 KB | Project asset. |
 | [`PROJECT_VISUAL_INDEX.html`](file:///E:/rouf/galaxy-s8/PROJECT_VISUAL_INDEX.html) | 39.9404296875 KB | Project asset. |

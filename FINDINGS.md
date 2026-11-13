@@ -1915,3 +1915,21 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   4. Removed the 3 fake card footers on Dashboard cards 1, 2, and 3.
   5. Updated `scripts/capture_desktop_app_pages.py` to capture the 4 pure production pages without dead modal queries.
   6. Verified all 43 tests pass (`OK`). Regenerated `s8_imager_page1_flash.png` and `s8_imager_page2_dashboard.png` and dispatched visual proof to Telegram.
+
+---
+
+## Finding 133 -- Feature Queue Reconciliation & Purge of Legacy Colliding Architecture Specs
+* **Severity:** Architectural Consistency & Long-Term Roadmap Hygiene
+* **Discovery Date:** 2026-11-13
+* **Context & Motivation:**
+  - Audited `docs/PROJECT_FEATURE_QUEUE.md`, `FUTURE_ROADMAP.md`, `README.md`, `GEMINI.md`, and `docs/OS_MANAGEMENT_AND_FLASHING.md` against live verified code and recent architectural decisions.
+  - Identified 4 colliding legacy specs that were holding the project back or creating confusion:
+    1. **In-App OS Catalog & Multi-Gigabyte Downloader:** Collided with the newly established BYOI (Bring Your Own Image) flasher standard (Finding 131). The project develops the Kernel AP, Hardware Pack, and Flasher; it does not distribute upstream OS images.
+    2. **In-App Ethereum / Web3 Donation Modal:** Collided with zero-bloat UI standard (Finding 132).
+    3. **KVM Virtualization (`CONFIG_KVM=y`):** Collided with hardware reality (Finding 115, Rule 10, Rule 23). Samsung EL2 micro-hypervisor (uH) triggers hardware panic on KVM. Standardized on Docker CE / Linux Containers (`cgroups`, `namespaces`, `overlayfs`).
+    4. **Unblocked Headless TTY DisplayPort Console Fallback (`AP-02`):** Code inspection of `scratch/exynos_dp_bridge.c` revealed that the bridge was blocking indefinitely on `XOpenDisplay(":1")`. When running a headless OS (Alpine, minimal Debian, Home Assistant) without X11, the external monitor remained unpowered.
+* **Remediation & Governance Updates:**
+  - `docs/PROJECT_FEATURE_QUEUE.md`: Updated with reconciled decisions, marked AP-01, BE-01, BE-02, FE-01, FE-02 as `[VERIFIED / LIVE]`, and prioritized `AP-02` (Headless TTY DisplayPort Console Fallback) and `AP-04` (Pure Native Linux systemd PID 1).
+  - `FUTURE_ROADMAP.md`: Replaced KVM with Docker CE / Linux namespaces, updated Milestone checkmarks for TigerVNC/noVNC, ALSA audio, multi-distro engine, and Desktop App Hub.
+  - `README.md`: Removed obsolete "Official OS Catalog" Option A and references to the deleted in-app coffee button.
+  - `docs/OS_MANAGEMENT_AND_FLASHING.md` & `GEMINI.md`: Synchronized flasher references to BYOI and updated version designations.

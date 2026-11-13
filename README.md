@@ -28,7 +28,7 @@ Convert a Samsung Galaxy S8 (`SM-G950N`, Exynos 8895 Octa-Core 64-bit, 4 GB LPDD
 8. [Hardware Controls, Physical Buttons, Desktop Access & DisplayPort](#8-hardware-controls-physical-buttons-desktop-access--displayport)
 9. [Building Release Artifacts, 25-Point Verification & Version Governance](#9-building-release-artifacts-from-source--verification)
 10. [Credits & Attributions](#10-credits--attributions)
-11. [Buy Me a Coffee (Voluntary Support)](#11-buy-me-a-coffee-voluntary-support)
+11. [Voluntary Community Support](#11-voluntary-community-support)
 
 ---
 
@@ -165,21 +165,17 @@ Because many boards in this project are **headless (`lcdtype=-1` — no OLED scr
 ### Step-by-Step Flashing Workflow
 
 1. **Confirm TWRP Connection**: The top-right status pill turns green **`Connected`** when `S8 Imager` detects TWRP ADB over USB.
-2. **Choose an Unmodified Operating System (`Target Image`)**:
-   * **Option A — Official OS Catalog**: Click **`Official OS Catalog`** to open the verified upstream catalog:
-     * **Ubuntu 24.04.5 LTS Desktop (Canonical ARM64)** (`ubuntu-24.04.5-preinstalled-desktop-arm64.img.xz` — Recommended, includes full GNOME 46 desktop)
-     * **Ubuntu 24.04 Server Rootfs** (`ubuntu-24.04-server-rootfs-arm64.tar.xz`)
-     * **Ubuntu 24.04.5 Minimal Base** (`ubuntu-base-24.04.5-base-arm64.tar.gz`)
-     * **Debian 12 Bookworm Generic ARM64** (`debian-12-generic-arm64.tar.xz`)
-     * **Kali Linux ARM64 Minimal** (`kali-nethunter-rootfs-minimal-arm64.tar.xz`)
-     * **Alpine Linux 3.20 Minirootfs** (`alpine-minirootfs-3.20.3-aarch64.tar.gz`)
-     * **Arch Linux ARM** (`ArchLinuxARM-aarch64-latest.tar.gz`)
-     * **Home Assistant OS 18.4 (Generic AArch64)** (`haos_generic-aarch64-18.4.img.xz` — Supervised IoT / Matter / Zigbee appliance)
-     * **OpenWrt 23.05.5 ARM64 Router** (`openwrt-23.05.5-armsr-armv8-generic-ext4-combined.img.gz` — Dual-band Wi-Fi AP & USB3 Gigabit router)
-     Click **`FETCH`** to download straight into `distros/` and **`VERIFY`** to check the official **SHA-256** checksum before clicking the row to select it.
-   * **Option B — Local File**: Click **`Select Image File...`** and browse to any `.img.xz`, `.img`, `.raw`, `.tar.xz`, or `.tar.gz` image on your PC.
-
-![S8 Imager Official Upstream ARM64 OS Catalog](docs/assets/screenshots/s8_imager_os_catalog.png)
+2. **Select an Unmodified ARM64 Linux Image (`Bring Your Own Image`)**:
+   * Click **`Select Image File...`** and choose any official, unmodified ARM64 Linux image or rootfs archive on your PC:
+     * **Ubuntu 24.04.5 LTS Desktop / Server** (`.img.xz` or `.tar.xz`)
+     * **Debian 12 Bookworm Generic ARM64** (`.tar.xz`)
+     * **Kali Linux ARM64 Minimal** (`.tar.xz`)
+     * **Alpine Linux 3.20 Minirootfs** (`.tar.gz`)
+     * **Arch Linux ARM** (`.tar.gz`)
+     * **Home Assistant OS 18.4 Generic AArch64** (`.img.xz`)
+     * **OpenWrt 23.05.5 ARM64 Router** (`.img.gz`)
+   * S8 Imager automatically verifies the archive geometry, validates ARM64 architecture, and displays file size and image metadata.
+   * *Note: Upstream OS images are downloaded directly by the user from official distribution mirrors (Canonical, Debian, Kali, Alpine, Home Assistant); S8 Imager provides the universal flashing engine and Exynos 8895 hardware layer.*
 
 3. **Choose Target Storage Mode & UFS Allocation**:
    * Select your **Storage Target** (`UFS Loopback (/data/linux/rootfs.img — Safe Dual-Exist)`, `Direct UFS Partition (/dev/sda24 — Full 53.7 GB Native Ext4)`, `MicroSD Card (/dev/mmcblk0)`, or `USB 3.1 SuperSpeed Drive (/dev/sdb)`).
@@ -370,14 +366,11 @@ Full detailed license notes and acknowledgments are maintained in [CREDITS.md](C
 
 ---
 
-## 11. Buy Me a Coffee (Voluntary Support)
+## 11. Voluntary Community Support
 
-![S8 Imager Buy Me a Coffee ETH Wallet Modal](docs/assets/screenshots/s8_imager_buy_me_coffee.png)
-
-If this project helped you rescue a Galaxy S8 or turn salvaged mobile hardware into a working Linux desktop or server, voluntary contributions are appreciated. There are **no tiers, perks, or expectations**—just appreciation for independent open-source hardware engineering.
+If this project helped you rescue a Galaxy S8 or turn salvaged mobile hardware into a working Linux desktop or server, voluntary contributions to support independent hardware development are appreciated:
 
 * **Ethereum (ETH / ERC-20 / MetaMask Mainnet)**:
   ```text
   0x609e0AB78d5174F72fF8709564f8337DebEa5BD7
   ```
-* Also accessible directly inside **`S8 Imager`** via the bottom-left **Buy Me a Coffee** sidebar button.

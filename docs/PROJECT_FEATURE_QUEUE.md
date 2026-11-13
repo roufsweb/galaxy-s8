@@ -1,78 +1,76 @@
 # Galaxy S8 Native Linux & S8 Imager — Project Feature Queue (`docs/PROJECT_FEATURE_QUEUE.md`)
 
-This document tracks all planned, in-progress, and queued features across the **Device AP (Kernel/Ramdisk)**, **Backend Server Engine**, and **Frontend Desktop UI**.
+This document tracks all completed, planned, and queued features across the **Device AP (Kernel/Ramdisk)**, **Backend Server Engine**, and **Frontend Desktop UI**, incorporating recent architectural decisions (BYOI flasher standard, zero mockups, and Docker containerization).
 
 ---
 
-## 📌 Feature Queue Status Overview
+## 1. Feature Status Overview
 
-| ID | Component | Feature Name | Priority | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **AP-01** | Device AP | Hardcoded PMIC 1,500mA & UVLO 4.3V in Boot Sequence | High | **QUEUED / HARDCODED** |
-| **AP-02** | Device AP | Headless TTY DisplayPort Console Fallback in `exynos_dp_bridge` | High | **QUEUED** |
-| **AP-03** | Device AP | Clean Dual-Shell PTY Shims (`/sbin/sh` & Linux `chroot`) | Medium | **QUEUED** |
-| **BE-01** | Backend | Roufsweb Protocol Dual-Console Streaming Bridge (PTY) | High | **PLANNED** |
-| **BE-02** | Backend | Silent Pre-Flash PMIC Ingestion in `core/flasher.py` | Medium | **PLANNED** |
-| **FE-01** | Frontend | Streamlined OS Flasher Hardware Status Card (Remove PMIC Toggle) | High | **READY FOR DEV** |
-| **FE-02** | Frontend | Dual-Console Terminal with `xterm.js` & 1-Click OS/AP Switcher | High | **READY FOR DEV** |
+| ID | Component | Feature Name | Priority | Status | Reconciled Decision / Note |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **AP-01** | Device AP | Hardcoded PMIC 1,500mA & UVLO 4.3V in Boot Sequence | High | **[VERIFIED / LIVE]** | Written at boot via `/data/linux/start_all.sh` & guarded by `s8_typec_daemon.py`. |
+| **AP-02** | Device AP | Headless TTY DisplayPort Console Fallback in `exynos_dp_bridge` | High | **QUEUED (ACTIVE FOCUS)** | Unblocks headless/minimal distros (Alpine/Debian) on external HDMI monitors without X11 `:1`. |
+| **AP-03** | Device AP | Clean Dual-Shell PTY Shims (`/sbin/sh` & Linux `chroot`) | Medium | **[VERIFIED / LIVE]** | Operational via `/api/terminal/exec` and `device_manager.py` (`target=os` / `target=ap`). |
+| **AP-04** | Device AP | Pure Native Linux (systemd PID 1) Early Init Architecture | High | **QUEUED (CORE GOAL)** | Transition from Android ramdisk `/init` + chroot to direct native Linux PID 1 with full permission standards. |
+| **AP-05** | Device AP | Universal USB-C Multi-Function Dock & OTG Peripheral Bridge | Medium | **PLANNED** | Simultaneous HDMI + USB 3.0 Storage + Mouse/Keyboard + Ethernet dongles with 5V booster arbitration. |
+| **BE-01** | Backend | Roufsweb Protocol Dual-Console Streaming Bridge (PTY) | High | **[VERIFIED / LIVE]** | Operational in `desktop-app/app/server/api.py` and WebSocket endpoints. |
+| **BE-02** | Backend | Silent Pre-Flash PMIC Ingestion in `core/flasher.py` | Medium | **[VERIFIED / LIVE]** | Flasher step 1 asserts PMIC fast charge & UVLO before formatting or writing rootfs. |
+| **BE-03** | Backend | Dynamic UFS Partition Geometry Sizing & Ext4 Formatting | Medium | **PLANNED** | Configurable rootfs slice allocation (`4 GB - 48 GB`) with mandatory `-O ^extents` format standard. |
+| **FE-01** | Frontend | Streamlined OS Flasher UI (Pure BYOI Standard) | High | **[VERIFIED / LIVE]** | Purged 177-line OS Catalog modal. Enforces Bring Your Own Image (Rufus / BalenaEtcher standard). |
+| **FE-02** | Frontend | Dual-Console Terminal with 1-Click OS/AP Switcher | High | **[VERIFIED / LIVE]** | Live terminal with real-time output, command history, and instant `[OS Shell]` / `[Base AP]` switching. |
+| **FE-03** | Frontend | Live Wi-Fi AP Remote Scan & Profile Synchronization | Medium | **PLANNED** | In-app network configuration on Page 4 triggering `s8ctl wifi-scan` and syncing `wpa_supplicant.conf`. |
 
 ---
 
-## 🔧 Detailed Specifications
+## 2. Reconciled Architectural Decisions (Colliding Decisions Purged)
 
-### 1. Device AP / Firmware Layer
+The following legacy concepts have been audited and explicitly purged from the project roadmap to prevent regressions:
 
-#### `[AP-01]` Hardcoded PMIC 1,500 mA Fast Charge & UVLO 4.3V Guard
-* **Role:** Prevent under-voltage SoC crashes during 8-core CPU spikes or USB-C DisplayPort handoffs.
+1. **Purged: In-App "Official OS Catalog" & Image Hosting (Finding 131):**
+   * *Legacy Concept:* In-app modal with download buttons for multi-gigabyte OS distributions.
+   * *New Standard:* The project develops the **Universal Exynos 8895 Kernel AP, S8 Hardware Pack (`galaxy-s8-hw`), and Flashing Engine**. We do not host or distribute third-party OS distributions. The S8 Imager is a pure **Bring Your Own Image (BYOI)** flasher adhering to industry standards (Rufus / BalenaEtcher).
+2. **Purged: In-App Ethereum / Web3 Wallet & Donation Modal (Finding 132):**
+   * *Legacy Concept:* In-app `donateModal` and `Buy Me a Coffee` button with ERC-20 address.
+   * *New Standard:* Complete removal from desktop app UI. Zero external financial or tipping modals in production binaries.
+3. **Purged: KVM Virtualization (`CONFIG_KVM=y`) (Finding 115, Rule 10, Rule 23):**
+   * *Legacy Concept:* Running KVM virtual machines inside the 4.4 kernel on Exynos 8895.
+   * *New Standard:* Samsung's EL2 micro-hypervisor (uH) strictly controls EL2 exception vectors. Compiling `CONFIG_KVM=y` causes immediate hypervisor traps and SoC reboots. All virtualization on the platform is standardized on **Docker CE and Linux Containerization (`cgroups`, `namespaces`, `overlayfs`)**.
+4. **Purged: Manual Hardware Toggles (PMIC 1500mA, UVLO 4.3V, Governor):**
+   * *Legacy Concept:* Exposing manual checkboxes in UI to enable fast charging or UVLO brownout protection.
+   * *New Standard:* Hardware protection must be 100% automated and fail-safe. PMIC registers (`0xBD 0x6C`, `0xC3 0x61`, `0xC0 0x3C`, `0xB9 0x9E`, `0xB7 0x05`) are hardcoded at early boot and enforced before every flash cycle.
+5. **Purged: Static Decorative Mockups & Hallucinated Microcopy:**
+   * *Legacy Concept:* Hardcoded strings such as `Exynos 8895 @ 60Hz`, `1500mA Constant`, and fake Ubuntu metadata before image selection.
+   * *New Standard:* Strict compliance with `production-ui-design-guard`. Every UI badge, value, and label represents real physical hardware telemetry or dynamic user selection.
+
+---
+
+## 3. Active Priority Feature Specifications
+
+### `[AP-02]` Headless TTY DisplayPort Console Fallback in `exynos_dp_bridge`
+* **Problem Holding Us Back:**
+  `scratch/exynos_dp_bridge.c` contains `while (!dpy) { dpy = XOpenDisplay(":1"); sleep(1); }`. When a user runs a headless Linux distribution (Alpine Linux, minimal Debian Server, Home Assistant, OpenWrt) without an active X11 desktop, the bridge blocks forever and external HDMI monitors remain completely unpowered.
+* **Architecture Solution:**
+  1. Implement non-blocking display connection check (`XOpenDisplay(":1")`).
+  2. If X11 `:1` is active: Stream desktop GUI frames at 1080p60 via double-buffered ION DMA (`S3CFB_WIN_CONFIG`).
+  3. If X11 `:1` is absent (Headless mode): Fall back to userland framebuffer console rendering (drawing live CLI text / system status HUD with Wi-Fi IP, SSH command, CPU/RAM telemetry, and terminal output) directly to `/dev/graphics/fb2`.
+  4. Dynamic auto-switching: As soon as a desktop environment starts, seamlessly switch from TTY HUD to X11 streaming.
+
+### `[AP-04]` Pure Native Linux (systemd PID 1) Early Init Architecture
+* **Target Objective:**
+  Achieve true native Linux system execution where `systemd` runs as PID 1 directly from the root filesystem, eliminating chroot overhead while maintaining DWC3 USB initialization.
+* **Key Milestones:**
+  1. Early Ramdisk USB Handshake: Ensure DWC3 PHY initialization (`10c00000.dwc3`) and gadget setup complete before pivot.
+  2. Switch root / Pivot Root: Mount `/dev/block/sda24` (`USERDATA`) at `/sysroot` and execute `/sbin/init` (systemd) directly as PID 1.
+  3. Systemd Hardware Service Pack: Install `galaxy-s8-hw.service` inside the target distro to handle PMIC registers, Calliope DSP audio routing, Wi-Fi onboarding, and display bridge natively via systemd units.
+
+### `[AP-05]` Universal USB-C Multi-Function Dock & OTG Peripheral Bridge
+* **Target Objective:**
+  Guarantee that connecting a multi-port USB-C adapter (providing HDMI out + multiple USB 3.0 ports + USB Ethernet) reliably powers accessories and enumerates all attached devices.
 * **Mechanism:**
-  - Written directly at boot in `/data/linux/start_all.sh` (`0xBD 0x6C`, `0xC3 0x61`, `0xC0 0x3C`, `0xB9 0x9E`, `0xB7 0x05`).
-  - Disable PMIC 32-minute hardware watchdog timer so charge rate never expires.
-  - Background `s8_typec_daemon.py` intercepts cable disconnect/reconnect and re-applies registers within 100ms.
-* **UI Impact:** Zero user toggles needed; completely automated and crash-proof.
+  - Dynamic CCIC VDM negotiation with Type-C power arbitration.
+  - Assert 5V VBUS booster (`booster = ON`) when dock requires bus power, while safely switching to sink mode when external USB-PD charger is connected to dock pass-through port.
+  - Enforce continuous DW MMC and DWC3 USB host polling.
 
-#### `[AP-02]` Headless TTY DisplayPort Console Fallback
-* **Role:** Guaranteed plug-and-play monitor output regardless of whether a Desktop GUI or Headless Minimal OS is installed.
-* **Mechanism:**
-  - Update `scratch/exynos_dp_bridge.c`:
-    - If X11 server `:1` is active $\rightarrow$ stream desktop GUI at 1080p60.
-    - If X11 server `:1` is absent (Headless mode) $\rightarrow$ render full-screen live Linux TTY console + hardware HUD (Wi-Fi IP `192.168.0.227`, SSH login string, CPU/RAM stats).
-
-#### `[AP-03]` Clean Dual-Shell PTY Shims
-* **Role:** Support interactive terminal streaming without dropping pseudo-terminal (PTY) attributes or crashing on resize.
-* **Mechanism:**
-  - AP Shell: Direct execution of `/sbin/sh` with Android root environment.
-  - OS Shell: Execution of `chroot /mnt/ubuntu /bin/bash -l` with UTF-8 locale and PTY window size signaling (`SIGWINCH`).
-
----
-
-### 2. Desktop App Backend (`desktop-app/app/`)
-
-#### `[BE-01]` Roufsweb Protocol Dual-Console Streaming Bridge
-* **Role:** Multiplex interactive terminal sessions between the host desktop app and the target phone over USB or Wi-Fi.
-* **Protocol URIs:**
-  - `roufsweb://console/os` $\rightarrow$ Interactive PTY bash shell inside `/mnt/ubuntu`.
-  - `roufsweb://console/ap` $\rightarrow$ Interactive root shell inside `/sbin/sh`.
-* **Transport:** WebSocket (`/api/ws/console?target=os|ap`) with JSON input/output chunks and resize handler (`/api/console/resize`).
-
-#### `[BE-02]` Flasher Engine Silent PMIC Enforcement
-* **Role:** Remove user toggle dependency in `desktop-app/app/core/flasher.py`.
-* **Mechanism:** Step 1 of flash pipeline silently asserts PMIC registers before formatting or writing rootfs.
-
----
-
-### 3. Desktop App Frontend (`desktop-app/ui/`)
-
-#### `[FE-01]` OS Flasher Tab Simplification
-* **Role:** Clean up `#pageFlash` on [`index.html`](file:///e:/rouf/galaxy-s8/desktop-app/ui/index.html).
-* **Action:**
-  - Remove manual "1,500mA Fast Charge" toggle card.
-  - Insert permanent read-only hardware security badge:
-    `Type-C DisplayPort 1080p60 • USB 3.1 Gen 1 (5 Gbps) • 1,500mA Fast Charge Locked`.
-
-#### `[FE-02]` Dual-Console Terminal (`#pageTerminal`) with `xterm.js`
-* **Role:** Real-time terminal with colors, cursor support, `htop`, and tab completion.
-* **Features:**
-  - Header Switcher: `[ 🐧 Linux OS Shell ]` $\longleftrightarrow$ `[ ⚡ Base AP Recovery ]`.
-  - Zero manual IP/password entry; connected automatically via roufsweb protocol.
-  - Instant clear, copy, and fullscreen options.
-
+### `[FE-03]` Live Wi-Fi AP Remote Scan & Profile Synchronization
+* **Target Objective:**
+  Enable users on Page 4 (Device Configuration) to click "Scan Networks" to view live Wi-Fi SSIDs and signal strength detected by the S8's BCM4361 radio, select an SSID, enter the passphrase, and immediately connect without manual terminal editing.

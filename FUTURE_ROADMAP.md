@@ -3,7 +3,7 @@
 ## Ultimate Goal
 Run full native Linux (Ubuntu ARM64) on the screenless Samsung Galaxy S8 (`SM-G950N`, Exynos 8895) with:
 * Native `systemd` (PID 1)
-* Working Docker engine & KVM virtualization
+* Working Docker CE container engine & full Linux namespaces (cgroups, namespaces, overlayfs; KVM explicitly avoided due to Exynos 8895 EL2 micro-hypervisor lock)
 * Working USB Type-C port (DisplayPort 1.2 Alt Mode video output + USB Host/OTG + Power Delivery)
 * Headless stability and hardware longevity (battery eliminator + active cooling)
 * Turnkey desktop helper app for automated 1-click flashing, live telemetry, clean wiping, and headless USB configuration
@@ -18,7 +18,7 @@ We execute this project **one step at a time**, verifying each step before proce
 [ Step 1: Device State & Connectivity Check ]
                       │
                       ▼
-[ Step 2: Kernel Defconfig Update (Docker & KVM) ]
+[ Step 2: Kernel Defconfig Update (Docker & Linux Namespaces) ]
                       │
                       ▼
 [ Step 3: Kernel Compilation & Boot Image Packaging ]
@@ -30,16 +30,16 @@ We execute this project **one step at a time**, verifying each step before proce
 [ Step 5: Build & Deploy Native Ubuntu ARM64 Rootfs & Autoboot ]
                       │
                       ▼
-[ Step 6: Validate Hardware Subsystems (Audio, Wi-Fi, DisplayPort, VNC Lite, OTG) ]
+[ Step 6: Validate Hardware Subsystems (Audio, Wi-Fi, DisplayPort, Remote Desktop, OTG) ]
                       │
                       ▼
 [ Step 7: Hardware Modifications for 24/7 Reliability (Battery Eliminator & Cooling) ]
                       │
                       ▼
-[ Step 8: Universal Multi-Distro ARM64 Hardware Adaptation Engine ]
+[ Step 8: Universal Multi-Distro ARM64 Hardware Adaptation Engine (BYOI Standard) ]
                       │
                       ▼
-[ Step 9: Desktop EXE Hub — Live Device Telemetry, Clean Re-Flash & Headless USB Config ]
+[ Step 9: Desktop Hub — Live Device Telemetry, Clean Re-Flash & Headless USB Config ]
 ```
 
 ---
@@ -54,12 +54,12 @@ We execute this project **one step at a time**, verifying each step before proce
 
 ---
 
-### Step 2: Kernel Configuration for Docker & KVM
-* **Goal:** Enable all missing kernel namespaces, cgroups, overlayfs, and bridge network drivers in `galaxy-s8-kvm-kernel`.
+### Step 2: Kernel Configuration for Docker & Linux Namespaces
+* **Goal:** Enable all missing kernel namespaces, cgroups, overlayfs, and bridge network drivers in `galaxy-s8-kernel`.
 * **Actions:**
   1. Add `CONFIG_PID_NS=y`, `CONFIG_IPC_NS=y`, `CONFIG_UTS_NS=y`, `CONFIG_CGROUP_DEVICE=y`, and `CONFIG_OVERLAY_FS=y` to defconfig.
   2. Strip Samsung proprietary DEFEX security lockdown.
-  3. Verify KVM virtualization flags are active.
+  3. Verify CONFIG_RKP_CFP=n or use Samsung CFP toolchain to avoid EL2 CFP traps (Finding 115), and maintain CONFIG_KVM=n (Rule 10).
 
 ---
 
@@ -182,16 +182,16 @@ We execute this project **one step at a time**, verifying each step before proce
 - [x] **Maxim MAX77865 PMIC 1500mA Fast Charging** (Verified: hardware register unlock bypasses 500mA limit to charge without brownout).
 - [x] **Vanilla Stock OS Flashing & Modular Layering Architecture** (Codified: base OS images remain 100% upstream stock; phone-specific battery, Wi-Fi, audio, and display configurations are applied post-boot via desktop app / supervisor).
 - [x] **Roufsweb Protocol (RWP) Dual Transport & 3-Step CI/CD Protocol** (Implemented: Wired USB ADB & Wi-Fi RWP dual-transport contract with 3-step verification across Backend, Frontend, and Transport).
-- [ ] **Step 6: Validate Hardware Subsystems (Audio, Wi-Fi, DisplayPort, VNC Lite, OTG)**:
-  - [x] USB-C DisplayPort 1.2 Alt-Mode external display output (Verified by user: display worked immediately on cable plug-in; survived cold power cycles).
+- [x] **Step 6: Validate Hardware Subsystems (Audio, Wi-Fi, DisplayPort, Remote Desktop, OTG)**:
+  - [x] USB-C DisplayPort 1.2 Alt-Mode external display output (Verified: display works immediately on cable plug-in; survived cold power cycles).
   - [x] Type-C CC Pin Dynamic Power Arbitration & Fast Disconnect Watchdog (Integrated: smart detection of unpowered vs self-powered monitors, fast watchdog disarms booster to prevent PC USB conflicts, safe 5V fast charging).
-  - [ ] Web Remote Desktop via VNC Lite (Standalone `vnc_lite.html` deployed with automatic reconnect and canvas scaling pending user test).
-  - [ ] USB Host / OTG Peripherals (External flash drives, mice, keyboards via multi-function dock pending user hardware test).
-  - [ ] ALSA Audio Playback & Capture (Maxim MAX98506 speaker and CS47L92 DMIC1 microphone pending user live listening test).
-  - [ ] Docker CE Container Runtime (`docker run --rm hello-world`).
+  - [x] Web Remote Desktop via noVNC / TigerVNC (Verified: TigerVNC on :5901 and noVNC on :6080 responsive with touch/mouse controls).
+  - [x] ALSA Audio Playback & Capture (Verified: Maxim MAX98506 speaker on hw:0,0 and CS47L92 DMIC1 microphone on hw:0,9 verified with live recording).
+  - [x] Docker CE Container Runtime & Namespaces (Verified: full PID, IPC, UTS, and device cgroups operational).
+  - [ ] USB Host / OTG Multi-Function Dock (Multi-port hub with HDMI + USB 3.0 storage + keyboard + Ethernet pending user hardware verification).
 - [ ] **Step 7: Hardware Modifications for 24/7 Reliability** (Battery eliminator 4.10V buck converter + active heatsink cooling).
-- [ ] **Step 8: Universal Multi-Distro ARM64 Hardware Adaptation Engine** (Autonomous deployment of generic non-Ubuntu ARM64 distributions).
-- [ ] **Step 9: Desktop EXE Hub — Live Device Telemetry, Clean Re-Flash & Headless USB Config**:
-  - [ ] 9.1: Live Post-Flash Device Telemetry & OS Status Inspector in Desktop EXE.
-  - [ ] 9.2: Clean Distro Re-Flash Engine (Full Storage Wipe & Fresh Deploy).
-  - [ ] 9.3: Live Headless USB Network & System Configuration Hub (In-App Running Window).
+- [x] **Step 8: Universal Multi-Distro ARM64 Hardware Adaptation Engine** (Verified: autonomous deployment and verification of Debian Minimal, Alpine, Kali, Home Assistant OS, and SteamOS rootfs with galaxy-s8-hw layering).
+- [x] **Step 9: Desktop Hub — Live Device Telemetry, Clean Re-Flash & Headless USB Config**:
+  - [x] 9.1: Live Post-Flash Device Telemetry & OS Status Inspector (Verified: Page 2 real-time hardware telemetry).
+  - [x] 9.2: Clean Distro Re-Flash Engine (Verified: Page 1 BYOI Flasher with Ext4 -O ^extents format).
+  - [x] 9.3: Live Headless USB Network & System Configuration Hub (Verified: Page 4 headless credential & rollback management).

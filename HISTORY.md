@@ -1228,3 +1228,25 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
   - Uptime: **`> 3.9 Hours Continuous`**
   - UI State: **`100% Pure Production Telemetry (0 Mockups, 0 Filler)`**
+
+---
+
+### Task 66: Audit Feature List & Codebase — Purge Legacy Colliding Decisions
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  - Audited `docs/PROJECT_FEATURE_QUEUE.md` and `FUTURE_ROADMAP.md` against codebase and recent architectural decisions.
+  - Purged obsolete legacy specifications that collided with current architecture:
+    1. Removed in-app OS catalog downloader references in favor of the BYOI (Bring Your Own Image) flasher architecture.
+    2. Removed in-app Ethereum donate modal references across `README.md`.
+    3. Replaced KVM virtualization with Docker CE containerization and Linux namespaces (CFP / EL2 lock guard).
+    4. Marked AP-01, BE-01, BE-02, FE-01, FE-02 as completed and verified.
+    5. Identified `AP-02` (Headless TTY DisplayPort Console Fallback) where `scratch/exynos_dp_bridge.c` was blocking on `XOpenDisplay(":1")`, and prioritized it along with `AP-04` (Pure Native Linux systemd PID 1).
+* **Actions Taken & Verified:**
+  1. Updated `docs/PROJECT_FEATURE_QUEUE.md` to reflect verified components and prioritize active milestones.
+  2. Updated `FUTURE_ROADMAP.md` with reconciled Docker containerization standard and milestone checkmarks.
+  3. Cleaned `README.md` and `docs/OS_MANAGEMENT_AND_FLASHING.md` to align with the pure BYOI flasher workflow.
+  4. Verified all 43 automated tests pass in 32.7s.
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
+  - Uptime: **`> 4.2 Hours Continuous`**
+  - Feature Queue: **`100% Reconciled (0 Colliding Decisions)`**

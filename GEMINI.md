@@ -208,6 +208,6 @@
 | [`scripts/build_universal_ap.py`](file:///e:/rouf/galaxy-s8/scripts/build_universal_ap.py) | **Master Pure Native Linux AP Builder** (`switch_root` -> PID 1, multi-storage `boot_target.conf`, 9 Calliope firmwares, RNDIS+ACM, `s8_usb_agentd`, `s8_dp_daemon`). |
 | [`packages/galaxy-s8-hw/`](file:///e:/rouf/galaxy-s8/packages/galaxy-s8-hw/build_packages.py) | **Universal Multi-Distro Hardware Pack Source & Builder** (outputs `galaxy-s8-hw_1.0.2_arm64.deb` and `galaxy-s8-hw-universal-arm64.tar.gz`). |
 | [`src/drivers/`](file:///e:/rouf/galaxy-s8/src/drivers/) | **Native C Hardware Daemons:** `s8_version.h`, `s8_usb_agentd.c`, `s8_dp_daemon.c`, `exynos_dp_bridge.c`, `s8_input_bridge.c`, `s8_button_daemon.c`. |
-| [`desktop-app/`](file:///e:/rouf/galaxy-s8/desktop-app/server.py) | **S8 Imager Desktop & Web Application (`v2.5.0`)** (Distro catalog + version ledger, live RWP/SSH & Recovery flasher, storage selector, dual PTY shell, telemetry dashboard). |
+| [`desktop-app/`](file:///e:/rouf/galaxy-s8/desktop-app/main.py) | **S8 Imager Desktop & Web Application (`v2.7.0`)** (Universal BYOI flasher + version ledger, live RWP/SSH & Recovery flasher, storage selector, dual PTY shell, telemetry dashboard). |
 | [`tests/hardware/test_full_non_regression_e2e.py`](file:///e:/rouf/galaxy-s8/tests/hardware/test_full_non_regression_e2e.py) | **Full-Stack Live Hardware & Non-Regression Test Suite.** |
 | [`docs/GEMINI_3_8_HANDOFF.md`](file:///e:/rouf/galaxy-s8/docs/GEMINI_3_8_HANDOFF.md) | **Live Continuity Runbook for Gemini 3.8.** |

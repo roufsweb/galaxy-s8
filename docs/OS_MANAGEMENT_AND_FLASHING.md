@@ -90,7 +90,7 @@ flowchart TD
     end
 
     subgraph Desktop_App ["2. S8 Imager Zero-Fork Upstream Deployment (GUI)"]
-        D1["Launch_S8_Imager.bat"] --> D2["Download & Verify Official OS (.img.xz / .tar.xz)"]
+        D1["Launch_S8_Imager.bat"] --> D2["Select Local ARM64 OS Image (BYOI: .img.xz / .tar.xz)"]
         D2 --> D3["Set First-Boot User & Storage Slider (4-48 GB)"]
         D3 --> D4["Click Flash Image"]
         D4 --> D5["Extract MBR/GPT ext4 Slice & Write /data/linux/rootfs.img"]
