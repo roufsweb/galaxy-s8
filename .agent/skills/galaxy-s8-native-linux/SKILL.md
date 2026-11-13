@@ -6,9 +6,9 @@ description: Comprehensive operational runbook for running Pure Native Linux (sy
 # Samsung Galaxy S8 (`SM-G950N`) Pure Native Linux Runbook (`galaxy-s8-native-linux`)
 
 > [!CRITICAL]
-> **HEADLESS HARDWARE REMINDER (`lcdtype=-1`):**
-> Both the internal OLED screen and the front RGB status LED are physically removed.
-> Use only: (1) Haptic Vibrations (`/sys/class/timed_output/vibrator/enable`), (2) Rear Torch (`/sys/class/leds/torch-sec1/brightness`), (3) exact second counts (11–13s for Download Mode), and (4) USB RNDIS (`192.168.7.2:7860`) / Serial (`COM27` `/dev/ttyGS0`) / Wi-Fi.
+> **HEADLESS HARDWARE SPECIFICATION (`lcdtype=-1`):**
+> The internal OLED screen is physically absent (`lcdtype=-1`), while the front RGB status LED is **physically present, configured, and active** (`/sys/class/sec/led/` driven by `s8_led_supervisor.py`).
+> Interaction telemetry relies on: (1) Front Status LED (Green=Healthy, Blue=Booting, Amber=Charging, Cyan=DisplayPort), (2) Haptic Vibrations (`/sys/class/timed_output/vibrator/enable`), (3) Rear Torch (`/sys/class/leds/torch-sec1/brightness`), (4) exact second counts (11–13s for Download Mode), and (5) USB RNDIS (`192.168.7.2:7860`) / Serial (`/dev/ttyGS0`) / Wi-Fi (`192.168.0.227`).
 
 ---
 

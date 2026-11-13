@@ -52,6 +52,40 @@
    * Auto-detects 14.6 GB MicroSD card (`ESPAUDIO`, FAT32) under DW MMC host controller `11500000.dwmmc2`, auto-mounts at `/media/sdcard` and bind-mounts to `/mnt/android_data/sdcard` with `umask=000` via `/data/linux/start_all.sh`. Accessible with full read/write across FileBrowser (`:8088`), CasaOS (`:8080`), and `s8ctl sdcard`.
 9. **Cellular Modem & SIM Slot Architecture (`Shannon 359`):**
    * Kernel Shannon modem drivers active (`/dev/umts_ipc0`, `/dev/umts_boot0`, `/dev/umts_rfs0`) with 8 registered LTE interfaces (`rmnet0..7`). CP Boot Daemon (`/vendor/bin/cbd`) boots with `-tss333 -bs -ml` using `RADIO` partition (`sda10`) and `EFS` (`sda3`) for SMS gateway and mobile LTE internet failover.
+10. **Front Multi-Color RGB Status LED (`/sys/class/sec/led/` `[LIVE & VERIFIED]`):**
+   * **Hardware Presence:** The front RGB notification LED is **PHYSICALLY CONNECTED, CONFIGURED, AND ACTIVE**.
+   * Driven by MAX77865 PMIC I2C driver (`kernel/drivers/leds/leds-max77865-rgb.c`) via `/sys/class/sec/led/`:
+     * `led_pattern`: Hardware presets (0=Off, 5=Fully charged / Subtle Calm Green).
+     * `led_blink`: Custom RGB timing (`<0xRRGGBB> <on_ms> <off_ms>`).
+     * `led_brightness`: 0–255 master level.
+   * Autonomous Supervisor (`/usr/local/bin/s8_led_supervisor.py`):
+     * SUBTLE GREEN (Solid): Normal healthy Linux server / desktop operation.
+     * PULSING BLUE (300ms/300ms): System booting / initializing rootfs.
+     * SOFT AMBER (800ms/800ms): 1500mA Fast Charging in progress (<95%).
+     * CALM CYAN (Solid 0x003333): External USB-C DisplayPort / HDMI active.
+     * BLINKING RED (500ms/500ms): Battery low (<15%).
+     * RAPID STROBE RED (150ms/150ms): Thermal alert (>70°C) or critical fault.
+
+---
+
+## 0.1 AI Permanent Memory & Subsystem Architecture Ledger (Synthesized from `PROJECT_INDEX.md`)
+
+| Subsystem / Feature | Target Hardware Node / Sysfs Path | Primary Driver / Daemon | Control API & CLI | Status & Behavior |
+| :--- | :--- | :--- | :--- | :--- |
+| **Front Status LED** | `/sys/class/sec/led/` (`led_pattern`, `led_blink`, `led_brightness`) | `s8_led_supervisor.py` | `s8ctl led [green\|blue\|amber\|cyan\|red\|off]` | **PRESENT & ACTIVE**. Subtle Green = Healthy server |
+| **Rear Torch LED** | `/sys/class/leds/torch-sec1/brightness` (0..10) | Kernel Flash Driver | `s8ctl torch on\|off`, `GET /api/torch` | Hardware LED torch on back chassis |
+| **Chassis Vibrator** | `/sys/class/timed_output/vibrator/enable` | Exynos Timed Haptic Driver | `s8ctl haptic <ms>`, `GET /api/haptic` | 150ms pulse for boot, 2x 150ms for ready |
+| **Physical Buttons** | `/dev/input/event3` (`gpio_keys`: Power, VolUp, VolDown, Bixby 703) | `s8_button_daemon` | Background Supervisor PID | VolUp/Down=ALSA, Bixby=Voice Assistant / Screenshot |
+| **PMIC Fast Charging** | `/sys/class/power_supply/max77865-charger/data` | MAX77865 PMIC Driver | Register sequence (0xBD, 0xC3, 0xC0 0x3C, 0xB9 0x9E) | 1,500 mA fast charge & 4.3V UVLO unlock |
+| **External Display** | `/dev/graphics/fb2` on `DECON2` | `exynos_dp_bridge` + `s8_typec_daemon.py` | `s8ctl display landscape\|portrait`, `:1` | 1920x1080 60Hz DisplayPort/HDMI output |
+| **Speaker Audio** | ALSA `hw:0,0` (Maxim MAX98506 Class-D Amp) | Calliope ABOX DSP (`etc/firmware/`) | `aplay`, `s8ctl sound test` | High-fidelity speaker playback |
+| **Microphone** | ALSA `hw:0,9` (CS47L92 DMIC1, WDMA1) | Calliope ABOX DSP Capture | `arecord -D hw:0,9 -f S16_LE -r 16000` | Clean ambient voice capture |
+| **Wi-Fi Subsystem** | `wlan0` (`192.168.0.227`), Broadcom BCM4361 | `dhd` (`/sys/module/dhd/parameters/`) | `connect_wifi.sh`, `s8ctl wifi` | Dual-band 2.4/5GHz Wi-Fi Station Mode |
+| **USB Networking** | `rndis0` (`192.168.7.2/24`), CDC ACM `/dev/ttyGS0` | ConfigFS Composite Gadget | `s8_usb_agentd` (:7860), Dropbear `:22` | Zero-config USB RNDIS + serial terminal |
+| **Remote Desktop** | Nginx `:6080` + Websockify `:6081` -> TigerVNC `:5901` | Xtigervnc + noVNC Web UI | `http://192.168.0.227:6080/vnc.html` | Password: `ubuntu`. Full GNOME 46 remote control |
+| **Local AI Assistant** | Qwen 2.5 1.5B (`:8085`) + `whisper.cpp` + Piper TTS | `s8-voice-assistant` | Physical Bixby Key / CLI | Autonomous on-device voice conversation |
+| **Animoji Avatar** | WebKitGTK window on `:1` (`/tmp/s8_avatar_state.json`) | `s8_avatar_window.py` | Real-time reactive lip-sync | 1080x1920 portrait animated face |
+| **MicroSD Card** | `/dev/block/mmcblk0` -> `/media/sdcard` | DW MMC Host `11500000.dwmmc2` | `s8ctl sdcard`, FileBrowser `:8088` | Auto-mounted FAT32/ext4 external storage |
 
 ---
 
@@ -60,10 +94,14 @@
 > [!CAUTION]
 > **NEVER VIOLATE THESE EMPIRICALLY VERIFIED HARDWARE & ARCHITECTURE RULES:**
 
-1. **NO INTERNAL SCREEN OR FRONT LED EXISTS (`lcdtype=-1`):**
-   * Both the internal OLED screen and the front RGB status LED assembly are **physically removed**.
-   * **NEVER** instruct the user to look at the phone screen or check the front LED.
-   * **ONLY** use: (a) exact second counts, (b) **Haptic Vibrations** (`/sys/class/timed_output/vibrator/enable`), (c) **Rear Flashlight Torch** (`/sys/class/leds/torch-sec1/brightness`), and (d) USB/Wi-Fi telemetry (`ce10171ab3e9620804` / `192.168.0.227`).
+1. **INTERNAL OLED SCREEN ABSENT (`lcdtype=-1`) & FRONT RGB STATUS LED PRESENT:**
+   * **Internal OLED Screen:** The internal mobile OLED display panel is **physically absent / disconnected** (`lcdtype=-1`). Video output is strictly via external USB-C DisplayPort/HDMI (`/dev/graphics/fb2` on `DECON2`) or web remote desktop (`noVNC :6080` / `TigerVNC :5901`). Never instruct the user to check or tap the internal phone screen.
+   * **Front RGB Status LED (PRESENT & ACTIVE):** The front multi-color RGB notification LED is **PHYSICALLY CONNECTED, CONFIGURED, AND ACTIVE**. Controlled via MAX77865 PMIC sysfs (`/sys/class/sec/led/`):
+     - `led_pattern`: Hardware presets (0=Off, 5=Fully charged / Subtle Green).
+     - `led_blink`: Custom RGB timing (`<0xRRGGBB> <on_ms> <off_ms>`).
+     - `led_brightness`: 0–255 master level.
+     - Supervised dynamically by `/usr/local/bin/s8_led_supervisor.py` (Subtle Green = healthy Linux operation, Pulsing Blue = booting, Soft Amber = charging, Calm Cyan = DisplayPort active, Red = low battery or thermal alert).
+   * **Haptic Vibrator & Rear Torch:** Supported in parallel via `/sys/class/timed_output/vibrator/enable` and `/sys/class/leds/torch-sec1/brightness`.
 2. **EXYNOS 8895 V4L2 CAMERA ISP KERNEL PANIC GUARD (`fimc_is_ixs_video_querycap`):**
    * Calling `VIDIOC_QUERYCAP` on uninitialized Samsung camera ISP nodes (`/dev/video100`..`/dev/video220`) causes an immediate NULL-pointer dereference kernel panic (`fimc_is_ixs_video_querycap+0x24/0x68` in `/proc/last_kmsg`) whenever GStreamer (`gst-plugin-scanner`), `nautilus`, `webkit`, or `pipewire` scans `/dev/video*`.
    * **ALWAYS** run `rm -f /dev/video[1-9][0-9]* /dev/v4l-subdev*` at boot before starting Ubuntu (preserving `/dev/video0..9` for the Exynos MFC hardware H.264/HEVC video codecs `/dev/video6..9`).
