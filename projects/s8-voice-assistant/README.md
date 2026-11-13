@@ -93,3 +93,4 @@ python projects/s8-voice-assistant/scripts/s8_voice_assistant.py --test-cycle --
 ### 3. Open the Animoji Talking Face
 * Navigate to `http://<phone-ip>:8090/avatar.html` (or open locally on DisplayPort monitor via `noVNC` `:6080`).
 * Press keys **`1`** (Idle), **`2`** (Listening), **`3`** (Thinking), **`4`** (Speaking) to test animation states interactively.
+

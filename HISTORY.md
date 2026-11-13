@@ -1269,3 +1269,20 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
   - Uptime: **`> 5.5 Hours Continuous`**
   - Local AI Suite: **`3/3 Models Verified (Whisper + Qwen 2.5 1.5B + Piper ONNX)`**
+
+
+---
+
+### Task 68: DisplayPort True Portrait Hardware Rotation & Phantom Mouse Elimination
+* **Execution Date:** 2026-11-13
+* **Motivation:** User reported during physical monitor testing that the display output was stretched when attempting portrait mode and that an unwanted mouse cursor was flickering on the monitor despite no physical mouse being connected.
+* **Actions Completed:**
+  1. Identified root causes: (a) static X11 dimensions and naive linear stretching in `exynos_dp_bridge.c`, and (b) unconditional per-frame polling and overlay of `XFixesGetCursorImage(dpy)`.
+  2. Implemented `blit_transformed()` in `scratch/exynos_dp_bridge.c` adding native 90° and 270° pixel transposition mapping `1080x1920` vertical X11 frames into `1920x1080` monitor rasters with zero distortion.
+  3. Added dynamic X11 resolution detection via `XGetWindowAttributes`, automatically rebuilding XShm capture buffers without daemon restarts.
+  4. Added smart cursor suppression gating `XFixesGetCursorImage` behind `/tmp/s8_dp_show_cursor`, eliminating phantom cursor and visual flickering.
+  5. Built and deployed `/usr/local/bin/s8-orientation [portrait|portrait-ccw|landscape]` and `/usr/local/bin/s8-cursor [show|hide]`.
+  6. Recompiled on-device via native `gcc -O2 -lX11 -lXext -lXfixes` and hot-restarted the daemon.
+* **Verification Results:**
+  - True 1080x1920 Portrait mode verified live at 57+ FPS.
+  - Phantom mouse cursor completely suppressed.

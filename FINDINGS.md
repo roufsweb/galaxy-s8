@@ -1949,3 +1949,25 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
 * **Verification & Test Status:**
   - Automated conversational test cycle passed cleanly (`[READY]` across all 3 models).
   - Visual proof artifact `docs/assets/screenshots/s8_animoji_speaking_proof.png` captured and dispatched to Telegram.
+
+
+---
+
+## Finding 135 -- DisplayPort True 90°/270° Portrait Hardware Rotation & Phantom Mouse Cursor Flicker Elimination
+* **Severity:** Production Display Quality & UX Restraint
+* **Discovery Date:** 2026-11-13
+* **Context & Motivation:**
+  - Physical testing of the USB-C DisplayPort output on an external monitor revealed two hardware UX issues:
+    1. **Portrait Aspect Ratio Distortion:** When setting X11 to `1080x1920` (Portrait) for a vertically standing monitor, the bridge's naive scaler mapped the vertical buffer into the monitor's horizontal `1920x1080` EDID raster, causing vertical compression and extreme horizontal stretching.
+    2. **Phantom Mouse Cursor Flickering:** A visible mouse cursor was persistently drawn and flickering on the external monitor even when no physical mouse was connected to the phone or USB-C hub. Code audit of `scratch/exynos_dp_bridge.c` showed unconditional polling and Porter-Duff alpha blending of `XFixesGetCursorImage(dpy)` on every single 60 Hz frame.
+* **Architectural Fix & Implementation:**
+  - **Dynamic Dimension Detection:** Replaced static compile-time constants `x11_w = 1920, x11_h = 1080` with runtime X11 root window geometry polling (`XGetWindowAttributes`). If X11 changes resolution on the fly, the XShm shared memory buffer is automatically detached, resized, and reattached without interrupting DECON2 framebuffer streaming.
+  - **True 90° / 270° Rotation Mapping:** Implemented `blit_transformed()` in `scratch/exynos_dp_bridge.c` supporting 4 cardinal orientations:
+    - `0° (Landscape)`: 1:1 direct memcpy or isotropic scaling.
+    - `90° (Portrait Clockwise)`: Direct cache-friendly pixel transposition mapping `1080x1920` vertical canvas onto the `1920x1080` raster (`dx = dst_w - 1 - sy; dy = sx`). Content appears upright and 100% distortion-free on vertically standing displays.
+    - `270° (Portrait Counter-Clockwise)`: Transposition mapping for inverted vertical mounts (`dx = sy; dy = dst_h - 1 - sx`).
+    - `180° (Inverted Landscape)`.
+  - **Smart Cursor Suppression:** Wrapped `XFixesGetCursorImage` behind `/tmp/s8_dp_show_cursor` presence. By default, software cursor blending is completely disabled, fully eliminating the phantom cursor and visual flickering.
+  - **1-Click Control CLI:** Built and installed `/usr/local/bin/s8-orientation [portrait|portrait-ccw|landscape]` and `/usr/local/bin/s8-cursor [show|hide]`.
+* **Verification Status:**
+  - Recompiled on Exynos 8895 ARM64 with `gcc -O2 -lX11 -lXext -lXfixes`. Verified live on physical hardware: zero cursor flicker, and instant orientation toggling.

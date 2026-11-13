@@ -12,6 +12,7 @@ import json
 import math
 import wave
 import struct
+import shutil
 import asyncio
 import argparse
 import threading
