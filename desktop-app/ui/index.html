@@ -189,7 +189,7 @@
           S8 Imager
         </h1>
         <span class="text-xs font-semibold text-appDim tracking-wide">by roufsweb</span>
-        <span id="appVersionBadge" class="text-[10px] font-mono font-semibold text-sky-300 bg-sky-500/10 border border-sky-500/25 px-2 py-0.5 rounded-lg">v2.6.0 | AP v3.0.0 | HW v1.0.2</span>
+        <span id="appVersionBadge" class="text-[10px] font-mono font-semibold text-sky-300 bg-sky-500/10 border border-sky-500/25 px-2 py-0.5 rounded-lg">v2.7.0 | AP v3.0.0 | HW v1.0.3</span>
         <span id="pageHeaderTitle" class="hidden"></span>
       </div>
 
@@ -797,7 +797,7 @@
         <!-- Native Inline Prompt Line (Direct typing right in the terminal flow) -->
         <div class="flex items-center gap-2 mt-2 shrink-0">
           <span id="termInlinePrompt"
-            class="text-emerald-400 font-bold select-none shrink-0 font-mono">root@Galaxy-S8-Ubuntu:~#</span>
+            class="text-emerald-400 font-bold select-none shrink-0 font-mono whitespace-nowrap">root@galaxy-s8:~#</span>
           <input id="termNativeInput" type="text" onkeydown="handleNativeKey(event)"
             class="flex-1 bg-transparent border-none outline-none text-white font-mono text-xs p-0 m-0 caret-emerald-400 focus:ring-0 focus:outline-none"
             autocomplete="off" spellcheck="false" autofocus>
@@ -1155,7 +1155,7 @@
         </div>
 
         <!-- Upstream Distro 8: OpenWrt 23.05.5 Router OS -->
-        <div onclick="selectDistro('OpenWrt 23.05.5 Router OS', 'openwrt-23.05.5-armsr-armv8-rootfs.tar.gz', 'distros/openwrt-23.05.5-armsr-armv8-rootfs.tar.gz', 'OPENWRT 23.05.5')"
+        <div onclick="selectDistro('OpenWrt 23.05.5 Router OS', 'OpenWrt 23.05.5 ARMv8 Router OS (openwrt-23.05.5-armsr-armv8-rootfs.tar.gz)', 'distros/openwrt-23.05.5-armsr-armv8-rootfs.tar.gz', 'OPENWRT 23.05.5')"
           class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
           <div>
             <div class="text-xs font-bold text-white flex items-center gap-1.5">
@@ -1166,6 +1166,21 @@
           </div>
           <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
             <button onclick="downloadDistro('openwrt-23.05')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
+          </div>
+        </div>
+
+        <!-- Upstream Distro 9: SteamOS 3.6 Holo ARM64 -->
+        <div onclick="selectDistro('SteamOS 3.6 Holo ARM64', 'SteamOS 3.6 Holo ARM64 (steamos-holo-1.4-arm64.tar.gz)', 'distros/steamos-holo-1.4-arm64.tar.gz', 'STEAMOS 3.6')"
+          class="p-3 bg-appCardAlt hover:bg-blue-600/20 hover:border-appBlue border border-appBorder rounded-2xl cursor-pointer flex items-center justify-between gap-2 transition-all">
+          <div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>SteamOS 3.6 Holo ARM64 (Gaming OS)</span>
+              <span class="text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded font-mono font-semibold">v3.6 Holo</span>
+            </div>
+            <div class="text-[10px] text-appMuted font-mono mt-0.5">Arch-based SteamOS Holo ARM64 + systemd 257 + Steam Runtime &middot; 16 GB Rec.</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+            <button onclick="downloadDistro('steamos-3.6')" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-[10px] font-mono text-sky-300 hover:bg-sky-500/30">FETCH</button>
           </div>
         </div>
       </div>
@@ -1551,6 +1566,7 @@
     }
 
     function selectDistro(shortName, fullName, path, badgeText) {
+      resetFlashButtonState();
       currentSelectedImagePath = path;
       document.getElementById('flashSelectedName').innerText = fullName;
       document.getElementById('flashSelectedPath').innerText = path;
@@ -1565,9 +1581,16 @@
     }
 
     function updateInstalledOsStatus(osName) {
-      currentDeviceOs = osName || 'Base AP Recovery';
+      currentDeviceOs = osName || 'Native Linux ARM64';
       const el = document.getElementById('flashCurrentDeviceOS');
       if (el) el.innerText = currentDeviceOs;
+      if (typeof shellSessions !== 'undefined' && shellSessions.os) {
+        shellSessions.os.bannerHtml = `<div class="text-sky-400 font-bold">Linux 4.4.111-s8-universal-v3 (aarch64) &bull; ${escapeHtml(currentDeviceOs)}</div><div class="text-appMuted text-[11px] mb-3">Connected to Pure Native Linux PID 1 environment (switch_root / 192.168.7.2:7860).</div>`;
+        if (typeof currentNativeShell !== 'undefined' && currentNativeShell === 'os') {
+          const bannerEl = document.getElementById('termHeaderBanner');
+          if (bannerEl) bannerEl.innerHTML = shellSessions.os.bannerHtml;
+        }
+      }
       checkOsMatch();
     }
 
@@ -2024,10 +2047,10 @@
     const shellSessions = {
       os: {
         name: 'OS Shell',
-        prompt: 'root@Galaxy-S8-Ubuntu:~#',
+        prompt: 'root@galaxy-s8:~#',
         promptColor: 'text-emerald-400',
         caretColor: 'caret-emerald-400',
-        bannerHtml: '<div class="text-sky-400 font-bold">Linux 4.4.111-S8-Noble (aarch64) • Ubuntu 24.04.5 LTS (Noble Numbat)</div><div class="text-appMuted text-[11px] mb-3">Connected to native Linux OS chroot environment (/mnt/ubuntu).</div>',
+        bannerHtml: '<div class="text-sky-400 font-bold">Linux 4.4.111-s8-universal-v3 (aarch64) &bull; Native ARM64 Linux</div><div class="text-appMuted text-[11px] mb-3">Connected to Pure Native Linux PID 1 environment (switch_root / 192.168.7.2:7860).</div>',
         entries: [],
         history: [],
         historyIdx: -1
@@ -2127,7 +2150,7 @@
       bufferEl.innerHTML = sess.entries.map((e, idx) => `
         <div class="flex flex-col gap-1" id="term-entry-${idx}">
           <div class="flex items-center gap-2 select-text">
-            <span class="${e.promptColor} font-bold select-none font-mono text-xs">${escapeHtml(e.prompt)}</span>
+            <span class="${e.promptColor} font-bold select-none shrink-0 whitespace-nowrap font-mono text-xs">${escapeHtml(e.prompt)}</span>
             <span class="text-white font-semibold font-mono text-xs">${escapeHtml(e.cmd)}</span>
           </div>
           ${e.status === 'running'

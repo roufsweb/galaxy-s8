@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-11-13T03:51:38+06:00",
+  "updated_at": "2026-11-13T12:21:31+06:00",
   "active": {
     "ap_version": "3.0.0",
     "ap_filename": "releases/Galaxy_S8_Linux_AP.tar",
@@ -8,11 +8,11 @@
     "kernel_version": "4.4.111-s8-universal-v3",
     "kernel_semver": "3.0.0",
     "kernel_next_target": "4.4.111-s8-universal-v3.1 (Maintenance)",
-    "hw_pack_version": "1.0.2",
+    "hw_pack_version": "1.0.3",
     "daemon_suite_version": "1.0.2",
-    "s8ctl_version": "1.0.2",
+    "s8ctl_version": "1.0.3",
     "rwp_protocol_version": "1.1.0",
-    "desktop_app_version": "2.6.0"
+    "desktop_app_version": "2.7.0"
   },
   "ap_releases": [
     {
@@ -117,9 +117,24 @@
   ],
   "hw_pack_releases": [
     {
-      "version": "1.0.2",
+      "version": "1.0.3",
       "status": "VERIFIED_WORKING",
       "active": true,
+      "date": "2026-11-13",
+      "deb_path": "packages/dist/galaxy-s8-hw_1.0.3_arm64.deb",
+      "deb_size_bytes": 312446,
+      "deb_sha256": "a8d199b8c526273e4788e4eb39be3b4272d891dc81f2a26c33019dde82709e3a",
+      "tar_path": "packages/dist/galaxy-s8-hw-1.0.3-arm64.tar.gz",
+      "universal_alias": "packages/dist/galaxy-s8-hw-universal-arm64.tar.gz",
+      "tar_size_bytes": 354119,
+      "tar_sha256": "b21b6ec22a8f8f7e77aade5dfbb4d7015282ef9fe5201657d284e1782fd0a0da",
+      "rollback_safe": true,
+      "notes": "OS-agnostic s8ctl banner ([s8ctl v1.0.3]), verified cross-distro deployment across OpenWrt procd, Alpine BusyBox init, Kali systemd, Debian 12 systemd, Home Assistant OS 18.4 systemd, SteamOS 3.6 Holo systemd, and Ubuntu 24.04.5 LTS Desktop."
+    },
+    {
+      "version": "1.0.2",
+      "status": "SUPERSEDED",
+      "active": false,
       "date": "2026-11-13",
       "deb_path": "packages/dist/galaxy-s8-hw_1.0.2_arm64.deb",
       "deb_size_bytes": 310958,
@@ -221,10 +236,10 @@
       "size_bytes": 3291661732,
       "sha256": "f4a333eccfda8f1ae01a03da5ba6effb52fe32becc7dde27dc9a269200ac823a",
       "status": "VERIFIED_WORKING",
-      "verified_with_ap": "2.0.2",
-      "verified_with_hw_pack": "1.0.2",
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
       "last_tested": "2026-11-13",
-      "notes": "Currently active on live phone (192.168.7.2). Boots with native systemd PID 1, GNOME/XFCE desktop on :1 (:5901 / :6080), DisplayPort fb2 with visible cursor + USB mouse/keyboard input bridge, Calliope audio, Wi-Fi, and PMIC 1500mA fast charging."
+      "notes": "Verified 16 GB ext4 loop0 systemd PID 1 + GNOME 46 + glxgears 513.34 FPS (llvmpipe Mesa 25.2.8) + Freedoom 2 (Chocolate Doom) + 25/25 hardware matrix and 6/6 E2E non-regression."
     },
     {
       "id": "ubuntu-server-24.04",
@@ -266,10 +281,10 @@
       "size_bytes": 343421420,
       "sha256": "16580d8baad9eae15e6e912a044526bed885cb8037cd0d426946bc03e1c0267b",
       "status": "VERIFIED_WORKING",
-      "verified_with_ap": "2.0.2",
-      "verified_with_hw_pack": "1.0.2",
-      "last_tested": "2026-11-12",
-      "notes": "Verified Home Assistant Core (:8123) and Observer (:4357) running with full cgroup v1 hierarchy, overlayfs, and network namespaces."
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 12 GB ext4 (df -h / = 11.8G) after GPT size-byte unit fix + EROFS->ext4 conversion of hassos-system0 (256 MB), PID 1 systemd, rndis0 192.168.7.2, s8ctl v1.0.3 POSIX."
     },
     {
       "id": "steamos-arm",
@@ -296,10 +311,10 @@
       "size_bytes": 125846088,
       "sha256": "96aeced81a857a987715a14417af05c2934e3e19052d6151c398a1c215448b60",
       "status": "VERIFIED_WORKING",
-      "verified_with_ap": "1.0.0",
-      "verified_with_hw_pack": "1.0.2",
-      "last_tested": "2026-11-10",
-      "notes": "Verified Kali ARM64 rootfs boot, SSH, and dpkg installation of galaxy-s8-hw_1.0.2_arm64.deb."
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 8 GB ext4 (df -h / = 7.8G), PID 1 systemd, wlan0 UP, rndis0 192.168.7.2, s8ctl v1.0.3."
     },
     {
       "id": "debian-12",
@@ -310,11 +325,11 @@
       "filename": "debian-12-generic-arm64.tar.xz",
       "size_bytes": 265925324,
       "sha256": "dbc01917c8ecb12a43c426b2be5ff56bd8c7ec7627088c87448329e96b75c776",
-      "status": "READY_TO_TEST",
-      "verified_with_ap": "2.0.2",
-      "verified_with_hw_pack": "1.0.2",
-      "last_tested": "Pending v3.0.0 matrix run",
-      "notes": "Downloaded and SHA-256 verified. Compatible with systemd PID 1 and galaxy-s8-hw_1.0.2_arm64.deb via copy-on-deploy."
+      "status": "VERIFIED_WORKING",
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 10 GB ext4 (df -h / = 9.8G) streamed cleanly via tarfile r|xz, PID 1 systemd, wlan0 UP, s8ctl v1.0.3."
     },
     {
       "id": "alpine-3.20",
@@ -325,11 +340,11 @@
       "filename": "alpine-minirootfs-3.20.3-aarch64.tar.gz",
       "size_bytes": 3947906,
       "sha256": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de",
-      "status": "READY_TO_TEST",
-      "verified_with_ap": "2.0.2",
-      "verified_with_hw_pack": "1.0.2",
-      "last_tested": "Pending v3.0.0 matrix run",
-      "notes": "Downloaded and SHA-256 verified. Supported by s8_pid1_boot.sh OpenRC init handoff and galaxy-s8-hw-1.0.2-arm64.tar.gz (/etc/init.d/s8-hardware)."
+      "status": "VERIFIED_WORKING",
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 6 GB ext4 (df -h / = 5.8G), PID 1 BusyBox init, wlan0 UP, rndis0 192.168.7.2, s8ctl v1.0.3 POSIX."
     },
     {
       "id": "openwrt-23.05",
@@ -340,11 +355,11 @@
       "filename": "openwrt-23.05.5-armsr-armv8-rootfs.tar.gz",
       "size_bytes": 4049487,
       "sha256": "bfce31bd8c9806c953b07d968e19779884bc39255d639bfd52859cad0ce43e79",
-      "status": "READY_TO_TEST",
-      "verified_with_ap": "2.0.2",
-      "verified_with_hw_pack": "1.0.2",
-      "last_tested": "Pending v3.0.0 matrix run",
-      "notes": "Downloaded and SHA-256 verified. Supported by s8_pid1_boot.sh /etc/preinit discovery and galaxy-s8-hw-1.0.2-arm64.tar.gz (/etc/rc.local)."
+      "status": "VERIFIED_WORKING",
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 4 GB ext4 (df -h / = 3.9G), PID 1 procd, wlan0 UP, s8ctl v1.0.3 POSIX, uci net/system seeded."
     },
     {
       "id": "arch-arm64",
@@ -375,6 +390,21 @@
       "verified_with_hw_pack": "1.0.2",
       "last_tested": "Pending v3.0.0 matrix run",
       "notes": "Downloaded and SHA-256 verified. Supported via GPT/MBR root partition extractor and galaxy-s8-hw_1.0.2_arm64.deb."
+    },
+    {
+      "id": "steamos-3.6",
+      "name": "SteamOS 3.6 Holo ARM64 (Unofficial 1.4)",
+      "upstream_version": "3.6 / 1.4",
+      "vendor": "Valve / SteamOS ARM",
+      "init_system": "systemd",
+      "filename": "steamos-holo-1.4-arm64.tar.gz",
+      "size_bytes": 2330268522,
+      "sha256": "e3119fb6e22f0008790b0d838eda3abe51289ec8fcb75578e2c31a2df1dcc705",
+      "status": "VERIFIED_WORKING",
+      "verified_with_ap": "3.0.0",
+      "verified_with_hw_pack": "1.0.3",
+      "last_tested": "2026-11-13",
+      "notes": "Live verified on 16 GB ext4 (df -h / = 15.6G, 5.3G used) via async non-blocking RWP tar poll, PID 1 systemd, rndis0 192.168.7.2, s8ctl v1.0.3."
     }
   ]
 }

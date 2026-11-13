@@ -140,6 +140,20 @@ UPSTREAM_DISTROS: List[Dict] = [
         "desktop": False,
         "description": "Full Home Assistant OS 18.4 generic aarch64 system image with full cgroup/container permissions.",
     },
+    {
+        "id": "steamos-3.6",
+        "name": "SteamOS 3.6 Holo ARM64 (Gaming OS)",
+        "vendor": "Valve / SteamOS ARM",
+        "filename": "steamos-holo-1.4-arm64.tar.gz",
+        "url": "https://repo.steampowered.com/steamos-arm/steamos-holo-1.4-arm64.tar.gz",
+        "sha256_url": "",
+        "sha256_match_name": "",
+        "sha256": "",
+        "format": "tar.gz",
+        "recommended_gb": 16,
+        "desktop": True,
+        "description": "SteamOS 3.6 Holo ARM64 (Arch-based gaming OS with systemd 257, pacman, and Steam runtime).",
+    },
 ]
 
 

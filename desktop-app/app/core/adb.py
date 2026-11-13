@@ -197,6 +197,66 @@ class AdbClient:
         except Exception as exc:
             return False, str(exc)
 
+    def push_rwp_http(
+        self,
+        local_path: str,
+        remote_path: str,
+        timeout: int = 900,
+    ) -> Tuple[bool, str]:
+        """Stream a file to the device at full RNDIS speed via HTTP pull (/run/s8/busybox wget), falling back to push_ssh."""
+        p = Path(local_path)
+        if not p.is_file():
+            return False, f"Local file missing: {local_path}"
+        file_size = p.stat().st_size
+
+        try:
+            import http.server
+            import socketserver
+            import threading
+
+            target_ip = RNDIS_DEFAULT_IP
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect((target_ip, 7860))
+                local_ip = s.getsockname()[0]
+
+            class _FileHandler(http.server.BaseHTTPRequestHandler):
+                def do_GET(self_h):
+                    self_h.send_response(200)
+                    self_h.send_header("Content-Type", "application/octet-stream")
+                    self_h.send_header("Content-Length", str(file_size))
+                    self_h.end_headers()
+                    with open(p, "rb") as f:
+                        shutil.copyfileobj(f, self_h.wfile, length=1024 * 1024)
+
+                def log_message(self_h, format, *args):
+                    pass
+
+            class _ThreadedServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+                daemon_threads = True
+
+            httpd = _ThreadedServer((local_ip, 0), _FileHandler)
+            srv_port = httpd.server_port
+            t = threading.Thread(target=httpd.serve_forever, daemon=True)
+            t.start()
+            try:
+                safe_remote = remote_path.replace("'", "'\\''")
+                url = f"http://{local_ip}:{srv_port}/payload"
+                cmd = (
+                    f"/run/s8/busybox mkdir -p \"$(/run/s8/busybox dirname '{safe_remote}')\" && "
+                    f"(/run/s8/busybox wget -O '{safe_remote}' '{url}' 2>&1 || wget -q -O '{safe_remote}' '{url}' 2>&1) && "
+                    f"echo HTTP_PUSH_OK"
+                )
+                out = self.exec_env(cmd, env="os", timeout=timeout)
+                if "HTTP_PUSH_OK" in out:
+                    return True, ""
+            finally:
+                httpd.shutdown()
+                httpd.server_close()
+        except Exception:
+            pass
+
+        return self.push_ssh(local_path, remote_path, timeout=timeout)
+
     def run_cmd(self, args: List[str], timeout: int = 10) -> subprocess.CompletedProcess:
         cmd = [self.adb_path, "-s", self.serial] + args
         try:

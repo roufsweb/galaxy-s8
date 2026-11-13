@@ -115,7 +115,7 @@ HandlePowerKeyLongPress=ignore
 CONF
 
 # Record installed hardware pack version
-echo "1.0.2" > /etc/s8-hw-version
+echo "1.0.3" > /etc/s8-hw-version
 
 # 1. Systemd runtime / offline enablement (Ubuntu, Debian, Kali, Arch, HAOS)
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
@@ -189,5 +189,5 @@ RCLOCAL
     fi
 fi
 
-echo "[galaxy-s8-hw] Galaxy S8 Hardware Pack v1.0.2 installed and active."
+echo "[galaxy-s8-hw] Galaxy S8 Hardware Pack v1.0.3 installed and active."
 exit 0

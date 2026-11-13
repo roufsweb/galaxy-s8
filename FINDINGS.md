@@ -1804,4 +1804,23 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   4. **Universal Versioning & 1-Click Rollback Governance (`VERSION_MANIFEST.json`, `VERSIONS.md`, `scripts/version_manager.py`, `S8 Imager v2.6.0`):**
      - Every release (`v3.0.0`), kernel, Odin AP (`v3.0.0`, `v2.0.2`, `v1.0.0` archived in `releases/history/`), hardware package (`v1.0.2`), daemon, desktop app (`v2.6.0`), and catalog distro is tracked with SHA-256 checksums and instant live rollback over RNDIS HTTP (`140 MB/s`).
 
+---
+
+## Finding 128 -- 6-Distro Live Multi-OS Partition Sizing, 3D Gaming Acceleration & Flash Engine Hardening (`S8 Imager v2.7.0`, `galaxy-s8-hw v1.0.3`)
+* **Severity:** Multi-OS Flasher Correctness, Performance & Visual UI Bug Resolution
+* **Discovery Date:** 2026-11-13
+* **Root Causes Discovered & Fixed Through Live Real-Environment Flash Testing:**
+  1. **GPT Partition Selector Sector-vs-Byte Unit Mismatch (`detect_linux_partition` in `desktop-app/app/core/flasher.py`):** Comparing GPT `sectors` against `best[1]` (which stored `sectors * 512` bytes) caused HAOS `18.4` (`haos_generic-aarch64-18.4.img.xz`) to select the first `32 MB` VFAT `hassos-boot` partition instead of `hassos-system0` (`256 MB`, offset `59,768,832 B`, EROFS). Fixed unit comparison to `size_bytes = sectors * 512` and prioritized `LINUX_GPT_GUID` (`af3dc60f...`) strictly ahead of non-Linux GPT types, plus faster WSL `/tmp/s8_haos_ext4.img` EROFS-to-ext4 creation (`dd bs=4M`).
+  2. **Debian `disk.raw` WSL 9P Streaming Bottleneck (`extract_ext4_partition`):** Streaming `tar -xJf ... -O disk.raw | tail | head` over WSL 9P (`/mnt/c/`) performed hundreds of thousands of tiny 8 KB sync writes and timed out at 600s on Debian 12 (`2.94 GB` raw ext4). Replaced with native Python `tarfile.open(..., "r|xz")` sequential 4 MiB chunk streaming.
+  3. **Multi-GB Tarball Blocking HTTP Timeout (`_flash_via_rwp`):** Synchronous 600s `/rwp/v1/exec` requests on `SteamOS 3.6 Holo` (`2.2 GB` compressed / `5.3 GB` extracted) risked HTTP idle socket drops and `128 KB` `MAX_CMD_OUT` pipe exhaustion. Converted archive extraction to asynchronous background execution with `/tmp/s8_tar.log` redirection and 3-second polling (`df -h` telemetry + immediate user cancellation support).
+  4. **Visual E2E Terminal Prompt Wrapping & OS-Agnostic Banner (`desktop-app/ui/index.html`, `src/control/s8ctl.py`):** History `#term-entry-*` prompt spans wrapped `root@galaxy-\ns8:~#` on long commands (`shrink-0 whitespace-nowrap` added), and `s8ctl.py` hardcoded `[roufsweb]` instead of `Samsung Galaxy S8 Native Linux Platform [s8ctl v1.0.3]`.
+* **Empirically Verified Live Across 6 Distinct Custom Partition Sizes + Ubuntu Restore (`4.4.111-s8-universal-v3`):**
+  - `OpenWrt 23.05.5`: `4 GB` (`df -h / = 3.9G`), PID 1 `procd`, `wlan0` UP, `s8ctl v1.0.3 POSIX`
+  - `Alpine Linux 3.20.3`: `6 GB` (`df -h / = 5.8G`), PID 1 BusyBox `init`, `wlan0` UP, `rndis0 192.168.7.2`, `s8ctl v1.0.3 POSIX`
+  - `Kali GNU/Linux Rolling 2026.3`: `8 GB` (`df -h / = 7.8G`), PID 1 `systemd`, `wlan0` UP, `rndis0 192.168.7.2`, `s8ctl`
+  - `Debian GNU/Linux 12 (bookworm)`: `10 GB` (`df -h / = 9.8G`), PID 1 `systemd`, `wlan0` UP, `s8ctl v1.0.3`
+  - `Home Assistant OS 18.4`: `12 GB` (`df -h / = 11.8G`), PID 1 `systemd`, `rndis0 192.168.7.2`, `s8ctl v1.0.3 POSIX`
+  - `SteamOS 3.6 Holo ARM64`: `16 GB` (`df -h / = 15.6G`, `5.3G` used), PID 1 `systemd`, `rndis0 192.168.7.2`, `s8ctl v1.0.3`
+  - `Ubuntu 24.04.5 LTS Desktop` restored (`16 GB` `loop0`), `glxgears` (`513.341 FPS`, `llvmpipe` Mesa `25.2.8` / OpenGL `4.5`), `Freedoom: Phase 2` (`Chocolate Doom 3.0.0`), `25/25` hardware verification, `6/6` E2E non-regression, `22/22` desktop-app unit + Playwright human-flow E2E tests.
+
 

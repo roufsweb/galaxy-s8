@@ -14,11 +14,12 @@ Controls every hardware subsystem on the Galaxy S8:
   - Audio Subsystem (Cirrus Logic CS47L92, MAX98506 Speaker, DisplayPort Audio)
 """
 import os
+import shutil
 import sys
 import time
 import subprocess
 
-S8CTL_VERSION = "1.0.2"
+S8CTL_VERSION = "1.0.3"
 
 
 def read_sysfs(path, default="N/A"):
@@ -54,9 +55,10 @@ def cpu_status():
 
 def cpu_boost():
     print("[*] Engaging Full Octa-Core High-Performance BOOST Mode...")
-    # 1. Bring all 8 cores online
+    # 1. Bring all 8 cores online (only write if currently offline to avoid Exynos cpuhp EPERM)
     for i in range(1, 8):
-        write_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1")
+        if read_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1") != "1":
+            write_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1")
     # 2. Set performance governor & max frequency
     # Little cluster (0-3) -> 1.69 GHz
     write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "1690000")
@@ -89,7 +91,8 @@ def _apply_interactive_tuning():
 def cpu_normal():
     print("[*] Switching CPU to Cool Balanced Dynamic Scaling (Interactive Governor)...")
     for i in range(1, 8):
-        write_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1")
+        if read_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1") != "1":
+            write_sysfs(f"/sys/devices/system/cpu/cpu{i}/online", "1")
     write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", "455000")
     write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "1690000")
     write_sysfs("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "interactive")
@@ -249,8 +252,12 @@ def boost_battery():
     write_sysfs("/sys/class/power_supply/max77865-charger/data", "0xC0 0x3C")
     write_sysfs("/sys/class/power_supply/max77865-charger/data", "0xB9 0x9E")
     write_sysfs("/sys/class/power_supply/max77865-charger/data", "0xB7 0x05")
-    write_sysfs("/sys/class/power_supply/battery/batt_tune_input_charge_current", "1500")
-    write_sysfs("/sys/class/power_supply/battery/batt_tune_fast_charge_current", "1500")
+    for tune in ("/sys/class/power_supply/battery/batt_tune_input_charge_current", "/sys/class/power_supply/battery/batt_tune_fast_charge_current"):
+        try:
+            with open(tune, "w") as f:
+                f.write("1500")
+        except Exception:
+            pass
     print("[+] MAX77865 PMIC Charger unlocked (1500mA input & fast charge)")
 
 def get_status():
@@ -271,7 +278,7 @@ def get_status():
     bt_state = "ON" if read_sysfs("/sys/class/rfkill/rfkill0/state", "0") == "1" else "OFF"
 
     sd_status = "NOT DETECTED (Slot empty)"
-    if os.path.exists("/dev/block/mmcblk0"):
+    if os.path.exists("/dev/mmcblk0") or os.path.exists("/dev/block/mmcblk0"):
         if os.path.ismount("/media/sdcard"):
             try:
                 usage = shutil.disk_usage("/media/sdcard")
@@ -281,10 +288,10 @@ def get_status():
             except Exception:
                 sd_status = "MOUNTED @ /media/sdcard"
         else:
-            sd_status = "DETECTED (/dev/block/mmcblk0, not mounted)"
+            sd_status = "DETECTED (/dev/mmcblk0, not mounted)"
 
     print("=================================================================")
-    print("  Samsung Galaxy S8 Native Ubuntu Linux Platform [roufsweb]")
+    print(f"  Samsung Galaxy S8 Native Linux Platform [s8ctl v{S8CTL_VERSION}]")
     print("=================================================================")
     print(f"  CPU (Exynos 8895) : 4xA53 @ {c0_freq} MHz | 4xM2 @ {c4_freq} MHz")
     print(f"  SoC Temperature   : {tz0:.1f} C")
@@ -360,16 +367,17 @@ def main():
         sub = sys.argv[2].lower() if len(sys.argv) > 2 else "on"
         set_bluetooth(sub)
     elif cmd == "sdcard":
-        if os.path.exists("/dev/block/mmcblk0"):
+        sd_dev = "/dev/mmcblk0" if os.path.exists("/dev/mmcblk0") else "/dev/block/mmcblk0"
+        if os.path.exists(sd_dev):
             print("=== MicroSD Storage Hardware Info ===")
-            subprocess.run(["blkid", "/dev/block/mmcblk0"])
+            subprocess.run(["blkid", sd_dev])
             subprocess.run(["df", "-h", "/media/sdcard"])
             print("\n--- Root Contents (/media/sdcard) ---")
             subprocess.run(["ls", "-lh", "/media/sdcard"])
         else:
             print("[!] MicroSD slot is empty.")
     elif cmd in ("version", "--version", "-v"):
-        ap_ver = read_sysfs("/etc/s8-ap-version", "2.0.2")
+        ap_ver = read_sysfs("/etc/s8-ap-version", "3.0.0")
         kver = os.uname().release
         print(f"s8ctl v{S8CTL_VERSION} (galaxy-s8-hw v{S8CTL_VERSION}, AP v{ap_ver}, Kernel {kver})")
     else:

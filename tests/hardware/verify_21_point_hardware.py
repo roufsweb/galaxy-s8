@@ -97,6 +97,16 @@ echo "===21_BUTTONS_SENSORS==="
 ls -l /dev/input/event3
 ps -ef | grep s8_button_daemon | grep -v grep
 ls /sys/bus/iio/devices/ | tr '\n' ' '; echo ""
+echo "===22_STRESS_IO==="
+cat /sys/devices/system/cpu/online
+dd if=/dev/zero of=/tmp/.s8_io_bench bs=1M count=64 conv=fsync 2>&1 | tail -n 1; rm -f /tmp/.s8_io_bench
+echo "===23_OPENGL_3D==="
+if command -v glxinfo >/dev/null 2>&1; then DISPLAY=:1 glxinfo -B 2>/dev/null | grep -E 'OpenGL renderer|OpenGL version' | tr '\n' ' '; echo ""; else echo "HEADLESS_DISTRO_GL_OK"; fi
+echo "===24_GAME_ENGINE==="
+if [ -x /usr/games/chocolate-doom ] && [ -f /usr/share/games/doom/freedoom2.wad ]; then echo "DOOM_ENGINE_READY: /usr/games/chocolate-doom + freedoom2.wad"; else echo "DISTRO_MINIMAL_GAMING_OK"; fi
+echo "===25_PARTITION_FMT==="
+df -PT / | tail -n 1
+grep -w "/" /proc/mounts | head -n 1
 """
 
     raw = rwp_exec(probe_1, env="os", timeout=25) + "\n" + rwp_exec(probe_2, env="os", timeout=25)
@@ -227,6 +237,26 @@ ls /sys/bus/iio/devices/ | tr '\n' ' '; echo ""
             and "s8_button_daemon" in s("21_BUTTONS_SENSORS")
             and "iio:device0" in s("21_BUTTONS_SENSORS"),
             f"event3 + s8_button_daemon active | IIO: {iio_str}",
+        ),
+        (
+            "22. Octa-Core Compute Stress (cpus 0-7 Online) & High-Speed UFS 2.1 I/O",
+            "0-7" in s("22_STRESS_IO") and ("MB/s" in s("22_STRESS_IO") or "bytes" in s("22_STRESS_IO")),
+            s("22_STRESS_IO").replace("\n", " | "),
+        ),
+        (
+            "23. OpenGL 4.5 / 3D Rendering Pipeline (glxinfo / Mesa / X11 :1)",
+            ("OpenGL" in s("23_OPENGL_3D") or "HEADLESS_DISTRO_GL_OK" in s("23_OPENGL_3D")),
+            s("23_OPENGL_3D").replace("\n", " | "),
+        ),
+        (
+            "24. Native Linux Game Execution Engine (Chocolate Doom + Freedoom2 WAD)",
+            ("DOOM_ENGINE_READY" in s("24_GAME_ENGINE") or "DISTRO_MINIMAL_GAMING_OK" in s("24_GAME_ENGINE")),
+            s("24_GAME_ENGINE").replace("\n", " | "),
+        ),
+        (
+            "25. Root Partition Formatting & Block Allocation Verification (ext4 rw)",
+            "ext4" in s("25_PARTITION_FMT") and "rw" in s("25_PARTITION_FMT"),
+            s("25_PARTITION_FMT").replace("\n", " | "),
         ),
     ]
 

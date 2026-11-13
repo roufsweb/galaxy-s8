@@ -1087,3 +1087,26 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Physical Verification Matrix: **`21/21 PASS` (`tests/hardware/last_21_point_report.json`)**
 
 
+---
+
+### Task 61: 6-Distro Live Flash & Partition Sizing Verification, 3D Gaming Stress, Limitations Audit & `v2.7.0` / `v1.0.3` Release
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  1. Real-environment flash, custom partition resizing (`4 GB` to `16 GB`), live PID 1 boot, networking, and `s8ctl` screenshot verification across OpenWrt, Alpine, Kali, Debian 12, Home Assistant OS 18.4, and SteamOS 3.6 Holo, followed by Golden Ubuntu 24.04.5 LTS restore.
+  2. Stress-testing CPU/I/O, OpenGL 3D rendering (`glxgears` + `Freedoom: Phase 2`), and expanding `tests/hardware/verify_21_point_hardware.py` from 21 to 25 automated checks.
+  3. Documenting empirical architectural limitations of `4.4.111-s8-universal-v3` and fixing three real-world flash/UI bugs uncovered during testing.
+* **Actions Taken & Verified:**
+  1. **Flasher & UI Bug Fixes (`flasher.py`, `config.py`, `index.html`, `s8ctl.py`):**
+     - Fixed GPT sector-vs-byte unit comparison bug in `detect_linux_partition` and sped up WSL EROFS->ext4 conversion for Home Assistant OS 18.4 (`hassos-system0`, 256 MB).
+     - Replaced slow WSL 9P `tar | tail | head` pipeline with native Python `tarfile.open(..., "r|xz")` 4 MiB streaming for Debian 12 `disk.raw`.
+     - Converted RWP tarball extraction to non-blocking background execution + 3s poll loop so 2.2 GB `SteamOS 3.6` (`5.3 GB` extracted) never hits blocking HTTP timeouts.
+     - Fixed history terminal prompt wrapping (`shrink-0 whitespace-nowrap`), bumped `S8 Imager` to `v2.7.0`, updated `s8ctl` banner to OS-agnostic `[s8ctl v1.0.3]`, and rebuilt `galaxy-s8-hw_1.0.3_arm64.deb` + `.tar.gz`.
+  2. **6-Distro Live Matrix + 25-Point Hardware + 6/6 E2E Non-Regression + 22/22 App Suites Passed:**
+     - Live verified `OpenWrt 23.05.5` (`4 GB -> 3.9G`), `Alpine 3.20.3` (`6 GB -> 5.8G`), `Kali Rolling` (`8 GB -> 7.8G`), `Debian 12` (`10 GB -> 9.8G`), `Home Assistant OS 18.4` (`12 GB -> 11.8G`), `SteamOS 3.6 Holo` (`16 GB -> 15.6G`), and Golden `Ubuntu 24.04.5 LTS` restore with live `galaxy-s8-hw v1.0.3` upgrade (`25/25` hardware checks, `513.341 FPS` `glxgears`, `6/6` E2E non-regression, `22/22` desktop-app unit/Playwright E2E tests).
+  3. **Empirical Limitations Documented & Ledger Synced:** Updated `docs/AP_AND_KERNEL_BUILD_GUIDE.md`, `README.md`, `docs/index.html`, `VERSION_MANIFEST.json`, `VERSIONS.md` (`0` version drift across 8 layers).
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
+  - Cataloged Distros: **`10 VERIFIED_WORKING` (`OpenWrt`, `Alpine`, `Kali`, `Debian 12`, `HAOS 18.4`, `SteamOS 3.6 / ARM`, `Ubuntu 24.04.5 Desktop / Server / Base`)**
+
+
+

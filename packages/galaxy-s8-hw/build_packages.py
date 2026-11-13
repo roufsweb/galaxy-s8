@@ -17,7 +17,7 @@ import tarfile
 from pathlib import Path
 
 PKG_NAME = "galaxy-s8-hw"
-PKG_VERSION = "1.0.2"
+PKG_VERSION = "1.0.3"
 PKG_ARCH = "arm64"
 
 PKG_DIR = Path(__file__).resolve().parent
@@ -90,7 +90,8 @@ def stage_rootfs(root: Path):
 
     # 2. Tracked control/network/audio/driver scripts
     script_map = [
-        (REPO_ROOT / "src" / "control" / "s8ctl.py", usr_bin / "s8ctl"),
+        (PKG_DIR / "scripts" / "s8ctl-wrapper.sh", usr_bin / "s8ctl"),
+        (REPO_ROOT / "src" / "control" / "s8ctl.py", libexec / "s8ctl.py"),
         (REPO_ROOT / "src" / "control" / "s8_led_supervisor.py", usr_bin / "s8_led_supervisor.py"),
         (REPO_ROOT / "src" / "network" / "s8_wifi.py", usr_bin / "s8_wifi.py"),
         (REPO_ROOT / "src" / "network" / "start_bluetooth.sh", usr_bin / "start_bluetooth.sh"),

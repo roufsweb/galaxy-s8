@@ -73,7 +73,7 @@ class TestGalaxyS8FullNonRegression(unittest.TestCase):
         self.assertGreaterEqual(len(lines), 3, f"Unexpected service output: {out}")
         self.assertEqual(lines[0], "active", "s8-dp-bridge.service must be active")
         self.assertEqual(lines[1], "active", "s8-input-bridge.service must be active")
-        self.assertEqual(lines[2], "1.0.2", "galaxy-s8-hw version must be 1.0.2")
+        self.assertEqual(lines[2], "1.0.3", "galaxy-s8-hw version must be 1.0.3")
 
     def test_04_v4l2_panic_guard_and_mfc_codecs_intact(self):
         out = rwp_exec("ls /dev/video[1-9][0-9]* 2>/dev/null | wc -l; ls /dev/video6 /dev/ion /dev/mali0 /dev/graphics/fb2")
