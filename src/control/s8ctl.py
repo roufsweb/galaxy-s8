@@ -376,6 +376,31 @@ def main():
             subprocess.run(["ls", "-lh", "/media/sdcard"])
         else:
             print("[!] MicroSD slot is empty.")
+    elif cmd in ("display", "screen", "orientation"):
+        sub = sys.argv[2].lower() if len(sys.argv) > 2 else "status"
+        if sub in ("landscape", "normal", "0"):
+            with open("/tmp/s8_dp_orientation", "w") as f:
+                f.write("0\n")
+            print("[+] Display orientation switched to: LANDSCAPE (0 deg, 1920x1080 16:9)")
+        elif sub in ("portrait", "90"):
+            with open("/tmp/s8_dp_orientation", "w") as f:
+                f.write("90\n")
+            print("[+] Display orientation switched to: PORTRAIT (90 deg, 1080x1920 upright)")
+        elif sub in ("inverted-landscape", "180"):
+            with open("/tmp/s8_dp_orientation", "w") as f:
+                f.write("180\n")
+            print("[+] Display orientation switched to: INVERTED LANDSCAPE (180 deg)")
+        elif sub in ("inverted-portrait", "270"):
+            with open("/tmp/s8_dp_orientation", "w") as f:
+                f.write("270\n")
+            print("[+] Display orientation switched to: INVERTED PORTRAIT (270 deg)")
+        else:
+            cur_rot = read_sysfs("/tmp/s8_dp_orientation", "0")
+            mode_name = "PORTRAIT (90 deg)" if cur_rot == "90" else "LANDSCAPE (0 deg)"
+            print("=== USB-C DisplayPort Orientation ===")
+            print(f"  Current Rotation : {mode_name}")
+            print(f"  Available Modes  : landscape (0), portrait (90), inverted-landscape (180), inverted-portrait (270)")
+            print(f"  Usage            : s8ctl display [landscape | portrait]")
     elif cmd in ("version", "--version", "-v"):
         ap_ver = read_sysfs("/etc/s8-ap-version", "3.0.0")
         kver = os.uname().release
