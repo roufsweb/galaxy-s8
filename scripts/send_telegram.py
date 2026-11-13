@@ -90,6 +90,11 @@ _MEDIA_MIME_TYPES = {
 }
 
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 def _send_telegram_media(
     endpoint: str,
     field_name: str,
@@ -115,25 +120,40 @@ def _send_telegram_media(
         return False
 
     url = f"https://api.telegram.org/bot{token}/{endpoint}"
-    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
     mime_type = _MEDIA_MIME_TYPES.get(p.suffix.lower(), default_mime)
 
+    if requests:
+        try:
+            with open(p, "rb") as f:
+                files = {field_name: (p.name, f, mime_type)}
+                data = {"chat_id": target_chat}
+                if caption:
+                    data["caption"] = caption
+                resp = requests.post(url, data=data, files=files, timeout=30)
+                if resp.status_code == 200:
+                    print(f"[+] Telegram {label} dispatched successfully: {p.name}")
+                    return True
+                else:
+                    print(f"[!] HTTP {resp.status_code}: {resp.text}", file=sys.stderr)
+                    return False
+        except Exception as e:
+            print(f"[!] Telegram {label.capitalize()} (requests) Dispatch Failed: {e}", file=sys.stderr)
+
+    # Fallback to urllib if requests unavailable or failed
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
     with open(p, "rb") as f:
         file_bytes = f.read()
 
     body = bytearray()
-    # chat_id field
     body.extend(f"--{boundary}\r\n".encode())
     body.extend(b'Content-Disposition: form-data; name="chat_id"\r\n\r\n')
     body.extend(f"{target_chat}\r\n".encode())
 
-    # caption field
     if caption:
         body.extend(f"--{boundary}\r\n".encode())
         body.extend(b'Content-Disposition: form-data; name="caption"\r\n\r\n')
         body.extend(f"{caption}\r\n".encode())
 
-    # media file field
     body.extend(f"--{boundary}\r\n".encode())
     body.extend(f'Content-Disposition: form-data; name="{field_name}"; filename="{p.name}"\r\n'.encode())
     body.extend(f"Content-Type: {mime_type}\r\n\r\n".encode())
@@ -148,7 +168,7 @@ def _send_telegram_media(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             if resp.status == 200:
                 print(f"[+] Telegram {label} dispatched successfully: {p.name}")
                 return True

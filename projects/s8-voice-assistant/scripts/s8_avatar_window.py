@@ -2,11 +2,12 @@
 """
 s8_avatar_window.py — Full-Screen WebKitGTK Native Avatar Window for DisplayPort & Desktop.
 Renders the 60 FPS Animoji Talking Face Avatar natively on Display :1.
-Supports automatic portrait and landscape scaling.
+Subscribes reactively to /tmp/s8_avatar_state.json for real-time state, text, and lip-sync amplitude.
 """
 
 import os
 import sys
+import json
 
 # Antigravity Rule 7 environment guards for Exynos 8895 / X11
 os.environ["GSK_RENDERER"] = "cairo"
@@ -28,7 +29,9 @@ try:
 except ValueError:
     gi.require_version("WebKit2", "4.0")
 
-from gi.repository import Gtk, WebKit2
+from gi.repository import Gtk, WebKit2, GLib
+
+STATE_FILE = "/tmp/s8_avatar_state.json"
 
 def main():
     target_url = sys.argv[1] if len(sys.argv) > 1 else "file:///mnt/android_data/s8-voice-assistant/ui/avatar.html"
@@ -37,7 +40,7 @@ def main():
     win.set_title("Galaxy S8 AI Assistant - Animoji Avatar")
     win.connect("destroy", Gtk.main_quit)
     
-    # Configure borderless window sized to current screen
+    # Configure borderless fullscreen window
     win.fullscreen()
     
     settings = WebKit2.Settings()
@@ -51,10 +54,50 @@ def main():
     
     win.add(web_view)
     win.show_all()
+
+    last_mtime = 0.0
+    last_state = ""
+    last_text = ""
+    last_amp = 0.0
+
+    def check_state():
+        nonlocal last_mtime, last_state, last_text, last_amp
+        try:
+            if os.path.exists(STATE_FILE):
+                mtime = os.path.getmtime(STATE_FILE)
+                if mtime != last_mtime:
+                    last_mtime = mtime
+                    with open(STATE_FILE, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    
+                    st = data.get("state", "IDLE")
+                    txt = data.get("text", "")
+                    spk = data.get("speaker", "GALAXY S8 ASSISTANT")
+                    amp = float(data.get("amplitude", 0.0))
+
+                    if st != last_state or txt != last_text:
+                        last_state = st
+                        last_text = txt
+                        safe_txt = json.dumps(txt)
+                        safe_spk = json.dumps(spk)
+                        safe_st = json.dumps(st)
+                        js = f"window.setAssistantState({safe_st}, {safe_txt}, {safe_spk});"
+                        web_view.run_javascript(js, None, None, None)
+                        print(f"[*] Updated avatar state: {st} | {spk}: {txt}", flush=True)
+
+                    if abs(amp - last_amp) > 0.02:
+                        last_amp = amp
+                        js_amp = f"window.setAudioAmplitude({amp:.3f});"
+                        web_view.run_javascript(js_amp, None, None, None)
+        except Exception as e:
+            print(f"[!] Avatar state error: {e}", flush=True)
+        return True
+
+    # Check state file every 40ms (25 FPS sync)
+    GLib.timeout_add(40, check_state)
     
     print(f"[*] Native WebKitGTK Avatar window running on {os.environ.get('DISPLAY')}...")
     Gtk.main()
 
 if __name__ == "__main__":
     main()
-

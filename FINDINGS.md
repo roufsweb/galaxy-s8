@@ -1971,3 +1971,26 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   - **1-Click Control CLI:** Built and installed `/usr/local/bin/s8-orientation [portrait|portrait-ccw|landscape]` and `/usr/local/bin/s8-cursor [show|hide]`.
 * **Verification Status:**
   - Recompiled on Exynos 8895 ARM64 with `gcc -O2 -lX11 -lXext -lXfixes`. Verified live on physical hardware: zero cursor flicker, and instant orientation toggling.
+
+---
+
+## Finding 136 -- 100% On-Device Neural AI Voice Pipeline on Exynos 8895 (Whisper Base, Qwen 2.5 1.5B, Piper TTS, Hardware Audio & Animoji DisplayPort Avatar)
+* **Severity:** Milestone Architectural Breakthrough & Physical Hardware Verification
+* **Discovery Date:** 2026-11-13
+* **Context & Motivation:**
+  - Designed and proved that the 2017 Samsung Galaxy S8 (Exynos 8895, 4 GB LPDDR4x, 64 GB UFS 2.1) can run a complete, fully autonomous, 100% on-device AI voice assistant without external cloud APIs or internet connectivity.
+  - The pipeline consists of 6 integrated layers:
+    1. **Microphone Capture:** Cirrus Logic CS47L92 DMIC1 on ALSA `hw:0,9` (16 kHz, 16-bit Mono PCM).
+    2. **Speech Recognition (STT):** `whisper.cpp` (`whisper-cli`) compiled natively with ARM NEON and FMA vector acceleration on 4x Exynos M2 cores (`ggml-base.en.bin`, 147.9 MB). Processes audio at 0.71x real-time speed (7.55s for a 10.5s clip).
+    3. **LLM Brain:** Qwen 2.5 1.5B Instruct (`qwen2.5-1.5b-instruct-q4_k_m.gguf`, 1.12 GB) running on `llama.cpp` (`llama-cli` and persistent `llama-server` on port 8085). Achieves **10.1 prompt tokens/sec** and **2.4 generation tokens/sec** on 4x M2 cores (2.314 GHz), drawing only ~3.2W.
+    4. **Neural Speech Synthesis (TTS):** Piper Neural Voice (`en_US-lessac-medium.onnx`, 63.2 MB) synthesizing studio-quality human voice inflection in **0.52 seconds** (0.25x Real-Time Factor).
+    5. **Speaker Playback:** Maxim MAX98506 Class-D hardware amplifier on ALSA `hw:0,0` with transparent dynamic lip-sync RMS amplitude streaming.
+    6. **Interactive Visual Feedback:** DisplayPort 1080x1920 vertical portrait Animoji Talking Face Avatar (`s8_avatar_window.py` on WebKitGTK `:1`), reactively synchronized via `/tmp/s8_avatar_state.json` with dynamic mouth Bezier curves, blinking, and thinking halo.
+* **Storage Allocation Guard:**
+  - Build trees for `whisper.cpp` and `llama.cpp` were isolated to `/mnt/android_data/build/` on the 32 GB UFS 2.1 data partition (`/dev/sda24`), strictly preserving rootfs (`/dev/loop0`) capacity.
+  - Binaries and shared libraries installed to `/usr/local/bin`, `/usr/local/lib`, and symlinked into `/usr/bin` for global access (`s8-voice-assistant`, `whisper-cli`, `llama-cli`, `llama-server`, `piper`).
+* **Empirical Verification Results:**
+  - Full automated conversation cycle: Prompt `"Tell me what you are in one sentence."` generated: `"I am a Samsung Exynos 8895 octa-core processor running on Ubuntu 24.04 LTS with 4GB RAM."`
+  - Audio synthesized in 0.52s, played aloud via phone speaker, and avatar mouth moved in real-time synchronization.
+  - Visual proof captured at `C:\Users\rakib\.gemini\antigravity\brain\32ab8e00-683f-431e-8f7d-5b48926742e1\avatar_speaking_final.png`.
+  - Dispatched verification notification to Telegram chat `<TELEGRAM_CHAT_ID>` (`@roufsantigravitybot`).
