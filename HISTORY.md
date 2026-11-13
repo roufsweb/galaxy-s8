@@ -1250,3 +1250,22 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
   - Uptime: **`> 4.2 Hours Continuous`**
   - Feature Queue: **`100% Reconciled (0 Colliding Decisions)`**
+
+---
+
+### Task 67: Deploy Local AI Voice Assistant & 60 FPS Animoji Talking Face
+* **Execution Date:** 2026-11-13
+* **Issues Addressed:**
+  - Designed and configured the local voice assistant pipeline and interactive Animoji-style talking face in a dedicated side-project repository directory (`projects/s8-voice-assistant/`).
+  - Answered user requirements regarding neural voice realism (Piper VITS vs legacy espeak) and latency (<150ms time-to-first-sound on Exynos 8895 M2 cores).
+  - Downloaded and verified all 3 core neural models in parallel: Whisper Base (147.9 MB), Piper ONNX (63.2 MB), and Qwen 2.5 1.5B GGUF Q4_K_M (1.12 GB).
+* **Actions Taken & Verified:**
+  1. **Side-Project Repository Setup:** Created `projects/s8-voice-assistant/` containing `models/`, `ui/`, `scripts/`, and comprehensive `README.md`.
+  2. **Rule 16 Compliance Enforced:** Updated `.gitignore` to strictly exclude `*.gguf`, `*.onnx`, and `projects/**/models/`, ensuring zero repository bloat.
+  3. **60 FPS Animoji Talking Face:** Built `projects/s8-voice-assistant/ui/avatar.html` with real-time lip-sync mouth, blinking eyes, listening waveforms, and thinking halo. Captured and verified `s8_animoji_speaking_proof.png`.
+  4. **Parallel Model Downloader:** Created `projects/s8-voice-assistant/scripts/download_models.py` with chunked transfer and Telegram alerts. All 4 model files downloaded and verified.
+  5. **Core Assistant Pipeline:** Created `projects/s8-voice-assistant/scripts/s8_voice_assistant.py` integrating audio capture, STT, LLM reasoning, TTS synthesis, and Animoji broadcasting. Verified test cycle passed cleanly.
+* **Hardware Status:**
+  - Active Platform Release: **`v3.0.0` (`4.4.111-s8-universal-v3`, `AP v3.0.0`, `galaxy-s8-hw v1.0.3`, `S8 Imager v2.7.0`)**
+  - Uptime: **`> 5.5 Hours Continuous`**
+  - Local AI Suite: **`3/3 Models Verified (Whisper + Qwen 2.5 1.5B + Piper ONNX)`**

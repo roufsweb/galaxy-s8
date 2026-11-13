@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxy S8 Local AI Voice Assistant — Animoji Face</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: radial-gradient(circle at center, #0F172A 0%, #020617 100%);
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+    }
+    #canvasContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    #hudOverlay {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .hud-chip {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      backdrop-filter: blur(12px);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-family: monospace;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    #dialogueBubble {
+      position: absolute;
+      bottom: 40px;
+      max-width: 700px;
+      width: 85%;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(16px);
+      padding: 16px 24px;
+      border-radius: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+      text-align: center;
+      color: #E2E8F0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+    #dialogueSpeaker {
+      font-size: 11px;
+      font-family: monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #38BDF8;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hudOverlay">
+    <div class="hud-chip">
+      <div id="statusDot" class="pulse-dot"></div>
+      <span id="statusLabel">AI ASSISTANT: IDLE</span>
+    </div>
+    <div class="hud-chip" style="font-size: 11px; color: #94A3B8;">
+      <span>EXYNOS 8895</span> • <span>QWEN 2.5 1.5B</span> • <span>WHISPER BASE</span> • <span>PIPER TTS</span>
+    </div>
+  </div>
+
+  <div id="canvasContainer">
+    <canvas id="faceCanvas" width="1280" height="720"></canvas>
+    <div id="dialogueBubble">
+      <div id="dialogueSpeaker">GALAXY S8 ASSISTANT</div>
+      <div id="dialogueText">"Hello Rouf! I am running 100% locally on your Galaxy S8. How can I help you today?"</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('faceCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Assistant States: 'IDLE', 'LISTENING', 'THINKING', 'SPEAKING'
+    let state = 'IDLE';
+    let audioLevel = 0.0;
+    let blinkProgress = 0.0;
+    let nextBlinkTime = Date.now() + 2500;
+    let headBobTime = 0.0;
+    let thinkingAngle = 0.0;
+    let mouthTargetHeight = 10;
+    let currentMouthHeight = 10;
+    let currentMouthWidth = 60;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    window.setAssistantState = function(newState, text = "", speaker = "GALAXY S8 ASSISTANT") {
+      state = newState;
+      const label = document.getElementById('statusLabel');
+      const dot = document.getElementById('statusDot');
+      const textEl = document.getElementById('dialogueText');
+      const speakerEl = document.getElementById('dialogueSpeaker');
+
+      if (text) {
+        textEl.innerText = text;
+        speakerEl.innerText = speaker;
+      }
+
+      switch (state) {
+        case 'IDLE':
+          label.innerText = 'AI ASSISTANT: IDLE (WAITING FOR WAKE WORD)';
+          dot.style.background = '#10B981';
+          break;
+        case 'LISTENING':
+          label.innerText = 'AI ASSISTANT: LISTENING...';
+          dot.style.background = '#38BDF8';
+          break;
+        case 'THINKING':
+          label.innerText = 'AI ASSISTANT: THINKING (QWEN 2.5 1.5B)...';
+          dot.style.background = '#F59E0B';
+          break;
+        case 'SPEAKING':
+          label.innerText = 'AI ASSISTANT: SPEAKING (PIPER TTS)...';
+          dot.style.background = '#8B5CF6';
+          break;
+      }
+    };
+
+    window.setAudioAmplitude = function(level) {
+      audioLevel = Math.max(0, Math.min(1, level));
+    };
+
+    function render(timestamp) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      headBobTime += 0.035;
+      const floatY = Math.sin(headBobTime) * 12;
+      const headX = centerX;
+      const headY = centerY + floatY - 20;
+
+      const now = Date.now();
+      if (now > nextBlinkTime) {
+        blinkProgress += 0.15;
+        if (blinkProgress >= 1.0) {
+          blinkProgress = 0.0;
+          nextBlinkTime = now + 2000 + Math.random() * 3500;
+        }
+      }
+
+      if (state === 'SPEAKING') {
+        const speechOsc = Math.sin(headBobTime * 4.0) * 0.5 + 0.5;
+        mouthTargetHeight = 12 + (audioLevel > 0 ? audioLevel : speechOsc) * 48;
+        currentMouthWidth = 65 + (audioLevel > 0 ? audioLevel : speechOsc) * 20;
+      } else if (state === 'LISTENING') {
+        mouthTargetHeight = 6;
+        currentMouthWidth = 40;
+      } else if (state === 'THINKING') {
+        mouthTargetHeight = 8;
+        currentMouthWidth = 45;
+        thinkingAngle += 0.06;
+      } else {
+        mouthTargetHeight = 10;
+        currentMouthWidth = 60;
+      }
+      currentMouthHeight += (mouthTargetHeight - currentMouthHeight) * 0.25;
+
+      if (state === 'THINKING') {
+        ctx.save();
+        ctx.translate(headX, headY);
+        ctx.rotate(thinkingAngle);
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 180 + i * 15, 75, (i * Math.PI) / 3, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(245, 158, 11, ${0.4 - i * 0.1})`;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (state === 'LISTENING') {
+        ctx.save();
+        const baseRadius = 160;
+        const waveScale = 1.0 + audioLevel * 0.45 + Math.sin(headBobTime * 3) * 0.08;
+        for (let w = 1; w <= 3; w++) {
+          ctx.beginPath();
+          ctx.arc(headX, headY, baseRadius * waveScale * (1 + w * 0.15), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(56, 189, 248, ${0.45 / w})`;
+          ctx.lineWidth = 3 / w;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      ctx.save();
+      const headGlow = ctx.createRadialGradient(headX, headY, 60, headX, headY, 210);
+      let glowColor = 'rgba(56, 189, 248, 0.15)';
+      if (state === 'THINKING') glowColor = 'rgba(245, 158, 11, 0.2)';
+      if (state === 'SPEAKING') glowColor = 'rgba(139, 92, 246, 0.25)';
+      headGlow.addColorStop(0, glowColor);
+      headGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+
+      ctx.fillStyle = headGlow;
+      ctx.beginPath();
+      ctx.arc(headX, headY, 210, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.roundRect(headX - 150, headY - 140, 300, 270, 75);
+      const headBg = ctx.createLinearGradient(headX, headY - 140, headX, headY + 130);
+      headBg.addColorStop(0, '#1E293B');
+      headBg.addColorStop(1, '#0F172A');
+      ctx.fillStyle = headBg;
+      ctx.fill();
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = state === 'SPEAKING' ? '#8B5CF6' : (state === 'THINKING' ? '#F59E0B' : '#38BDF8');
+      ctx.stroke();
+      ctx.restore();
+
+      const eyeSpacing = 68;
+      const eyeY = headY - 25;
+      const eyeBaseWidth = 38;
+      const eyeBaseHeight = 48;
+
+      let eyeSquint = 1.0;
+      if (state === 'THINKING') eyeSquint = 0.55;
+      if (blinkProgress > 0) {
+        const blinkFactor = Math.sin(blinkProgress * Math.PI);
+        eyeSquint = Math.max(0.08, 1.0 - blinkFactor);
+      }
+
+      const drawEye = (x, isLeft) => {
+        ctx.save();
+        ctx.translate(x, eyeY);
+        ctx.shadowColor = state === 'SPEAKING' ? '#A78BFA' : '#38BDF8';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        const curHeight = eyeBaseHeight * eyeSquint;
+        ctx.ellipse(0, 0, eyeBaseWidth / 2, curHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = state === 'SPEAKING' ? '#DDD6FE' : '#BAE6FD';
+        ctx.fill();
+
+        if (eyeSquint > 0.4) {
+          ctx.beginPath();
+          ctx.ellipse(isLeft ? 3 : -3, -4, 5, 5, 0, 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+        }
+        ctx.restore();
+      };
+
+      drawEye(headX - eyeSpacing, true);
+      drawEye(headX + eyeSpacing, false);
+
+      ctx.save();
+      ctx.translate(headX, headY + 52);
+      ctx.shadowColor = state === 'SPEAKING' ? '#C084FC' : '#38BDF8';
+      ctx.shadowBlur = 12;
+
+      const halfW = currentMouthWidth / 2;
+      const mouthH = currentMouthHeight;
+
+      ctx.beginPath();
+      if (state === 'SPEAKING' || currentMouthHeight > 16) {
+        ctx.moveTo(-halfW, 0);
+        ctx.quadraticCurveTo(0, -mouthH * 0.4, halfW, 0);
+        ctx.quadraticCurveTo(0, mouthH * 1.3, -halfW, 0);
+        ctx.fillStyle = '#C084FC';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+
+        if (mouthH > 24) {
+          ctx.beginPath();
+          ctx.roundRect(-halfW * 0.55, -mouthH * 0.15, halfW * 1.1, 7, 3);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+        }
+      } else {
+        ctx.moveTo(-halfW, 0);
+        ctx.quadraticCurveTo(0, mouthH, halfW, 0);
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = state === 'THINKING' ? '#F59E0B' : '#38BDF8';
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+
+    // WebSocket Client for Live Sync with Voice Assistant Daemon
+    function connectAssistantWebSocket() {
+      const wsUrl = `ws://${window.location.hostname || '127.0.0.1'}:8766`;
+      const ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'state') {
+            setAssistantState(data.state, data.text, data.speaker);
+          } else if (data.type === 'amplitude') {
+            setAudioAmplitude(data.level);
+          }
+        } catch (e) {}
+      };
+      ws.onclose = () => setTimeout(connectAssistantWebSocket, 2000);
+    }
+    try { connectAssistantWebSocket(); } catch (e) {}
+  </script>
+</body>
+</html>
+

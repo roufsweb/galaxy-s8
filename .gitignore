@@ -36,6 +36,11 @@ distros/**
 *.hcd
 *.fw
 *.blob
+*.gguf
+*.onnx
+*.onnx.json
+projects/**/models/
+projects/**/cache/
 releases/
 tools/
 dist/
