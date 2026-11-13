@@ -2020,3 +2020,31 @@ aspios-bookworm-arm64-desktop.img.xz, ubuntu-24.04.5-preinstalled-desktop-arm64.
   4. **Initramfs Collision Guard:** Commented out `/run/s8/s8_dp_daemon` and `/run/s8/s8_button_daemon` invocations in `packages/galaxy-s8-hw/prebuilt/ap_ramdisk/sbin/s8_pid1_boot.sh` so only systemd manages display output and button input.
   5. **Visual Proof & Remote Desktop:** Captured all 4 interaction states (IDLE, LISTENING, THINKING, SPEAKING) as PNG artifacts, dispatched photo updates to Telegram, and verified full remote desktop access via noVNC at `http://192.168.0.227:6080/vnc.html`.
 
+---
+
+## Finding 138 — Blind DisplayPort Link Training in PC Device Mode Causing SWR Watchdog Reboot Loop & Windows Chime Flapping
+
+* **Date:** 2026-11-13
+* **Target Hardware:** Samsung Galaxy S8 (`SM-G950N`, Exynos 8895, Rev 5, Headless)
+* **Observed Symptoms:**
+  1. Phone boots, vibrates once (1x 150ms SBoot/kernel startup).
+  2. Reaches end of `/data/linux/start_all.sh` after ~10 seconds and vibrates twice (2x 150ms ready signal).
+  3. Immediately triggers an unexpected hardware watchdog reset, entering an infinite reboot loop (1x vibrate -> 2x vibrate -> reboot).
+  4. Windows host chimes repeatedly as USB endpoints connect and disconnect every ~12 seconds.
+* **Empirical Root Cause Analysis:**
+  1. **Blind Link Training Trigger:** `s8_typec_daemon.py` called `self.ensure_dp_bridge()` unconditionally at startup, which issued `ioctl(fb_fd, FBIOBLANK, FB_BLANK_UNBLANK)` on `DECON2` (`/dev/graphics/fb2`) regardless of whether an external monitor was attached.
+  2. Furthermore, `exynos_dp_bridge.c` had a fallback loop executing `echo 22 > /sys/class/dp_sec/link` every 2 seconds whenever `hpd <= 0`.
+  3. **PC Port Contention:** When the phone is plugged into a PC USB port (`data_role == device`), forcing `port_type` to `source` switches the CCIC controller from peripheral (UFP) to host (DFP), immediately breaking the USB bus connection (Windows chime disconnect). The DisplayPort link training then fails because the PC USB host is not a DisplayPort Sink.
+  4. **DECON2 Shadow Timeout Watchdog:** With `fb2` unblanked without an active DisplayPort pixel clock, `decon2` shadow-update times out (`DISP_ERR_DECON_TIMEOUT`), triggering kernel panic / hardware watchdog reset (`reason as 4` in `/proc/last_kmsg`).
+* **Engineering Fix & Hardening:**
+  1. **Strict Rule 8 Guard in `s8_typec_daemon.py`:** Added an explicit HDMI state check to `ensure_dp_bridge()`:
+     ```python
+     if int(read_file(SYSFS_HDMI_STATE, "0")) != 1:
+         return
+     ```
+     `s8_typec_daemon` now strictly NEVER touches `fb2` or unblanks DECON2 unless `/sys/class/switch/hdmi/state == 1`.
+  2. **Removed Blind Probing in `exynos_dp_bridge.c`:** Stripped the aggressive `system("echo source ... echo 22 > /sys/class/dp_sec/link")` subshell when `hpd <= 0`. The bridge now operates in pure passive `usleep(100000)` idle wait.
+  3. **On-Device Recompilation & Sync:** Recompiled `exynos_dp_bridge` with `-O3` directly on-device and synchronized to `/usr/local/bin/exynos_dp_bridge` and `/data/linux/exynos_dp_bridge`.
+  4. **Verification:** Phone uptime stabilized immediately (continuous 7+ minutes uptime without single reboot or chime).
+
+

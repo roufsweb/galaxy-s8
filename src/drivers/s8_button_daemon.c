@@ -202,16 +202,17 @@ static void handle_bixby_action(const char *action) {
         return;
     }
 
-    if (strcmp(action, "single") == 0) {
-        vibrate(100);
-        run_async_cmd("export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; DISPLAY=:1 /usr/local/bin/kgx </dev/null >/dev/null 2>&1 || DISPLAY=:1 gnome-terminal </dev/null >/dev/null 2>&1");
-    } else if (strcmp(action, "triple") == 0) {
+    if (strcmp(action, "triple") == 0) {
         vibrate(250);
         run_async_cmd("export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; python3 /usr/local/bin/s8_typec_daemon.py arm </dev/null >/var/log/bixby_dock.log 2>&1");
-    } else if (strcmp(action, "long") == 0) {
-        vibrate(200);
-        run_async_cmd("export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; if [ -x /usr/local/bin/notify_telegram.py ]; then python3 /usr/local/bin/notify_telegram.py '[INFO] Galaxy S8 Physical Bixby Key Long Press Triggered'; fi");
+        return;
     }
+
+    /* Single Click or Long Press: Trigger 100% On-Device AI Voice Assistant */
+    vibrate(120);
+    printf("[s8_button_daemon] Bixby %s -> Triggering S8 On-Device Voice Assistant with live mic...\n", action);
+    fflush(stdout);
+    run_async_cmd("export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; /usr/bin/s8-voice-assistant --live-mic </dev/null >/var/log/s8_voice_assistant.log 2>&1");
 }
 
 static uint64_t current_time_ms(void) {

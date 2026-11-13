@@ -534,14 +534,6 @@ int main(int argc, char **argv) {
                "idle waiting for reconnect.\n");
         dp_active = false;
       }
-      /* Rule 14 & 15: Automatically force Alternate Mode negotiation every 2s */
-      if (++probe_counter >= 20) {
-        probe_counter = 0;
-        system("echo source > /sys/class/typec/port0/port_type 2>/dev/null; "
-               "echo 1 > /sys/class/sec/ccic/role_swap 2>/dev/null; "
-               "echo \"0 0\" > /sys/class/dp_sec/dp_sbu_sw_sel 2>/dev/null; "
-               "echo 22 > /sys/class/dp_sec/link 2>/dev/null");
-      }
       usleep(100000);
       continue;
     }

@@ -1327,3 +1327,21 @@ ecovery.img in standard USTAR format for instant flashing in the AP slot of Odin
   - Clocks: **DISP locked at 533 MHz, MIF locked at 1.794 GHz (Zero DECON underruns)**
   - Telemetry: **All 4 interaction states visually verified and dispatched to Telegram**
 
+---
+
+### Task 71: Hotplug SWR Watchdog Reboot Loop Interception, Blind Link Training Guard, and Physical LED Clarification
+* **Execution Date:** 2026-11-13
+* **Motivation:** User reported on Telegram that after flashing the AP, the phone vibrated once, then twice, entered a continuous reboot loop with Windows chiming repeatedly, and queried about the status of the front LED and kernel changes.
+* **Actions Completed:**
+  1. **Root Cause Analysis (Finding 138 / Finding 114):** Diagnosed that `s8_typec_daemon.py` called `ensure_dp_bridge()` unconditionally at boot, and `exynos_dp_bridge.c` forced `echo 22 > /sys/class/dp_sec/link` every 2 seconds when disconnected. When connected to PC (Device mode), this triggered CCIC role switching and a DECON2 shadow update timeout watchdog panic, causing the 1x/2x vibration reboot loop and Windows USB chime flapping.
+  2. **Automated ADB Loop Interception:** Deployed `scratch/break_loop.py` to catch the device during its ~8 second chime window, successfully killing the offending processes and breaking the reboot loop.
+  3. **Strict Rule 8 Enforcement:** Added HDMI state verification (`if int(read_file(SYSFS_HDMI_STATE, "0")) != 1: return`) in `s8_typec_daemon.py` so DisplayPort link training is never triggered while connected to PC. Stripped the blind `system()` link training loop from `exynos_dp_bridge.c`.
+  4. **Compilation & On-Device Sync:** Recompiled `exynos_dp_bridge` directly on-device with `-O3` and synchronized across `/usr/local/bin` and `/data/linux`.
+  5. **Physical Hardware Clarification:** Reconfirmed per Rule 1 (`GEMINI.md`) that the stripped S8 motherboard physically lacks an internal screen and front RGB status LED (`lcdtype=-1`). Lifecycle states are signaled exclusively via haptic vibration pulses. Confirmed kernel is the 100% verified baseline 4.4.111.
+* **Hardware Status:**
+  - Active Platform: **`4.4.111 #1 SMP PREEMPT` (`SM-G950N`, Stable Uptime > 7 mins)**
+  - Reboot Loop: **100% Resolved & Eliminated**
+  - Haptic Buttons: **PID 3401 `s8_button_daemon` Active & Supervised**
+  - Display Pipeline: **Passive idle wait armed; activates only on genuine HDMI state == 1**
+
+

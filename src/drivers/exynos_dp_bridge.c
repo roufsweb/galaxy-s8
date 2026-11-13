@@ -860,9 +860,8 @@ int main(int argc, char **argv) {
 
   /* Ensure DECON2 starts in FB_BLANK_POWERDOWN when unplugged */
   if (read_int_file("/sys/class/switch/hdmi/state", 0) == 0 && !force_mode) {
-    ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN);
     printf("[exynos_dp_bridge] USB-C DisplayPort currently unplugged (HPD=0); "
-           "DECON2 armed in FB_BLANK_POWERDOWN.\n");
+           "DECON2 armed in idle wait.\n");
   }
 
   while (1) {
@@ -872,8 +871,7 @@ int main(int argc, char **argv) {
     if (hpd <= 0) {
       if (dp_active) {
         printf("[exynos_dp_bridge] USB-C DisplayPort unplugged (HPD=0) — "
-               "powering down DECON2.\n");
-        ioctl(fb_fd, FBIOBLANK, FB_BLANK_POWERDOWN);
+               "idle waiting for reconnect.\n");
         dp_active = false;
       }
       if (!x11.dpy && (loop_tick % 20 == 0))

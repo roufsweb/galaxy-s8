@@ -202,6 +202,10 @@ class TypeCSupervisor:
 
     def ensure_dp_bridge(self):
         """Ensure DECON2 fb2 is unblanked and single exynos_dp_bridge instance is running."""
+        # STRICT RULE 8 GUARD: Never unblank fb2 or launch bridge unless HDMI state is 1!
+        if int(read_file(SYSFS_HDMI_STATE, "0")) != 1:
+            return
+
         fb_path = "/dev/graphics/fb2" if os.path.exists("/dev/graphics/fb2") else "/dev/fb2"
         if os.path.exists(fb_path):
             try:

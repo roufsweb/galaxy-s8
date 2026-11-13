@@ -305,8 +305,7 @@ DHCP
 /run/s8/udhcpd -S /run/s8/udhcpd.conf </dev/null >/var/log/s8_udhcpd.log 2>&1 || true
 
 [ -x /run/s8/s8_usb_agentd ] && /run/s8/s8_usb_agentd </dev/null >/var/log/s8_usb_agentd.log 2>&1 &
-[ -x /run/s8/s8_dp_daemon ] && /run/s8/s8_dp_daemon </dev/null >/var/log/s8_dp_daemon.log 2>&1 &
-[ -x /run/s8/s8_button_daemon ] && /run/s8/s8_button_daemon </dev/null >/var/log/s8_button_daemon.log 2>&1 &
+# s8_dp_daemon and s8_button_daemon managed exclusively by systemd in switched root
 [ -x /run/s8/s8_net_hotplug.sh ] && /run/s8/s8_net_hotplug.sh </dev/null >/var/log/s8_net_hotplug.log 2>&1 &
 [ -x /run/s8/s8_serial_getty.sh ] && /run/s8/s8_serial_getty.sh </dev/null >/var/log/s8_serial_getty.log 2>&1 &
 
@@ -529,8 +528,7 @@ DHCP
     /run/s8/udhcpd -S /run/s8/udhcpd.conf </dev/null >/var/log/s8_udhcpd.log 2>&1 || true
     /run/s8/telnetd -l /run/s8/sh -p 2323 -b 127.0.0.1 </dev/null >/dev/null 2>&1 || true
     [ -x /run/s8/s8_usb_agentd ] && /run/s8/s8_usb_agentd </dev/null >/var/log/s8_usb_agentd.log 2>&1 &
-    [ -x /run/s8/s8_dp_daemon ] && /run/s8/s8_dp_daemon </dev/null >/var/log/s8_dp_daemon.log 2>&1 &
-    [ -x /run/s8/s8_button_daemon ] && /run/s8/s8_button_daemon </dev/null >/var/log/s8_button_daemon.log 2>&1 &
+    # s8_dp_daemon and s8_button_daemon managed exclusively by systemd in switched root
     [ -x /run/s8/s8_net_hotplug.sh ] && /run/s8/s8_net_hotplug.sh </dev/null >/var/log/s8_net_hotplug.log 2>&1 &
     [ -x /run/s8/s8_serial_getty.sh ] && /run/s8/s8_serial_getty.sh </dev/null >/var/log/s8_serial_getty.log 2>&1 &
     if [ -x /run/s8/s8-dropbear-arm64 ]; then
@@ -757,7 +755,6 @@ def build_pure_linux_cpio() -> bytes:
 
     for src_bin, dst_name in [
         (BUTTON_DAEMON, "sbin/s8_button_daemon"),
-        (DP_DAEMON, "sbin/s8_dp_daemon"),
         (USB_AGENTD, "sbin/s8_usb_agentd"),
         (DROPBEAR_BIN, "sbin/s8-dropbear-arm64"),
     ]:
@@ -893,7 +890,6 @@ def verify_ap():
         b"acm.gs0",
         b"s8_net_hotplug.sh",
         b"s8_udhcpc.script",
-        b"s8_dp_daemon",
         b"s8_usb_agentd",
         b"s8_button_daemon",
         b"s8-dropbear-arm64",
